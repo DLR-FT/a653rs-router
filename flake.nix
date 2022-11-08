@@ -54,6 +54,15 @@
             { package = "git-cliff"; }
             { package = "treefmt"; }
             {
+              name = "verify-no_std";
+              command = ''
+                cd $PRJ_ROOT
+                cargo build -p network-partition --release --target thumbv6m-none-eabi --features apex-rs/serde,apex-rs/strum
+              '';
+              help = "Verify that the library builds for no_std without std-features";
+              category = "test";
+            }
+            {
               name = "udeps";
               command = ''
                 PATH=${fenix.packages.${system}.latest.rustc}/bin:$PATH
@@ -67,16 +76,6 @@
               help = pkgs.cargo-outdated.meta.description;
             }
             {
-              name = "verify-no_std";
-              command = ''
-                cd $PRJ_ROOT
-                cargo build --target thumbv6m-none-eabi --no-default-features
-              '';
-              help =
-                "Verify that the library builds for no_std without std-features";
-              category = "dev";
-            }
-            {
               name = "build";
               command = ''
                 cargo build --release --target x86_64-unknown-linux-musl
@@ -87,8 +86,8 @@
             {
               name = "run";
               command = ''
-                cargo build -p network_partition --release --target x86_64-unknown-linux-musl
-                RUST_LOG=''${RUST_LOG:=trace} linux-apex-hypervisor hypervisor_config.yaml
+                cargo build -p network-partition-linux --release --target x86_64-unknown-linux-musl
+                RUST_LOG=''${RUST_LOG:=trace} linux-apex-hypervisor linux/hypervisor_config.yaml
               '';
               help = "Build and run the network partition using the hypervisor";
               category = "dev";

@@ -386,13 +386,21 @@ dependencies = [
 ]
 
 [[package]]
-name = "network_partition"
+name = "network-partition"
+version = "0.1.0"
+dependencies = [
+ "apex-rs",
+]
+
+[[package]]
+name = "network-partition-linux"
 version = "0.1.0"
 dependencies = [
  "apex-rs",
  "apex-rs-linux",
  "humantime",
  "log",
+ "network-partition",
  "once_cell",
 ]
 

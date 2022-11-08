@@ -1,0 +1,7 @@
+[package]
+name = "network-partition"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+apex-rs = { git = "https://github.com/aeronautical-informatics/apex-rs.git", branch = "main", default-features = false }

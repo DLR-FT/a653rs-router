@@ -1,0 +1,16 @@
+[package]
+name = "network-partition-linux"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+network-partition = { path = "../core" }
+apex-rs = { git = "https://github.com/aeronautical-informatics/apex-rs.git", branch = "main" }
+apex-rs-linux = { git = "ssh://git@github.com:/aeronautical-informatics/apex-linux.git", branch = "main" }
+log = "0"
+once_cell = "1.16"
+humantime = "2.1"
+
+[[bin]]
+name = "network-partition-linux"
+path = "src/bin/partition.rs"

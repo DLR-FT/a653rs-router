@@ -3,7 +3,7 @@ extern crate log;
 use apex_rs::prelude::*;
 use apex_rs_linux::partition::{ApexLinuxPartition, ApexLogger};
 use apex_rs_postcard::prelude::*;
-use log::{info, trace, LevelFilter};
+use log::{trace, LevelFilter};
 use network_partition::prelude::*;
 use once_cell::sync::OnceCell;
 use std::str::FromStr; // Name::from_str
@@ -73,7 +73,7 @@ extern "C" fn respond_to_echo() {
         match result {
             Ok(data) => {
                 let (valid, data) = data;
-                info!("Echo seqnr: {:?}, valid: {valid:?}", data.sequence);
+                trace!("Echo seqnr: {:?}, valid: {valid:?}", data.sequence);
                 ECHO_SEND.get().unwrap().send_type(data).ok().unwrap();
             }
             Err(_) => trace!("No echo request"),

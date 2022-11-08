@@ -32,6 +32,20 @@
 )]
 
 /// Standard Prelude to be used by network partition implementations (e.g. network_partition_linux)
-pub mod prelude;
+pub mod prelude {
+    pub use crate::network_partition::Echo;
+}
 
-mod network_partition {}
+mod network_partition {
+    use serde::{Deserialize, Serialize};
+
+    /// Echo message
+    #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+    pub struct Echo {
+        /// A sequence number.
+        pub sequence: i32,
+
+        /// The time at which the message has been created.
+        pub when_ms: u64,
+    }
+}

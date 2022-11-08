@@ -1,3 +1,1 @@
-- Right now there are two partitions that cotain two processes that run periodic and aperiodic sampling.
 - Create two simpler test partitions and connect them with channel.
-- create two sub-crates (linux and core)

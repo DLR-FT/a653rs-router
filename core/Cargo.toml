@@ -5,3 +5,4 @@ edition = "2021"
 
 [dependencies]
 apex-rs = { git = "https://github.com/aeronautical-informatics/apex-rs.git", branch = "main", default-features = false }
+serde = "1.0"

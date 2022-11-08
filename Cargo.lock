@@ -35,7 +35,7 @@ dependencies = [
 [[package]]
 name = "apex-rs-linux"
 version = "0.1.0"
-source = "git+ssh://git@github.com/aeronautical-informatics/apex-linux.git?branch=main#108e3d0ac728091691d3fad2b72c314190f3f44a"
+source = "git+ssh://git@github.com/aeronautical-informatics/apex-linux.git?branch=main#b4e2fc5e39104d5bdffc3a36d3f53d4f74d75b27"
 dependencies = [
  "anyhow",
  "apex-rs",
@@ -50,6 +50,34 @@ dependencies = [
  "safemem",
  "tinyvec",
 ]
+
+[[package]]
+name = "apex-rs-postcard"
+version = "0.1.0"
+source = "git+ssh://git@github.com/aeronautical-informatics/apex-rs-postcard.git?branch=main#64c1c4e14c63fa201d531cc5a7870523abefb412"
+dependencies = [
+ "apex-rs",
+ "arrayvec",
+ "postcard",
+ "serde",
+]
+
+[[package]]
+name = "apex-rs-postcard"
+version = "0.1.0"
+source = "git+https://github.com/aeronautical-informatics/apex-rs-postcard.git?branch=main#64c1c4e14c63fa201d531cc5a7870523abefb412"
+dependencies = [
+ "apex-rs",
+ "arrayvec",
+ "postcard",
+ "serde",
+]
+
+[[package]]
+name = "arrayvec"
+version = "0.7.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8da52d66c7071e2e3fa2a1e5c6d088fec47b593032b254f5e980de8ea54454d6"
 
 [[package]]
 name = "autocfg"
@@ -95,9 +123,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.0.74"
+version = "1.0.75"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "581f5dba903aac52ea3feb5ec4810848460ee833876f1f9b0fdeab1f19091574"
+checksum = "41ca34107f97baef6cfb231b32f36115781856b8f8208e8c580e0bcaea374842"
 
 [[package]]
 name = "cfg-if"
@@ -119,6 +147,12 @@ dependencies = [
  "wasm-bindgen",
  "winapi",
 ]
+
+[[package]]
+name = "cobs"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "67ba02a97a2bd10f4b59b25c7973101c79642302776489e030cd13cdab09ed15"
 
 [[package]]
 name = "codespan-reporting"
@@ -147,9 +181,9 @@ dependencies = [
 
 [[package]]
 name = "cxx"
-version = "1.0.80"
+version = "1.0.81"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6b7d4e43b25d3c994662706a1d4fcfc32aaa6afd287502c111b237093bb23f3a"
+checksum = "97abf9f0eca9e52b7f81b945524e76710e6cb2366aead23b7d4fbf72e281f888"
 dependencies = [
  "cc",
  "cxxbridge-flags",
@@ -159,9 +193,9 @@ dependencies = [
 
 [[package]]
 name = "cxx-build"
-version = "1.0.80"
+version = "1.0.81"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "84f8829ddc213e2c1368e51a2564c552b65a8cb6a28f31e576270ac81d5e5827"
+checksum = "7cc32cc5fea1d894b77d269ddb9f192110069a8a9c1f1d441195fba90553dea3"
 dependencies = [
  "cc",
  "codespan-reporting",
@@ -174,19 +208,33 @@ dependencies = [
 
 [[package]]
 name = "cxxbridge-flags"
-version = "1.0.80"
+version = "1.0.81"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e72537424b474af1460806647c41d4b6d35d09ef7fe031c5c2fa5766047cc56a"
+checksum = "8ca220e4794c934dc6b1207c3b42856ad4c302f2df1712e9f8d2eec5afaacf1f"
 
 [[package]]
 name = "cxxbridge-macro"
-version = "1.0.80"
+version = "1.0.81"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "309e4fb93eed90e1e14bea0da16b209f81813ba9fc7830c20ed151dd7bc0a4d7"
+checksum = "b846f081361125bfc8dc9d3940c84e1fd83ba54bbca7b17cd29483c828be0704"
 dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "echo"
+version = "0.1.0"
+dependencies = [
+ "apex-rs",
+ "apex-rs-linux",
+ "apex-rs-postcard 0.1.0 (git+https://github.com/aeronautical-informatics/apex-rs-postcard.git?branch=main)",
+ "humantime",
+ "log",
+ "network-partition",
+ "once_cell",
+ "serde",
 ]
 
 [[package]]
@@ -316,7 +364,7 @@ dependencies = [
 [[package]]
 name = "linux-apex-core"
 version = "0.1.0"
-source = "git+ssh://git@github.com/aeronautical-informatics/apex-linux.git?branch=main#108e3d0ac728091691d3fad2b72c314190f3f44a"
+source = "git+ssh://git@github.com/aeronautical-informatics/apex-linux.git?branch=main#b4e2fc5e39104d5bdffc3a36d3f53d4f74d75b27"
 dependencies = [
  "anyhow",
  "apex-rs",
@@ -390,6 +438,7 @@ name = "network-partition"
 version = "0.1.0"
 dependencies = [
  "apex-rs",
+ "serde",
 ]
 
 [[package]]
@@ -398,10 +447,11 @@ version = "0.1.0"
 dependencies = [
  "apex-rs",
  "apex-rs-linux",
- "humantime",
+ "apex-rs-postcard 0.1.0 (git+ssh://git@github.com/aeronautical-informatics/apex-rs-postcard.git?branch=main)",
  "log",
  "network-partition",
  "once_cell",
+ "serde",
 ]
 
 [[package]]
@@ -461,6 +511,16 @@ dependencies = [
  "log",
  "wepoll-ffi",
  "winapi",
+]
+
+[[package]]
+name = "postcard"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1c2b180dc0bade59f03fd005cb967d3f1e5f69b13922dad0cd6e047cb8af2363"
+dependencies = [
+ "cobs",
+ "serde",
 ]
 
 [[package]]

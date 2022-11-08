@@ -98,6 +98,23 @@
               help = "Run hypervisor with networ partition using systemd scope";
               category = "dev";
             }
+            {
+              name = "run-echo-scoped";
+              command = "systemd-run --user --scope run-echo";
+              help = "Run echo example using systemd scope";
+              category = "dev";
+            }
+            {
+              name = "run-echo";
+              command = ''
+                cargo build -p network-partition-linux --release --target x86_64-unknown-linux-musl
+                cargo build -p echo --release --target x86_64-unknown-linux-musl
+                RUST_LOG=''${RUST_LOG:=trace} linux-apex-hypervisor examples/echo/hypervisor_config.yaml
+              '';
+              help = "Build and run the network partition using the hypervisor";
+              category = "dev";
+            }
+
           ];
         };
 

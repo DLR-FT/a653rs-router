@@ -28,6 +28,7 @@
           latest.clippy
           latest.rustfmt
           targets.x86_64-unknown-linux-musl.latest.rust-std
+          targets.thumbv6m-none-eabi.latest.rust-std
         ];
         hypervisorPackage = hypervisor.packages.${system}.linux-apex-hypervisor;
       in
@@ -57,7 +58,7 @@
               name = "verify-no_std";
               command = ''
                 cd $PRJ_ROOT
-                cargo build -p network-partition --release --target thumbv6m-none-eabi --features apex-rs/serde,apex-rs/strum
+                cargo build -p network-partition --release --target thumbv6m-none-eabi
               '';
               help = "Verify that the library builds for no_std without std-features";
               category = "test";

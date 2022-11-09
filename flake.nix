@@ -11,10 +11,15 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    naersk = {
+      url = "git+https://github.com/nix-community/naersk.git";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     hypervisor.url = "git+ssh://git@github.com/aeronautical-informatics/apex-linux.git?ref=main";
   };
 
-  outputs = { self, nixpkgs, utils, devshell, fenix, hypervisor, ... }@inputs:
+  outputs = { self, nixpkgs, utils, devshell, fenix, hypervisor, naersk, ... }@inputs:
     utils.lib.eachSystem [ "x86_64-linux" ] (system:
       let
         pkgs = import nixpkgs {
@@ -30,6 +35,10 @@
           targets.x86_64-unknown-linux-musl.latest.rust-std
           targets.thumbv6m-none-eabi.latest.rust-std
         ];
+        naerskLib = (naersk.lib.${system}.override {
+          cargo = rust-toolchain;
+          rustc = rust-toolchain;
+        });
         hypervisorPackage = hypervisor.packages.${system}.linux-apex-hypervisor;
       in
       {
@@ -115,7 +124,22 @@
               help = "Build and run the network partition using the hypervisor";
               category = "dev";
             }
-
+            {
+              name = "lint";
+              command = ''
+                cargo clippy --all-targets --all-features -- -D warnings
+              '';
+              help = "Run clippy and fail on warnings";
+              category = "dev";
+            }
+            {
+              name = "test";
+              command = ''
+                cargo test
+              '';
+              help = "Run tests";
+              category = "dev";
+            }
           ];
         };
 
@@ -128,6 +152,21 @@
             {
               nativeBuildInputs = [ rust-toolchain ];
             } "cd ${./.} && cargo fmt --check && touch $out";
+        };
+
+        packages = {
+          network-partition = naerskLib.buildPackage rec {
+            pname = "network-partition";
+            root = ./.;
+            cargoBuildOptions = x: x ++ [ "-p" pname ];
+            cargoTestOptions = x: x ++ [ "-p" pname ];
+          };
+          network-partition-linux = naerskLib.buildPackage rec {
+            pname = "network-partition-linux";
+            root = ./.;
+            cargoBuildOptions = x: x ++ [ "-p" pname ];
+            cargoTestOptions = x: x ++ [ "-p" pname ];
+          };
         };
       });
 }

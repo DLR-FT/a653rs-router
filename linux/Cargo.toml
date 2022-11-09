@@ -12,6 +12,3 @@ serde = "1.0"
 log = "0"
 once_cell = "1.16"
 
-[[bin]]
-name = "network-partition-linux"
-path = "src/bin/partition.rs"

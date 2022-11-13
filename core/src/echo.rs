@@ -1,10 +1,11 @@
+//! Echo service
 use serde::{Deserialize, Serialize};
 
+#[derive(Serialize, Deserialize, Copy, Clone, Debug)]
 /// Echo message
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub struct Echo {
     /// A sequence number.
-    pub sequence: i32,
+    pub sequence: u32,
 
     /// The time at which the message has been created.
     pub when_ms: u64,

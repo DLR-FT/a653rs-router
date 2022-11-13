@@ -54,17 +54,6 @@ dependencies = [
 [[package]]
 name = "apex-rs-postcard"
 version = "0.1.0"
-source = "git+ssh://git@github.com/aeronautical-informatics/apex-rs-postcard.git?branch=main#64c1c4e14c63fa201d531cc5a7870523abefb412"
-dependencies = [
- "apex-rs",
- "arrayvec",
- "postcard",
- "serde",
-]
-
-[[package]]
-name = "apex-rs-postcard"
-version = "0.1.0"
 source = "git+https://github.com/aeronautical-informatics/apex-rs-postcard.git?branch=main#64c1c4e14c63fa201d531cc5a7870523abefb412"
 dependencies = [
  "apex-rs",
@@ -135,9 +124,9 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "chrono"
-version = "0.4.22"
+version = "0.4.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bfd4d1b31faaa3a89d7934dbded3111da0d2ef28e3ebccdb4f0179f5929d1ef1"
+checksum = "16b0a3d9ed01224b22057780a37bb8c5dbfe1be8ba48678e7bf57ec4b385411f"
 dependencies = [
  "iana-time-zone",
  "js-sys",
@@ -229,12 +218,10 @@ version = "0.1.0"
 dependencies = [
  "apex-rs",
  "apex-rs-linux",
- "apex-rs-postcard 0.1.0 (git+https://github.com/aeronautical-informatics/apex-rs-postcard.git?branch=main)",
- "humantime",
+ "apex-rs-postcard",
  "log",
  "network-partition",
  "once_cell",
- "serde",
 ]
 
 [[package]]
@@ -287,12 +274,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
-name = "humantime"
-version = "2.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9a3a5bfb195931eeb336b2a7b4d761daec841b97f947d34394601737a7bba5e4"
-
-[[package]]
 name = "iana-time-zone"
 version = "0.1.53"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -321,6 +302,16 @@ name = "io-lifetimes"
 version = "0.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "59ce5ef949d49ee85593fc4d3f3f95ad61657076395cbbce23e2121fc5542074"
+
+[[package]]
+name = "io-lifetimes"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a7d367024b3f3414d8e01f437f704f41a9f64ab36f9067fa73e526ad4c763c87"
+dependencies = [
+ "libc",
+ "windows-sys",
+]
 
 [[package]]
 name = "itertools"
@@ -389,6 +380,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d4d2456c373231a208ad294c33dc5bff30051eafd954cd4caae83a712b12854d"
 
 [[package]]
+name = "linux-raw-sys"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bb68f22743a3fb35785f1e7f844ca5a3de2dde5bd0c0ef5b372065814699b121"
+
+[[package]]
 name = "log"
 version = "0.4.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -399,11 +396,11 @@ dependencies = [
 
 [[package]]
 name = "memfd"
-version = "0.6.1"
+version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "480b5a5de855d11ff13195950bdc8b98b5e942ef47afc447f6615cdcc4e15d80"
+checksum = "b20a59d985586e4a5aef64564ac77299f8586d8be6cf9106a5a40207e8908efb"
 dependencies = [
- "rustix",
+ "rustix 0.36.1",
 ]
 
 [[package]]
@@ -437,8 +434,8 @@ dependencies = [
 name = "network-partition"
 version = "0.1.0"
 dependencies = [
+ "apex-rs",
  "serde",
- "strum",
 ]
 
 [[package]]
@@ -447,11 +444,10 @@ version = "0.1.0"
 dependencies = [
  "apex-rs",
  "apex-rs-linux",
- "apex-rs-postcard 0.1.0 (git+ssh://git@github.com/aeronautical-informatics/apex-rs-postcard.git?branch=main)",
+ "apex-rs-postcard",
  "log",
  "network-partition",
  "once_cell",
- "serde",
 ]
 
 [[package]]
@@ -544,7 +540,7 @@ dependencies = [
  "flate2",
  "hex",
  "lazy_static",
- "rustix",
+ "rustix 0.35.13",
 ]
 
 [[package]]
@@ -564,9 +560,23 @@ checksum = "727a1a6d65f786ec22df8a81ca3121107f235970dc1705ed681d3e6e8b9cd5f9"
 dependencies = [
  "bitflags",
  "errno",
- "io-lifetimes",
+ "io-lifetimes 0.7.5",
  "libc",
- "linux-raw-sys",
+ "linux-raw-sys 0.0.46",
+ "windows-sys",
+]
+
+[[package]]
+name = "rustix"
+version = "0.36.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "812a2ec2043c4d6bc6482f5be2ab8244613cac2493d128d36c0759e52a626ab3"
+dependencies = [
+ "bitflags",
+ "errno",
+ "io-lifetimes 1.0.1",
+ "libc",
+ "linux-raw-sys 0.1.2",
  "windows-sys",
 ]
 

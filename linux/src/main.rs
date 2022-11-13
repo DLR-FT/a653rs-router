@@ -4,7 +4,7 @@ use apex_rs::prelude::*;
 use apex_rs_linux::partition::{ApexLinuxPartition, ApexLogger};
 use apex_rs_postcard::prelude::*;
 use log::{trace, LevelFilter};
-use network_partition::prelude::*;
+use network_partition::echo::Echo;
 use once_cell::sync::OnceCell;
 use std::str::FromStr; // Name::from_str
 use std::thread::sleep;
@@ -14,12 +14,11 @@ pub type Hypervisor = ApexLinuxPartition;
 
 struct NetworkPartition;
 
-// TODO move to lib
-trait PartitionName {
+trait PartitionName<Hypervisor> {
     fn name(&self) -> Name;
 }
 
-impl PartitionName for NetworkPartition {
+impl PartitionName<Hypervisor> for NetworkPartition {
     fn name(&self) -> Name {
         Name::from_str("NetworkPartition").unwrap()
     }
@@ -47,6 +46,7 @@ impl Partition<Hypervisor> for NetworkPartition {
             .unwrap();
         ECHO_SEND.set(send_port).unwrap();
 
+        // Periodic
         ctx.create_process(ProcessAttribute {
             period: SystemTime::Normal(Duration::ZERO),
             time_capacity: SystemTime::Infinite,
@@ -67,16 +67,25 @@ impl Partition<Hypervisor> for NetworkPartition {
 }
 
 extern "C" fn respond_to_echo() {
-    for _ in 1..i32::MAX {
-        sleep(Duration::from_millis(1));
+    loop {
         let result = ECHO_RECV.get().unwrap().recv_type::<Echo>();
         match result {
             Ok(data) => {
                 let (valid, data) = data;
-                trace!("Echo seqnr: {:?}, valid: {valid:?}", data.sequence);
-                ECHO_SEND.get().unwrap().send_type(data).ok().unwrap();
+                if valid == Validity::Valid {
+                    trace!("Echo seqnr: {:?}, valid: {valid:?}", data.sequence);
+                    let send = ECHO_SEND.get().unwrap().send_type(data);
+                    match send {
+                        Ok(_) => {
+                            trace!("Sent reply to {:?}", data.sequence);
+                        }
+                        Err(_) => {
+                            trace!("Failed to send reply");
+                        }
+                    }
+                }
             }
-            Err(_) => trace!("No echo request"),
+            Err(_) => {}
         }
 
         Hypervisor::periodic_wait().unwrap();
@@ -88,7 +97,7 @@ fn main() {
     ApexLogger::install_panic_hook();
 
     // Log all events down to trace level
-    ApexLogger::install_logger(LevelFilter::Trace).unwrap();
+    ApexLogger::install_logger(LevelFilter::Info).unwrap();
 
     NetworkPartition.run()
 }

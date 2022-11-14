@@ -12,7 +12,7 @@
     };
 
     naersk = {
-      url = "git+https://github.com/nix-community/naersk.git";
+      url = "github:nix-community/naersk";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -57,101 +57,127 @@
             cargo-audit
             cargo-watch
             formatter
+            treefmt
           ];
           git.hooks.enable = true;
           git.hooks.pre-commit.text = ''
-            nix flake check
-            cargo test
-            cargo doc
+            check-format
+            check-clippy
+            test-unit
           '';
           commands = [
-            { package = "git-cliff"; }
-            { package = "treefmt"; }
             {
-              name = "verify-doc";
+              name = "check-format";
+              command = "treefmt --fail-on-change";
+              help = "Check syntax";
+              category = "check";
+            }
+            {
+              name = "check-clippy";
+              command = ''
+                cargo clippy --all-targets --all-features
+              '';
+              help = "Run clippy and fail on warnings";
+              category = "check";
+            }
+            {
+              name = "check-flake";
+              command = "nix flake check";
+              help = "Check flake";
+              category = "check";
+            }
+            {
+              name = "check-udeps";
+              command = ''
+                PATH=${fenix.packages.${system}.latest.rustc}/bin:$PATH
+                cargo udeps $@
+              '';
+              help = pkgs.cargo-udeps.meta.description;
+              category = "check";
+            }
+            {
+              name = "build-doc";
               command = ''
                 cd $PRJ_ROOT
                 cargo doc
               '';
               help =
                 "Verify that the documentation builds without problems";
-              category = "test";
+              category = "build";
             }
             {
-              name = "verify-no_std";
+              name = "build-network-partition";
+              command = ''
+                cargo build -p network-partition --release --target x86_64-unknown-linux-musl
+              '';
+              help = "Build network partition";
+              category = "build";
+            }
+            {
+              name = "build-network-partition-linux";
+              command = ''
+                cargo build -p network-partition-linux --release --target x86_64-unknown-linux-musl
+              '';
+              help = "Build linux network partition";
+              category = "build";
+            }
+            {
+              name = "build-echo";
+              command = ''
+                cargo build -p network-partition-linux --release --target x86_64-unknown-linux-musl
+              '';
+              help = "Build echo partition";
+              category = "build";
+            }
+            {
+              name = "build-no_std";
               command = ''
                 cd $PRJ_ROOT
                 cargo build -p network-partition --release --target thumbv6m-none-eabi
               '';
               help = "Verify that the library builds for no_std without std-features";
+              category = "build";
+            }
+
+            {
+              name = "test-unit";
+              command = ''
+                cd $PRJ_ROOT
+                cargo test
+              '';
+              help = "Run unit tests";
               category = "test";
             }
             {
-              name = "udeps";
-              command = ''
-                PATH=${fenix.packages.${system}.latest.rustc}/bin:$PATH
-                cargo udeps $@
-              '';
-              help = pkgs.cargo-udeps.meta.description;
-            }
-            {
-              name = "outdated";
-              command = "cargo-outdated outdated";
-              help = pkgs.cargo-outdated.meta.description;
-            }
-            {
-              name = "build";
-              command = ''
-                cargo build --release --target x86_64-unknown-linux-musl
-              '';
-              help = "Build network partition";
-              category = "dev";
-            }
-            {
-              name = "run";
-              command = ''
-                cargo build -p network-partition-linux --release --target x86_64-unknown-linux-musl
-                RUST_LOG=''${RUST_LOG:=trace} linux-apex-hypervisor config/hypervisor_config.yaml
-              '';
-              help = "Build and run the network partition using the hypervisor";
-              category = "dev";
-            }
-            {
-              name = "run-scoped";
-              command = "systemd-run --user --scope run";
-              help = "Run hypervisor with networ partition using systemd scope";
-              category = "dev";
-            }
-            {
-              name = "run-echo-scoped";
-              command = "systemd-run --user --scope run-echo";
-              help = "Run echo example using systemd scope";
-              category = "dev";
-            }
-            {
-              name = "run-echo";
+              name = "test-run-echo";
               command = ''
                 cargo build -p network-partition-linux --release --target x86_64-unknown-linux-musl
                 cargo build -p echo --release --target x86_64-unknown-linux-musl
-                RUST_LOG=''${RUST_LOG:=trace} linux-apex-hypervisor examples/echo/hypervisor_config.yaml
+                RUST_LOG=''${RUST_LOG:=trace} systemd-run --user --scope -- linux-apex-hypervisor --duration 10s config/hypervisor_config.yml
               '';
-              help = "Build and run the network partition using the hypervisor";
-              category = "dev";
+              help = "Run echo example using systemd scope and exit after 10 seconds";
+              category = "test";
+            }
+            #####
+            {
+              name = "run-echo-scoped";
+              command = ''
+                RUST_LOG=''${RUST_LOG:=trace} systemd-run --user --scope -- linux-apex-hypervisor config/hypervisor_config.yml
+              '';
+              help = "Run echo example using systemd scope";
+              category = "run";
             }
             {
-              name = "lint";
-              command = ''
-                cargo clippy --all-targets --all-features -- -D warnings
-              '';
-              help = "Run clippy and fail on warnings";
+              name = "check-outdated";
+              command = "cargo-outdated outdated";
+              help = pkgs.cargo-outdated.meta.description;
               category = "dev";
             }
+
             {
-              name = "test";
-              command = ''
-                cargo test
-              '';
-              help = "Run tests";
+              name = "format";
+              command = "treefmt";
+              help = "Reformat";
               category = "dev";
             }
           ];

@@ -165,15 +165,15 @@
       "locked": {
         "lastModified": 1662220400,
         "narHash": "sha256-9o2OGQqu4xyLZP9K6kNe1pTHnyPz0Wr3raGYnr9AIgY=",
-        "ref": "master",
+        "owner": "nix-community",
+        "repo": "naersk",
         "rev": "6944160c19cb591eb85bbf9b2f2768a935623ed3",
-        "revCount": 305,
-        "type": "git",
-        "url": "https://github.com/nix-community/naersk.git"
+        "type": "github"
       },
       "original": {
-        "type": "git",
-        "url": "https://github.com/nix-community/naersk.git"
+        "owner": "nix-community",
+        "repo": "naersk",
+        "type": "github"
       }
     },
     "nixpkgs": {

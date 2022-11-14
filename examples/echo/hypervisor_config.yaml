@@ -1,16 +1,16 @@
-major_frame: 20s # Messages become invalid after major frame?
+major_frame: 10s
 partitions:
   - id: 0
     name: Echo
-    duration: 10ms
+    duration: 100ms
     offset: 0ms
-    period: 1s
+    period: 200ms
     image: target/x86_64-unknown-linux-musl/release/echo
   - id: 1
     name: Network
-    duration: 10ms
-    offset: 1010ms
-    period: 1s
+    duration: 50ms
+    offset: 100ms
+    period: 200ms
     image: target/x86_64-unknown-linux-musl/release/network-partition-linux
 channel:
   - !Sampling

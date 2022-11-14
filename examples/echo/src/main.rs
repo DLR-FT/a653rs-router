@@ -27,7 +27,7 @@ pub extern "C" fn periodic_send() {
 pub extern "C" fn aperiodic_receive() {
     loop {
         CLIENT.get().unwrap().receive();
-        sleep(*PERIOD)
+        sleep(Duration::from_millis(20));
     }
 }
 
@@ -43,7 +43,7 @@ fn main() {
         receiver: OnceCell::new(),
         entry_point_periodic: periodic_send,
         entry_point_aperiodic: aperiodic_receive,
-        echo_validity: PERIOD.checked_add(Duration::from_millis(10)).unwrap(),
+        echo_validity: PERIOD.checked_mul(2).unwrap(),
     });
 
     let partition = EchoPartition {

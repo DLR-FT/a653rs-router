@@ -7,7 +7,6 @@ use log::{trace, LevelFilter};
 use network_partition::echo::Echo;
 use once_cell::sync::OnceCell;
 use std::str::FromStr; // Name::from_str
-use std::thread::sleep;
 use std::time::Duration;
 
 pub type Hypervisor = ApexLinuxPartition;
@@ -36,7 +35,7 @@ impl Partition<Hypervisor> for NetworkPartition {
         let receive_port = ctx
             .create_sampling_port_destination(
                 Name::from_str("EchoRequest").unwrap(),
-                Duration::from_millis(1),
+                Duration::from_millis(100000),
             )
             .unwrap();
         ECHO_RECV.set(receive_port).unwrap();

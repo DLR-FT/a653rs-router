@@ -10,7 +10,7 @@ network-partition = { path = "../../core" }
 apex-rs = { git = "https://github.com/aeronautical-informatics/apex-rs.git", branch = "main" }
 
 # Linux hypervisor
-apex-rs-linux = { git = "ssh://git@github.com:/aeronautical-informatics/apex-linux.git", branch = "main" }
+apex-rs-linux = { git = "https://git@github.com:/aeronautical-informatics/apex-linux.git", branch = "main" }
 
 # For sending custom data types via channels
 apex-rs-postcard = { git = "https://github.com/aeronautical-informatics/apex-rs-postcard.git", branch = "main" }

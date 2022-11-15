@@ -20,5 +20,5 @@ mod process;
 /// Standard Prelude to be used by network partition implementations (e.g. network_partition_linux)
 pub mod prelude {
     pub use crate::echo::{Echo, PortSampler};
-    pub use crate::partition::NetworkPartition;
+    pub use crate::partition::{run, NetworkPartition};
 }

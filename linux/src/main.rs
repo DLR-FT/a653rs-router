@@ -6,7 +6,7 @@ use log::LevelFilter;
 use network_partition::prelude::*;
 use once_cell::sync::OnceCell;
 
-const ECHO_PORT_SIZE_BYTES: u32 = 10000;
+const ECHO_PORT_SIZE_BYTES: MessageSize = 10000;
 
 static ECHO_SEND: OnceCell<SamplingPortSource<ECHO_PORT_SIZE_BYTES, ApexLinuxPartition>> =
     OnceCell::new();
@@ -29,8 +29,5 @@ fn main() {
 extern "C" fn entry_point() {
     let input = ECHO_RECV.get().unwrap();
     let output = ECHO_SEND.get().unwrap();
-    loop {
-        _ = input.forward(&output);
-        ApexLinuxPartition::periodic_wait().unwrap();
-    }
+    run::<ECHO_PORT_SIZE_BYTES, ApexLinuxPartition>(input, output);
 }

@@ -435,6 +435,8 @@ name = "network-partition"
 version = "0.1.0"
 dependencies = [
  "apex-rs",
+ "apex-rs-postcard",
+ "once_cell",
  "serde",
 ]
 

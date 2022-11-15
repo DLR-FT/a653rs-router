@@ -1,6 +1,5 @@
 use apex_rs::prelude::*;
 use apex_rs_linux::partition::{ApexLinuxPartition, ApexLogger};
-
 use echo::*;
 use log::LevelFilter;
 use once_cell::sync::{Lazy, OnceCell};
@@ -14,10 +13,9 @@ static PERIOD: Lazy<Duration> = Lazy::new(|| {
         .unwrap_duration()
 });
 
-static SENDER: OnceCell<SendPeriodicEchoProcess<ECHO_SIZE, ApexLinuxPartition>> = OnceCell::new();
+static SENDER: OnceCell<SamplingPortSource<ECHO_SIZE, ApexLinuxPartition>> = OnceCell::new();
 
-static RECEIVER: OnceCell<ReceivePeriodicEchoProcess<ECHO_SIZE, ApexLinuxPartition>> =
-    OnceCell::new();
+static RECEIVER: OnceCell<SamplingPortDestination<ECHO_SIZE, ApexLinuxPartition>> = OnceCell::new();
 
 fn main() {
     // Register panic info print on panic
@@ -38,9 +36,9 @@ fn main() {
 }
 
 extern "C" fn entry_point_periodic() {
-    SENDER.get().unwrap().run();
+    SENDER.get().unwrap().run_process();
 }
 
 extern "C" fn entry_point_aperiodic() {
-    RECEIVER.get().unwrap().run();
+    RECEIVER.get().unwrap().run_process();
 }

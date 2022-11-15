@@ -4,5 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-apex-rs = { git = "https://github.com/aeronautical-informatics/apex-rs.git", branch = "main" }
+apex-rs = { git = "https://github.com/aeronautical-informatics/apex-rs.git", branch = "main", features = [ "serde" ]}
+apex-rs-postcard = { git = "https://github.com/aeronautical-informatics/apex-rs-postcard.git", branch = "main" }
 serde = { version = "1.0", default-features = false, features = ["derive"] }
+once_cell = "1.16"

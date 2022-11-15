@@ -1,30 +1,24 @@
 use apex_rs::prelude::*;
 use apex_rs_postcard::sampling::{SamplingPortDestinationExt, SamplingPortSourceExt};
 use log::{error, info, trace};
-use network_partition::echo::Echo;
+use network_partition::prelude::*;
 use once_cell::sync::OnceCell;
 use std::str::FromStr;
 use std::thread::sleep;
 use std::time::Duration;
 
-pub trait EchoProcess {
+pub trait RunableProcess {
     // TODO should take ownership of port, but can't take ownership of port as part of static lifetime process
-    fn run(&self) -> !;
+    /// Run the process
+    fn run_process(&self) -> !;
 }
 
-pub struct SendPeriodicEchoProcess<const ECHO_SIZE: MessageSize, S>
-where
-    S: ApexSamplingPortP4,
-{
-    sender: SamplingPortSource<ECHO_SIZE, S>,
-}
-
-impl<const ECHO_SIZE: MessageSize, H> EchoProcess for SendPeriodicEchoProcess<ECHO_SIZE, H>
+impl<const ECHO_SIZE: MessageSize, H> RunableProcess for SamplingPortSource<ECHO_SIZE, H>
 where
     H: ApexSamplingPortP4 + ApexTimeP4Ext,
     [u8; ECHO_SIZE as usize]:,
 {
-    fn run(&self) -> ! {
+    fn run_process(&self) -> ! {
         let mut i: u32 = 0;
         loop {
             i = i + 1;
@@ -33,7 +27,7 @@ where
                 sequence: i,
                 when_ms: now.as_millis() as u64,
             };
-            let result = self.sender.send_type(data);
+            let result = self.send_type(data);
             match result {
                 Ok(_) => {
                     trace!(
@@ -51,22 +45,15 @@ where
     }
 }
 
-pub struct ReceivePeriodicEchoProcess<const ECHO_SIZE: MessageSize, S>
-where
-    S: ApexSamplingPortP4,
-{
-    receiver: SamplingPortDestination<ECHO_SIZE, S>,
-}
-
-impl<const ECHO_SIZE: MessageSize, H> EchoProcess for ReceivePeriodicEchoProcess<ECHO_SIZE, H>
+impl<const ECHO_SIZE: MessageSize, H> RunableProcess for SamplingPortDestination<ECHO_SIZE, H>
 where
     H: ApexSamplingPortP4 + ApexTimeP4Ext,
     [u8; ECHO_SIZE as usize]:,
 {
-    fn run(&self) -> ! {
+    fn run_process(&self) -> ! {
         loop {
             let now = <H as ApexTimeP4Ext>::get_time().unwrap_duration();
-            let result = self.receiver.recv_type::<Echo>();
+            let result = self.recv_type::<Echo>();
             match result {
                 Ok(data) => {
                     let (valid, received) = data;
@@ -89,8 +76,8 @@ pub struct PeriodicEchoPartition<const ECHO_SIZE: MessageSize, S>
 where
     S: ApexSamplingPortP4 + 'static,
 {
-    sender: &'static OnceCell<SendPeriodicEchoProcess<ECHO_SIZE, S>>,
-    receiver: &'static OnceCell<ReceivePeriodicEchoProcess<ECHO_SIZE, S>>,
+    sender: &'static OnceCell<SamplingPortSource<ECHO_SIZE, S>>,
+    receiver: &'static OnceCell<SamplingPortDestination<ECHO_SIZE, S>>,
     entry_point_periodic: extern "C" fn(),
     entry_point_aperiodic: extern "C" fn(),
     echo_validity: Duration,
@@ -105,9 +92,7 @@ where
             .create_sampling_port_source(Name::from_str("EchoRequest").unwrap())
             .unwrap();
 
-        _ = self
-            .sender
-            .set(SendPeriodicEchoProcess { sender: send_port });
+        _ = self.sender.set(send_port);
 
         let receive_port = ctx
             .create_sampling_port_destination(
@@ -115,9 +100,7 @@ where
                 self.echo_validity,
             )
             .unwrap();
-        _ = self.receiver.set(ReceivePeriodicEchoProcess {
-            receiver: receive_port,
-        });
+        _ = self.receiver.set(receive_port);
 
         // Periodic
         ctx.create_process(ProcessAttribute {
@@ -154,29 +137,15 @@ where
     }
 }
 
-pub trait EchoPartition<const ECHO_SIZE: MessageSize, H>
-where
-    H: ApexSamplingPortP4,
-{
-    fn new(
-        echo_validity: Duration,
-        sender: &'static OnceCell<SendPeriodicEchoProcess<ECHO_SIZE, H>>,
-        receiver: &'static OnceCell<ReceivePeriodicEchoProcess<ECHO_SIZE, H>>,
-        entry_point_periodic: extern "C" fn(),  //SystemAddr,
-        entry_point_aperiodic: extern "C" fn(), //SystemAddr
-    ) -> Self;
-}
-
-impl<const ECHO_SIZE: MessageSize, H> EchoPartition<ECHO_SIZE, H>
-    for PeriodicEchoPartition<ECHO_SIZE, H>
+impl<const ECHO_SIZE: MessageSize, H> PeriodicEchoPartition<ECHO_SIZE, H>
 where
     H: ApexSamplingPortP4,
     [u8; ECHO_SIZE as usize]:,
 {
-    fn new(
+    pub fn new(
         echo_validity: Duration,
-        sender: &'static OnceCell<SendPeriodicEchoProcess<ECHO_SIZE, H>>,
-        receiver: &'static OnceCell<ReceivePeriodicEchoProcess<ECHO_SIZE, H>>,
+        sender: &'static OnceCell<SamplingPortSource<ECHO_SIZE, H>>,
+        receiver: &'static OnceCell<SamplingPortDestination<ECHO_SIZE, H>>,
         entry_point_periodic: extern "C" fn(),
         entry_point_aperiodic: extern "C" fn(),
     ) -> Self {

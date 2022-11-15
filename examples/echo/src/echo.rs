@@ -156,7 +156,7 @@ where
 
 pub trait EchoPartition<const ECHO_SIZE: MessageSize, H>
 where
-    H: ApexSamplingPortP4 + ApexTimeP4Ext,
+    H: ApexSamplingPortP4,
 {
     fn new(
         echo_validity: Duration,
@@ -170,7 +170,7 @@ where
 impl<const ECHO_SIZE: MessageSize, H> EchoPartition<ECHO_SIZE, H>
     for PeriodicEchoPartition<ECHO_SIZE, H>
 where
-    H: ApexSamplingPortP4 + ApexTimeP4Ext,
+    H: ApexSamplingPortP4,
     [u8; ECHO_SIZE as usize]:,
 {
     fn new(

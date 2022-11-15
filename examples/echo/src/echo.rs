@@ -4,6 +4,7 @@ use log::{error, info, trace};
 use network_partition::echo::Echo;
 use once_cell::sync::OnceCell;
 use std::str::FromStr;
+use std::thread::sleep;
 use std::time::Duration;
 
 pub struct EchoPartition<'a, const MSG_SIZE: MessageSize, S>
@@ -78,7 +79,7 @@ where
 }
 
 pub trait EchoSender {
-    fn send(&self, i: u32);
+    fn send(&self);
 }
 
 pub trait EchoReceiver {
@@ -90,24 +91,27 @@ where
     S: ApexSamplingPortP4 + ApexTimeP4Ext,
     [u8; MSG_SIZE as usize]:,
 {
-    fn send(&self, i: u32) {
-        let now = <S as ApexTimeP4Ext>::get_time().unwrap_duration();
-        let data = Echo {
-            sequence: i,
-            when_ms: now.as_millis() as u64,
-        };
-        let result = self.sender.get().unwrap().send_type(data);
-        match result {
-            Ok(_) => {
-                trace!(
-                    "EchoRequest: seqnr = {:?}, time = {:?}",
-                    data.sequence,
-                    data.when_ms
-                );
+    fn send(&self) {
+        for i in 1..u32::MAX {
+            let now = <S as ApexTimeP4Ext>::get_time().unwrap_duration();
+            let data = Echo {
+                sequence: i,
+                when_ms: now.as_millis() as u64,
+            };
+            let result = self.sender.get().unwrap().send_type(data);
+            match result {
+                Ok(_) => {
+                    trace!(
+                        "EchoRequest: seqnr = {:?}, time = {:?}",
+                        data.sequence,
+                        data.when_ms
+                    );
+                }
+                Err(_) => {
+                    error!("Failed to send EchoRequest");
+                }
             }
-            Err(_) => {
-                error!("Failed to send EchoRequest");
-            }
+            <S as ApexTimeP4Ext>::periodic_wait().unwrap();
         }
     }
 }
@@ -118,21 +122,24 @@ where
     [u8; MSG_SIZE as usize]:,
 {
     fn receive(&self) {
-        let now = <S as ApexTimeP4Ext>::get_time().unwrap_duration();
-        let receiver = self.receiver.get().unwrap();
-        let result = receiver.recv_type::<Echo>();
-        match result {
-            Ok(data) => {
-                let (valid, received) = data;
-                info!(
-                    "EchoReply: seqnr = {:?}, time = {:?}, valid = {valid:?}",
-                    received.sequence,
-                    (now.as_millis() as u64) - received.when_ms
-                );
+        loop {
+            let now = <S as ApexTimeP4Ext>::get_time().unwrap_duration();
+            let receiver = self.receiver.get().unwrap();
+            let result = receiver.recv_type::<Echo>();
+            match result {
+                Ok(data) => {
+                    let (valid, received) = data;
+                    info!(
+                        "EchoReply: seqnr = {:?}, time = {:?}, valid = {valid:?}",
+                        received.sequence,
+                        (now.as_millis() as u64) - received.when_ms
+                    );
+                }
+                Err(_) => {
+                    trace!("Failed to receive anything");
+                }
             }
-            Err(_) => {
-                trace!("Failed to receive anything");
-            }
+            sleep(Duration::from_millis(20));
         }
     }
 }

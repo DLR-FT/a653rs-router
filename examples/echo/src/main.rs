@@ -4,7 +4,6 @@ use apex_rs_linux::partition::{ApexLinuxPartition, ApexLogger};
 use echo::{EchoClient, EchoPartition, EchoReceiver, EchoSender};
 use log::LevelFilter;
 use once_cell::sync::{Lazy, OnceCell};
-use std::thread::sleep;
 use std::time::Duration;
 
 const ECHO_PORT_SIZE_BYTES: u32 = 1000;
@@ -18,17 +17,11 @@ static PERIOD: Lazy<Duration> = Lazy::new(|| {
 });
 
 pub extern "C" fn periodic_send() {
-    for i in 1..u32::MAX {
-        CLIENT.get().unwrap().send(i);
-        ApexLinuxPartition::periodic_wait().unwrap();
-    }
+    CLIENT.get().unwrap().send();
 }
 
 pub extern "C" fn aperiodic_receive() {
-    loop {
-        CLIENT.get().unwrap().receive();
-        sleep(Duration::from_millis(20));
-    }
+    CLIENT.get().unwrap().receive();
 }
 
 fn main() {

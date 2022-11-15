@@ -1,28 +1,23 @@
 use apex_rs::prelude::*;
 use apex_rs_linux::partition::{ApexLinuxPartition, ApexLogger};
 
-use echo::{EchoClient, EchoPartition, EchoReceiver, EchoSender};
+use echo::*;
 use log::LevelFilter;
 use once_cell::sync::{Lazy, OnceCell};
 use std::time::Duration;
 
-const ECHO_PORT_SIZE_BYTES: u32 = 1000;
-
-static CLIENT: OnceCell<EchoClient<ECHO_PORT_SIZE_BYTES, ApexLinuxPartition>> = OnceCell::new();
+const ECHO_SIZE: MessageSize = 1000;
 
 static PERIOD: Lazy<Duration> = Lazy::new(|| {
-    EchoPartition::<ECHO_PORT_SIZE_BYTES, ApexLinuxPartition>::get_partition_status()
+    PeriodicEchoPartition::<ECHO_SIZE, ApexLinuxPartition>::get_partition_status()
         .period
         .unwrap_duration()
 });
 
-pub extern "C" fn periodic_send() {
-    CLIENT.get().unwrap().send();
-}
+static SENDER: OnceCell<SendPeriodicEchoProcess<ECHO_SIZE, ApexLinuxPartition>> = OnceCell::new();
 
-pub extern "C" fn aperiodic_receive() {
-    CLIENT.get().unwrap().receive();
-}
+static RECEIVER: OnceCell<ReceivePeriodicEchoProcess<ECHO_SIZE, ApexLinuxPartition>> =
+    OnceCell::new();
 
 fn main() {
     // Register panic info print on panic
@@ -31,16 +26,21 @@ fn main() {
     // Log all events down to trace level
     ApexLogger::install_logger(LevelFilter::Info).unwrap();
 
-    _ = CLIENT.set(EchoClient::<ECHO_PORT_SIZE_BYTES, ApexLinuxPartition> {
-        sender: OnceCell::new(),
-        receiver: OnceCell::new(),
-        entry_point_periodic: periodic_send,
-        entry_point_aperiodic: aperiodic_receive,
-        echo_validity: PERIOD.checked_mul(2).unwrap(),
-    });
-
-    let partition = EchoPartition {
-        client: &CLIENT.get().unwrap(),
-    };
+    let echo_validity: Duration = PERIOD.checked_mul(2).unwrap();
+    let partition = PeriodicEchoPartition::<ECHO_SIZE, ApexLinuxPartition>::new(
+        echo_validity,
+        &SENDER,
+        &RECEIVER,
+        entry_point_periodic,
+        entry_point_aperiodic,
+    );
     partition.run()
+}
+
+extern "C" fn entry_point_periodic() {
+    SENDER.get().unwrap().run();
+}
+
+extern "C" fn entry_point_aperiodic() {
+    RECEIVER.get().unwrap().run();
 }

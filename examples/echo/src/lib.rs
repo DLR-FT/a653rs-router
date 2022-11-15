@@ -2,4 +2,4 @@
 
 mod echo;
 
-pub use echo::{EchoClient, EchoPartition, EchoReceiver, EchoSender};
+pub use echo::*;

@@ -1,0 +1,27 @@
+major_frame: 10s
+partitions:
+  - id: 0
+    name: Echo
+    duration: 100ms
+    offset: 0ms
+    period: 200ms
+    image: target/x86_64-unknown-linux-musl/release/echo
+  - id: 1
+    name: Network
+    duration: 50ms
+    offset: 100ms
+    period: 200ms
+    image: target/x86_64-unknown-linux-musl/release/network-partition-linux
+channel:
+  - !Sampling
+    name: EchoRequest
+    msg_size: 10KB
+    source: Echo
+    destination:
+      - Network
+  - !Sampling
+    name: EchoReply
+    msg_size: 10KB
+    source: Network
+    destination:
+      - Echo

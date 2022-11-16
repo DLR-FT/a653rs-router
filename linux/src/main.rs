@@ -2,7 +2,7 @@ extern crate log;
 
 use apex_rs::prelude::*;
 use apex_rs_linux::partition::{ApexLinuxPartition, ApexLogger};
-use log::LevelFilter;
+use log::{trace, LevelFilter};
 use network_partition::prelude::*;
 use once_cell::sync::OnceCell;
 
@@ -19,7 +19,7 @@ fn main() {
     ApexLogger::install_panic_hook();
 
     // Log all events down to trace level
-    ApexLogger::install_logger(LevelFilter::Info).unwrap();
+    ApexLogger::install_logger(LevelFilter::Trace).unwrap();
 
     let partition =
         NetworkPartition::<ApexLinuxPartition>::new(&ECHO_RECV, &ECHO_SEND, entry_point);

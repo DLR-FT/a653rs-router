@@ -1,8 +1,13 @@
+use crate::config::Config;
 use crate::echo::PortSampler;
 use apex_rs::prelude::*;
 use core::str::FromStr;
+use log::{error, trace};
 use once_cell::sync::OnceCell;
 use std::time::Duration;
+
+// TODO platform-specific. read from environment?
+static CONFIG: &'static str = include_str!("../../config/network_partition_config.yml");
 
 type SystemAddress = extern "C" fn();
 
@@ -49,7 +54,7 @@ where
         let receive_port = ctx
             .create_sampling_port_destination(
                 Name::from_str("EchoRequest").unwrap(),
-                Duration::from_millis(100000),
+                Duration::from_millis(100000), // TODO make configurable
             )
             .unwrap();
         _ = self.destination.set(receive_port);
@@ -64,7 +69,7 @@ where
             period: SystemTime::Normal(Duration::ZERO),
             time_capacity: SystemTime::Infinite,
             entry_point: self.entry_point,
-            stack_size: 100000,
+            stack_size: 100000, // TODO make configurable
             base_priority: 1,
             deadline: Deadline::Soft,
             name: Name::from_str("respond_to_echo").unwrap(),
@@ -88,8 +93,34 @@ where
     H: ApexSamplingPortP4 + ApexTimeP4Ext,
     [u8; MSG_SIZE as usize]:,
 {
+    let parsed_config = serde_yaml::from_str::<Config>(CONFIG);
+    if let Err(error) = parsed_config {
+        error!("{error:?}");
+        panic!();
+    }
+    let config = parsed_config.ok().unwrap();
+    trace!("Have config: {config:?}");
+
     loop {
         _ = input.forward(&output);
         <H as ApexTimeP4Ext>::periodic_wait().unwrap();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::CONFIG;
+    use crate::config::Config;
+
+    #[test]
+    fn it_works() {
+        let result = 2 + 2;
+        assert_eq!(result, 4);
+    }
+
+    #[test]
+    fn parse_code_section_config() {
+        let parsed = serde_yaml::from_str::<Config>(CONFIG);
+        assert!(parsed.is_ok());
     }
 }

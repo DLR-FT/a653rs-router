@@ -1,3 +1,7 @@
+#![feature(generic_const_exprs)]
+
+mod echo;
+
 use apex_rs::prelude::*;
 use apex_rs_linux::partition::{ApexLinuxPartition, ApexLogger};
 use echo::*;

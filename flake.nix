@@ -97,7 +97,7 @@
               name = "run";
               command = ''
                 cargo build -p network-partition-linux --release --target x86_64-unknown-linux-musl
-                RUST_LOG=''${RUST_LOG:=trace} linux-apex-hypervisor linux/hypervisor_config.yaml
+                RUST_LOG=''${RUST_LOG:=trace} linux-apex-hypervisor config/hypervisor_config.yaml
               '';
               help = "Build and run the network partition using the hypervisor";
               category = "dev";

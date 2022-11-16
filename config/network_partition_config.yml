@@ -1,0 +1,22 @@
+ports:
+  - !SamplingPortDestination
+    channel: EchoRequest
+    msg_size: 10KB
+    validity: 1s
+    virtual_link: [ 0 ]
+  - !SamplingPortSource
+    channel: EchoReply
+    msg_size: 10KB
+    validity: 2s
+    virtual_links: [ 1 ]
+virtual_links:
+  # - Client Partition <-> Client Partition should be done through hypervisor directly, hypervisor should support reconfiguration.
+  # - A sampling port destination is created by the network partition, needs corresponding configuration for hypervisor.
+  - id: 0 # destination virtual link
+    # TODO Name?
+    # minimum period -> max data rate
+    period: 100ms # The expected minimum interval between new data. partitions do not have to generate data each time they are scheduledvirtual_links
+    msg_size: 250B # TODO The message size could be derived from  the configuration of the channel
+  - id: 1 # source virtual link
+    period: 500ms
+    msg_size: 250B # For remote sources of virtual links, the message size has to be specified locally

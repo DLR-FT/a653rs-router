@@ -1,49 +1,126 @@
 use bytesize::ByteSize;
-use core::include_str;
 use serde::{Deserialize, Deserializer, Serialize};
-use std::convert::From;
 use std::time::Duration;
 
+// TODO Actual size might depend on network layer.
+// Might be size of VLAN tag or virtual link id or something else.
+type VirtualLinkId = u16;
+
 /// Configuration of the network partition
+///
+/// # Examples
+/// ```rust
+/// use bytesize::ByteSize;
+/// use std::time::Duration;
+/// use network_partition::prelude::*;
+///
+/// let config = Config {
+///     ports: vec![
+///         Port::SamplingPortDestination(SamplingPortDestinationConfig {
+///             channel: String::from("EchoRequest"),
+///             msg_size: ByteSize::kb(2),
+///             validity: Duration::from_secs(1),
+///             virtual_link: 0,
+///         }),
+///         Port::SamplingPortSource(SamplingPortSourceConfig {
+///             channel: String::from("EchoReply"),
+///             msg_size: ByteSize::kb(2),
+///             virtual_link: 1,
+///         }),
+///     ],
+///     virtual_links: vec![
+///         VirtualLinkConfig {
+///             id: 0,
+///             period: Duration::from_millis(100),
+///             msg_size: ByteSize::kb(1),
+///         },
+///         VirtualLinkConfig {
+///             id: 1,
+///             period: Duration::from_millis(500),
+///             msg_size: ByteSize::kb(1),
+///         },
+///     ],
+/// };
+/// ```
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Config {
+    /// The ports the partition should create to connect to channels.
     pub ports: Vec<Port>,
+
+    /// The virtual links the partition is attached to.
     pub virtual_links: Vec<VirtualLinkConfig>,
 }
 
-#[derive(Debug, Deserialize)]
-pub struct ConfigError;
-
-impl From<serde_yaml::Error> for ConfigError {
-    fn from(_: serde_yaml::Error) -> Self {
-        // TODO use error somehow
-        ConfigError {}
-    }
-}
-
+/// Configuration for a virtual link.
+///
+/// Virtual links are used to connect multiple network partitions.
+/// Each virtual link can have exactly one source and one or more destinations.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct VirtualLinkConfig {
-    pub id: u16,
+    /// The unique ID of the virtual link
+    pub id: VirtualLinkId,
+
+    /// The minimum interval between two messages.
+    ///
+    /// Together with the message size, this directly relates to the bandwidth allocation gap (BAG).
     #[serde(with = "humantime_serde")]
     pub period: Duration,
+
+    /// The maximum size of a message that will be transmited using this virtual link.
     #[serde(deserialize_with = "de_size_str")]
     pub msg_size: ByteSize,
 }
 
+/// A port of a communication channel with the hypervisor.
+///
+/// Ports destinations and sources are created by partitions to attach to a port.
+/// Ports provide acces to communication channels between partitions.
+/// There are cirrently two types of ports implemented, for the sending and receiving ends of sampling ports.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum Port {
-    SamplingPortSource(SamplingPortConfig),
-    SamplingPortDestination(SamplingPortConfig),
-    // Queuing(QueuingPort),
+    /// Source port of a sampling channel.
+    SamplingPortSource(SamplingPortSourceConfig),
+
+    /// Destination port of a sampling channel.
+    SamplingPortDestination(SamplingPortDestinationConfig),
 }
 
+/// Configuration for a sampling port destination.
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct SamplingPortConfig {
+pub struct SamplingPortDestinationConfig {
+    /// The name of the channel the port should be attached to.
     pub channel: String,
+
+    /// The maximum size of a single message that can be transmitted using the port.
     #[serde(deserialize_with = "de_size_str")]
     pub msg_size: ByteSize,
+
+    /// The amount of time a message that is stored inside the channel is considered valid.
+    ///
+    /// The hypervisor will tell us, if the message is still valid, when we read it.
     #[serde(with = "humantime_serde")]
     pub validity: Duration,
+
+    /// The virtual links to forward messages from this port to.
+    ///
+    /// A single port may send messages only to a single virtual link. This is neccessary to identify which sender created the data.
+    pub virtual_link: VirtualLinkId,
+}
+
+/// Configuration for a sampling port source.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct SamplingPortSourceConfig {
+    /// The name of the channel the port should be attached to.
+    pub channel: String,
+
+    /// The maximum size of a single message that can be transmitted using the port.
+    #[serde(deserialize_with = "de_size_str")]
+    pub msg_size: ByteSize,
+
+    /// The virtual link from which to forward messages to this port.
+    ///
+    /// A single port may receive messages only from a single virtual link. This is neccessary to identify which sender created the data.
+    pub virtual_link: VirtualLinkId,
 }
 
 fn de_size_str<'de, D>(de: D) -> Result<ByteSize, D::Error>
@@ -56,14 +133,16 @@ where
 }
 
 impl Port {
-    pub fn sampling_port_destination(&self) -> Option<SamplingPortConfig> {
+    /// Tries to destructure the config of the destination port.
+    pub fn sampling_port_destination(&self) -> Option<SamplingPortDestinationConfig> {
         if let Self::SamplingPortDestination(q) = self {
             return Some(q.clone());
         }
         None
     }
 
-    pub fn sampling_port_source(&self) -> Option<SamplingPortConfig> {
+    /// Tries to destructure the config of the source port.
+    pub fn sampling_port_source(&self) -> Option<SamplingPortSourceConfig> {
         if let Self::SamplingPortSource(q) = self {
             return Some(q.clone());
         }

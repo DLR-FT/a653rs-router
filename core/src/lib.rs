@@ -1,5 +1,6 @@
 //! Network partition for ARINC653 P1/P2/P4 based on apex-rs
 
+#![allow(incomplete_features)]
 #![feature(generic_const_exprs)]
 //#![no_std]
 #![warn(
@@ -16,11 +17,10 @@
 mod config;
 mod echo;
 mod partition;
-mod process;
 
 /// Standard Prelude to be used by network partition implementations (e.g. network_partition_linux)
 pub mod prelude {
-    pub use crate::config::Config;
+    pub use crate::config::*;
     pub use crate::echo::{Echo, PortSampler};
     pub use crate::partition::{run, NetworkPartition};
 }

@@ -2,7 +2,7 @@ extern crate log;
 
 use apex_rs::prelude::*;
 use apex_rs_linux::partition::{ApexLinuxPartition, ApexLogger};
-use log::{trace, LevelFilter};
+use log::LevelFilter;
 use network_partition::prelude::*;
 use once_cell::sync::OnceCell;
 

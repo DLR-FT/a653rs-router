@@ -59,7 +59,10 @@
             formatter
           ];
           git.hooks.enable = true;
-          git.hooks.pre-commit.text = "nix flake check";
+          git.hooks.pre-commit.text = ''
+            nix flake check
+            cargo test
+          '';
           commands = [
             { package = "git-cliff"; }
             { package = "treefmt"; }

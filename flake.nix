@@ -62,10 +62,21 @@
           git.hooks.pre-commit.text = ''
             nix flake check
             cargo test
+            cargo doc
           '';
           commands = [
             { package = "git-cliff"; }
             { package = "treefmt"; }
+            {
+              name = "verify-doc";
+              command = ''
+                cd $PRJ_ROOT
+                cargo doc
+              '';
+              help =
+                "Verify that the documentation builds without problems";
+              category = "test";
+            }
             {
               name = "verify-no_std";
               command = ''

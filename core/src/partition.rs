@@ -54,38 +54,52 @@ where
         // TODO
         // Cannot dynamically init ports with values from config because message sizes are not known at compile time
         // Maybe code generation could be used to translate the config into code -> const values -> can be used in generics
-        let echo_request_config: SamplingPortDestinationConfig = self
+        let echo_request_port_config = self
             .config
-            .clone()
             .ports
+            .clone()
             .into_iter()
-            .map(|x| {
-                if let Port::SamplingPortDestination(config) = x {
-                    if config.channel == "EchoRequest" {
-                        Some(config)
-                    } else {
-                        None
-                    }
+            .filter_map(|x| {
+                let config: SamplingPortDestinationConfig = x.sampling_port_destination()?;
+                if config.channel == "EchoRequest" {
+                    Some(config)
                 } else {
                     None
                 }
             })
-            .next()
-            .unwrap()
-            .unwrap();
+            .last();
 
-        let receive_port = ctx
-            .create_sampling_port_destination(
-                Name::from_str("EchoRequest").unwrap(),
-                echo_request_config.validity,
-            )
-            .unwrap();
-        _ = self.echo_destination.set(receive_port);
+        if let Some(config) = echo_request_port_config {
+            let receive_port = ctx
+                .create_sampling_port_destination(
+                    Name::from_str("EchoRequest").unwrap(),
+                    config.validity,
+                )
+                .unwrap();
+            _ = self.echo_destination.set(receive_port);
+        }
 
-        let send_port = ctx
-            .create_sampling_port_source(Name::from_str("EchoReply").unwrap())
-            .unwrap();
-        _ = self.echo_source.set(send_port);
+        let echo_reply_port_config = self
+            .config
+            .ports
+            .clone()
+            .into_iter()
+            .filter_map(|x| {
+                let config: SamplingPortSourceConfig = x.sampling_port_source()?;
+                if config.channel == "EchoResponse" {
+                    Some(config)
+                } else {
+                    None
+                }
+            })
+            .last();
+
+        if let Some(_) = echo_reply_port_config {
+            let send_port = ctx
+                .create_sampling_port_source(Name::from_str("EchoReply").unwrap())
+                .unwrap();
+            _ = self.echo_source.set(send_port);
+        }
 
         // Periodic
         ctx.create_process(ProcessAttribute {

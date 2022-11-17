@@ -18,27 +18,27 @@ type SystemAddress = extern "C" fn();
 ///     match data type / port name
 ///       perform registered actions for match
 #[derive(Debug)]
-pub struct NetworkPartition<H>
+pub struct NetworkPartition<const ECHO_SIZE: MessageSize, H>
 where
     H: ApexSamplingPortP4 + 'static,
 {
     // TODO must be able to iterate over all destinations
-    echo_destination: &'static OnceCell<SamplingPortDestination<10000, H>>,
-    echo_source: &'static OnceCell<SamplingPortSource<10000, H>>,
+    echo_destination: &'static OnceCell<SamplingPortDestination<ECHO_SIZE, H>>,
+    echo_source: &'static OnceCell<SamplingPortSource<ECHO_SIZE, H>>,
     entry_point: SystemAddress,
 }
 
-impl<H> NetworkPartition<H>
+impl<const ECHO_SIZE: MessageSize, H> NetworkPartition<ECHO_SIZE, H>
 where
     H: ApexSamplingPortP4 + ApexProcessP4 + ApexPartitionP4,
 {
     /// Create a new instance of the network partition
     pub fn new(
-        echo_destination: &'static OnceCell<SamplingPortDestination<10000, H>>,
-        echo_source: &'static OnceCell<SamplingPortSource<10000, H>>,
+        echo_destination: &'static OnceCell<SamplingPortDestination<ECHO_SIZE, H>>,
+        echo_source: &'static OnceCell<SamplingPortSource<ECHO_SIZE, H>>,
         entry_point: SystemAddress,
     ) -> Self {
-        NetworkPartition::<H> {
+        NetworkPartition::<ECHO_SIZE, H> {
             echo_destination,
             echo_source,
             entry_point,
@@ -46,7 +46,7 @@ where
     }
 }
 
-impl<H> Partition<H> for NetworkPartition<H>
+impl<const ECHO_SIZE: MessageSize, H> Partition<H> for NetworkPartition<ECHO_SIZE, H>
 where
     H: ApexSamplingPortP4 + ApexProcessP4 + ApexPartitionP4,
 {

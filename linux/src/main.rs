@@ -21,8 +21,11 @@ fn main() {
     // Log all events down to trace level
     ApexLogger::install_logger(LevelFilter::Trace).unwrap();
 
-    let partition =
-        NetworkPartition::<ApexLinuxPartition>::new(&ECHO_RECV, &ECHO_SEND, entry_point);
+    let partition = NetworkPartition::<ECHO_PORT_SIZE_BYTES, ApexLinuxPartition>::new(
+        &ECHO_RECV,
+        &ECHO_SEND,
+        entry_point,
+    );
     partition.run()
 }
 

@@ -1,4 +1,4 @@
-use crate::config::Config;
+use crate::config::*;
 use crate::echo::PortSampler;
 use apex_rs::prelude::*;
 use core::str::FromStr;
@@ -45,15 +45,39 @@ where
     }
 }
 
+// TODO create all ports and processes from config
 impl<const ECHO_SIZE: MessageSize, H> Partition<H> for NetworkPartition<ECHO_SIZE, H>
 where
     H: ApexSamplingPortP4 + ApexProcessP4 + ApexPartitionP4,
 {
     fn cold_start(&self, ctx: &mut StartContext<H>) {
+        // TODO
+        // Cannot dynamically init ports with values from config because message sizes are not known at compile time
+        // Maybe code generation could be used to translate the config into code -> const values -> can be used in generics
+        let echo_request_config: SamplingPortDestinationConfig = self
+            .config
+            .clone()
+            .ports
+            .into_iter()
+            .map(|x| {
+                if let Port::SamplingPortDestination(config) = x {
+                    if config.channel == "EchoRequest" {
+                        Some(config)
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            })
+            .next()
+            .unwrap()
+            .unwrap();
+
         let receive_port = ctx
             .create_sampling_port_destination(
                 Name::from_str("EchoRequest").unwrap(),
-                Duration::from_millis(100000), // TODO make configurable
+                echo_request_config.validity,
             )
             .unwrap();
         _ = self.echo_destination.set(receive_port);

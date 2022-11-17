@@ -17,6 +17,9 @@ pub type VirtualLinkId = u16;
 /// use network_partition::prelude::*;
 ///
 /// let config = Config {
+///     stack_size: StackSizeConfig {
+///       periodic_process: ByteSize::kb(100),
+///     },
 ///     ports: vec![
 ///         Port::SamplingPortDestination(SamplingPortDestinationConfig {
 ///             channel: String::from("EchoRequest"),
@@ -46,11 +49,22 @@ pub type VirtualLinkId = u16;
 /// ```
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Config {
+    /// The amount of memory to reserve on the stack for the processes of the partition.
+    pub stack_size: StackSizeConfig,
+
     /// The ports the partition should create to connect to channels.
     pub ports: Vec<Port>,
 
     /// The virtual links the partition is attached to.
     pub virtual_links: Vec<VirtualLinkConfig>,
+}
+
+/// Configures the amount of stack memory to reserve for the prcesses of the partition.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct StackSizeConfig {
+    /// The size of the memory to reserve on the stack for the periodic process.
+    #[serde(deserialize_with = "de_size_str")]
+    pub periodic_process: ByteSize,
 }
 
 /// Configuration for a virtual link.

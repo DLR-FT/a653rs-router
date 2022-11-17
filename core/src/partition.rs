@@ -68,7 +68,7 @@ where
             period: SystemTime::Normal(Duration::ZERO),
             time_capacity: SystemTime::Infinite,
             entry_point: self.entry_point,
-            stack_size: 100000, // TODO make configurable
+            stack_size: self.config.stack_size.periodic_process.as_u64() as u32,
             base_priority: 1,
             deadline: Deadline::Soft,
             name: Name::from_str("respond_to_echo").unwrap(),

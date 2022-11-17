@@ -479,7 +479,6 @@ dependencies = [
  "log",
  "once_cell",
  "serde",
- "serde_yaml",
 ]
 
 [[package]]
@@ -492,6 +491,7 @@ dependencies = [
  "log",
  "network-partition",
  "once_cell",
+ "serde_yaml",
 ]
 
 [[package]]

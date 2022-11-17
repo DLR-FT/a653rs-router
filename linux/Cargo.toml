@@ -10,3 +10,4 @@ apex-rs-linux = { git = "ssh://git@github.com:/aeronautical-informatics/apex-lin
 apex-rs-postcard = { git = "https://github.com/aeronautical-informatics/apex-rs-postcard.git", branch = "main" }
 log = "0"
 once_cell = "1.16"
+serde_yaml = "0" # TODO maybe parse YAML at compile-time?

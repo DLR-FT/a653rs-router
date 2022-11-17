@@ -2,12 +2,8 @@ use crate::config::Config;
 use crate::echo::PortSampler;
 use apex_rs::prelude::*;
 use core::str::FromStr;
-use log::{error, trace};
 use once_cell::sync::OnceCell;
 use std::time::Duration;
-
-// TODO platform-specific. read from environment?
-static CONFIG: &'static str = include_str!("../../config/network_partition_config.yml");
 
 type SystemAddress = extern "C" fn();
 
@@ -17,12 +13,13 @@ type SystemAddress = extern "C" fn();
 ///   sample_each_sampling_port_destination
 ///     match data type / port name
 ///       perform registered actions for match
+/// TODO must be able to iterate over all destinations
 #[derive(Debug)]
 pub struct NetworkPartition<const ECHO_SIZE: MessageSize, H>
 where
     H: ApexSamplingPortP4 + 'static,
 {
-    // TODO must be able to iterate over all destinations
+    config: Config,
     echo_destination: &'static OnceCell<SamplingPortDestination<ECHO_SIZE, H>>,
     echo_source: &'static OnceCell<SamplingPortSource<ECHO_SIZE, H>>,
     entry_point: SystemAddress,
@@ -34,11 +31,13 @@ where
 {
     /// Create a new instance of the network partition
     pub fn new(
+        config: Config,
         echo_destination: &'static OnceCell<SamplingPortDestination<ECHO_SIZE, H>>,
         echo_source: &'static OnceCell<SamplingPortSource<ECHO_SIZE, H>>,
         entry_point: SystemAddress,
     ) -> Self {
         NetworkPartition::<ECHO_SIZE, H> {
+            config,
             echo_destination,
             echo_source,
             entry_point,
@@ -93,34 +92,8 @@ where
     H: ApexSamplingPortP4 + ApexTimeP4Ext,
     [u8; MSG_SIZE as usize]:,
 {
-    let parsed_config = serde_yaml::from_str::<Config>(CONFIG);
-    if let Err(error) = parsed_config {
-        error!("{error:?}");
-        panic!();
-    }
-    let config = parsed_config.ok().unwrap();
-    trace!("Have config: {config:?}");
-
     loop {
         _ = input.forward(&output);
         <H as ApexTimeP4Ext>::periodic_wait().unwrap();
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::CONFIG;
-    use crate::config::Config;
-
-    #[test]
-    fn it_works() {
-        let result = 2 + 2;
-        assert_eq!(result, 4);
-    }
-
-    #[test]
-    fn parse_code_section_config() {
-        let parsed = serde_yaml::from_str::<Config>(CONFIG);
-        assert!(parsed.is_ok());
     }
 }

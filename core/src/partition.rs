@@ -1,8 +1,11 @@
 use crate::config::*;
 use crate::echo::PortSampler;
+use crate::ports::ChannelName;
+use crate::routing::RouterP4;
 use apex_rs::prelude::*;
 use core::str::FromStr;
 use once_cell::sync::OnceCell;
+use std::fmt::Debug;
 use std::time::Duration;
 
 type SystemAddress = extern "C" fn();
@@ -15,42 +18,38 @@ type SystemAddress = extern "C" fn();
 ///       perform registered actions for match
 /// TODO must be able to iterate over all destinations
 #[derive(Debug)]
-pub struct NetworkPartition<const ECHO_SIZE: MessageSize, H>
-where
-    H: ApexSamplingPortP4 + 'static,
-{
+pub struct NetworkPartition<const ECHO_SIZE: MessageSize, H: ApexSamplingPortP4 + 'static> {
     config: Config,
-    echo_destination: &'static OnceCell<SamplingPortDestination<ECHO_SIZE, H>>,
-    echo_source: &'static OnceCell<SamplingPortSource<ECHO_SIZE, H>>,
+    router: &'static OnceCell<RouterP4<ECHO_SIZE, H>>,
     entry_point: SystemAddress,
 }
 
 impl<const ECHO_SIZE: MessageSize, H> NetworkPartition<ECHO_SIZE, H>
 where
-    H: ApexSamplingPortP4 + ApexProcessP4 + ApexPartitionP4,
+    H: ApexSamplingPortP4,
 {
     /// Create a new instance of the network partition
     pub fn new(
         config: Config,
-        echo_destination: &'static OnceCell<SamplingPortDestination<ECHO_SIZE, H>>,
-        echo_source: &'static OnceCell<SamplingPortSource<ECHO_SIZE, H>>,
+        router: &'static OnceCell<RouterP4<ECHO_SIZE, H>>,
         entry_point: SystemAddress,
     ) -> Self {
         NetworkPartition::<ECHO_SIZE, H> {
             config,
-            echo_destination,
-            echo_source,
+            router,
             entry_point,
         }
     }
 }
 
 // TODO create all ports and processes from config
-impl<const ECHO_SIZE: MessageSize, H> Partition<H> for NetworkPartition<ECHO_SIZE, H>
+impl<const MSG_SIZE: MessageSize, H> Partition<H> for NetworkPartition<MSG_SIZE, H>
 where
-    H: ApexSamplingPortP4 + ApexProcessP4 + ApexPartitionP4,
+    H: ApexSamplingPortP4 + ApexProcessP4 + ApexPartitionP4 + Debug,
 {
     fn cold_start(&self, ctx: &mut StartContext<H>) {
+        let mut router = RouterP4::<MSG_SIZE, H>::new();
+
         // TODO
         // Cannot dynamically init ports with values from config because message sizes are not known at compile time
         // Maybe code generation could be used to translate the config into code -> const values -> can be used in generics
@@ -70,13 +69,11 @@ where
             .last();
 
         if let Some(config) = echo_request_port_config {
-            let receive_port = ctx
-                .create_sampling_port_destination(
-                    Name::from_str("EchoRequest").unwrap(),
-                    config.validity,
-                )
+            let name = Name::from_str("EchoRequest").unwrap();
+            let port = ctx
+                .create_sampling_port_destination::<MSG_SIZE>(name, config.validity)
                 .unwrap();
-            _ = self.echo_destination.set(receive_port);
+            router.add_port_destination(ChannelName::from_str("EchoRequest").unwrap(), port);
         }
 
         let echo_reply_port_config = self
@@ -86,7 +83,7 @@ where
             .into_iter()
             .filter_map(|x| {
                 let config: SamplingPortSourceConfig = x.sampling_port_source()?;
-                if config.channel == "EchoResponse" {
+                if config.channel == "EchoReply" {
                     Some(config)
                 } else {
                     None
@@ -95,11 +92,13 @@ where
             .last();
 
         if let Some(_) = echo_reply_port_config {
-            let send_port = ctx
-                .create_sampling_port_source(Name::from_str("EchoReply").unwrap())
+            let port = ctx
+                .create_sampling_port_source::<MSG_SIZE>(Name::from_str("EchoReply").unwrap())
                 .unwrap();
-            _ = self.echo_source.set(send_port);
+
+            router.add_port_source(ChannelName::from_str("EchoReply").unwrap(), port);
         }
+        self.router.set(router).unwrap();
 
         // Periodic
         ctx.create_process(ProcessAttribute {

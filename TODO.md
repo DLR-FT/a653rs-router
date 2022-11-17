@@ -6,7 +6,9 @@
 - ports can not be configured without knowing the message sizes in advance
 - should not require a YAML-Parser as part of the compiled partition
 - ports should be able to be agnostic of message content
-+ proc-macro to generate ports with constant generic parameters from config
+
+#### Solutions
+- proc-macro to generate ports with constant generic parameters from config
 - (could use unchecked sampling_port_send / receive)
 - for prototype: statically define a set of ports of fixed sizes
   - configure based on settings in config

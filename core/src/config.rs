@@ -8,6 +8,9 @@ use std::time::Duration;
 /// Might be size of VLAN tag or virtual link id or something else.
 pub type VirtualLinkId = u16;
 
+/// The name of a channel.
+type ChannelName = String;
+
 /// Configuration of the network partition
 ///
 /// # Examples
@@ -105,7 +108,7 @@ pub enum Port {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SamplingPortDestinationConfig {
     /// The name of the channel the port should be attached to.
-    pub channel: String,
+    pub channel: ChannelName,
 
     /// The maximum size of a single message that can be transmitted using the port.
     #[serde(deserialize_with = "de_size_str")]
@@ -127,7 +130,7 @@ pub struct SamplingPortDestinationConfig {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SamplingPortSourceConfig {
     /// The name of the channel the port should be attached to.
-    pub channel: String,
+    pub channel: ChannelName,
 
     /// The maximum size of a single message that can be transmitted using the port.
     #[serde(deserialize_with = "de_size_str")]

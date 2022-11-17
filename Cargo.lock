@@ -479,6 +479,7 @@ dependencies = [
  "log",
  "once_cell",
  "serde",
+ "thiserror",
 ]
 
 [[package]]

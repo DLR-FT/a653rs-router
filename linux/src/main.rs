@@ -5,13 +5,12 @@ use apex_rs_linux::partition::{ApexLinuxPartition, ApexLogger};
 use log::{error, trace, LevelFilter};
 use network_partition::prelude::*;
 use once_cell::sync::OnceCell;
+use std::str::FromStr;
 
 // TODO should be configured from config using proc-macro
 const ECHO_PORT_SIZE_BYTES: MessageSize = 10000;
-static ECHO_SEND: OnceCell<SamplingPortSource<ECHO_PORT_SIZE_BYTES, ApexLinuxPartition>> =
-    OnceCell::new();
-static ECHO_RECV: OnceCell<SamplingPortDestination<ECHO_PORT_SIZE_BYTES, ApexLinuxPartition>> =
-    OnceCell::new();
+static CONFIG: OnceCell<Config> = OnceCell::new();
+static ROUTER: OnceCell<RouterP4<ECHO_PORT_SIZE_BYTES, ApexLinuxPartition>> = OnceCell::new();
 
 fn main() {
     ApexLogger::install_panic_hook();
@@ -22,21 +21,33 @@ fn main() {
         error!("{error:?}");
         panic!();
     }
-    let config = parsed_config.ok().unwrap();
-    trace!("Have config: {config:?}");
+    CONFIG.set(parsed_config.ok().unwrap()).unwrap();
+    trace!("Have config: {CONFIG:?}");
     let partition = NetworkPartition::<ECHO_PORT_SIZE_BYTES, ApexLinuxPartition>::new(
-        config,
-        &ECHO_RECV,
-        &ECHO_SEND,
+        CONFIG.get().unwrap().clone(),
+        &ROUTER,
         entry_point,
     );
-    partition.run()
+    partition.run();
 }
 
 extern "C" fn entry_point() {
-    let input = ECHO_RECV.get().unwrap();
-    let output = ECHO_SEND.get().unwrap();
-    run::<ECHO_PORT_SIZE_BYTES, ApexLinuxPartition>(input, output);
+    let input = ChannelName::from_str("EchoRequest").unwrap();
+    let output = ChannelName::from_str("EchoReply").unwrap();
+    let router = ROUTER.get().unwrap();
+    loop {
+        let result = router.echo::<ECHO_PORT_SIZE_BYTES>(&input, &output);
+        match result {
+            Ok(_) => {
+                trace!("Replied to echo")
+            }
+            Err(err) => {
+                error!("Failed to reply to echo: {err:?}")
+            }
+        }
+
+        ApexLinuxPartition::periodic_wait().unwrap();
+    }
 }
 
 #[cfg(test)]

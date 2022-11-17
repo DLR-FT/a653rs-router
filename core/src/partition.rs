@@ -23,8 +23,8 @@ where
     H: ApexSamplingPortP4 + 'static,
 {
     // TODO must be able to iterate over all destinations
-    destination: &'static OnceCell<SamplingPortDestination<10000, H>>,
-    source: &'static OnceCell<SamplingPortSource<10000, H>>,
+    echo_destination: &'static OnceCell<SamplingPortDestination<10000, H>>,
+    echo_source: &'static OnceCell<SamplingPortSource<10000, H>>,
     entry_point: SystemAddress,
 }
 
@@ -34,13 +34,13 @@ where
 {
     /// Create a new instance of the network partition
     pub fn new(
-        destination: &'static OnceCell<SamplingPortDestination<10000, H>>,
-        source: &'static OnceCell<SamplingPortSource<10000, H>>,
+        echo_destination: &'static OnceCell<SamplingPortDestination<10000, H>>,
+        echo_source: &'static OnceCell<SamplingPortSource<10000, H>>,
         entry_point: SystemAddress,
     ) -> Self {
         NetworkPartition::<H> {
-            destination,
-            source,
+            echo_destination,
+            echo_source,
             entry_point,
         }
     }
@@ -57,12 +57,12 @@ where
                 Duration::from_millis(100000), // TODO make configurable
             )
             .unwrap();
-        _ = self.destination.set(receive_port);
+        _ = self.echo_destination.set(receive_port);
 
         let send_port = ctx
             .create_sampling_port_source(Name::from_str("EchoReply").unwrap())
             .unwrap();
-        _ = self.source.set(send_port);
+        _ = self.echo_source.set(send_port);
 
         // Periodic
         ctx.create_process(ProcessAttribute {

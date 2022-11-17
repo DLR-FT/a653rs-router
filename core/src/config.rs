@@ -2,9 +2,11 @@ use bytesize::ByteSize;
 use serde::{Deserialize, Deserializer, Serialize};
 use std::time::Duration;
 
-// TODO Actual size might depend on network layer.
-// Might be size of VLAN tag or virtual link id or something else.
-type VirtualLinkId = u16;
+/// The ID of a virtual link.
+///
+/// TODO Actual size might depend on network layer.
+/// Might be size of VLAN tag or virtual link id or something else.
+pub type VirtualLinkId = u16;
 
 /// Configuration of the network partition
 ///

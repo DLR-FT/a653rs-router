@@ -17,7 +17,6 @@
 mod config;
 mod echo;
 mod error;
-mod network;
 mod partition;
 mod ports;
 mod routing;
@@ -27,7 +26,7 @@ pub mod prelude {
     pub use crate::config::*;
     pub use crate::echo::{Echo, PortSampler};
     pub use crate::error::Error;
-    pub use crate::partition::{run, NetworkPartition};
-    pub use crate::ports::ChannelName;
+    pub use crate::partition::*;
+    pub use crate::ports::*;
     pub use crate::routing::*;
 }

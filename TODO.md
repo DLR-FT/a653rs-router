@@ -1,8 +1,11 @@
 # TODO
 
-- loopback interface for echo port -> VL -> port
-- network interface layer
+- test network port that just stores and traces all frames
+- test network port that can be programmed to receive frames for testing 
 - traffic shaper (credit based)
+- inter-partition communication via VL
+- network interface layer
+- queueing ports
 
 ## Open problems
 

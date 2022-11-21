@@ -6,7 +6,7 @@ use std::time::Duration;
 ///
 /// TODO Actual size might depend on network layer.
 /// Might be size of VLAN tag or virtual link id or something else.
-pub type VirtualLinkId = u16;
+type VirtualLinkId = u16;
 
 /// The name of a channel.
 type ChannelName = String;

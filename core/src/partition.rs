@@ -1,10 +1,10 @@
 use crate::config::*;
 use crate::echo::PortSampler;
-use crate::network::VirtualLink;
-use crate::ports::ChannelName;
+use crate::ports::{ChannelId, VirtualLinkId};
 use crate::routing::{Router, RouterP4};
 use apex_rs::prelude::*;
 use core::str::FromStr;
+use heapless::LinearMap;
 use once_cell::sync::OnceCell;
 use std::fmt::Debug;
 use std::time::Duration;
@@ -19,39 +19,57 @@ type SystemAddress = extern "C" fn();
 ///       perform registered actions for match
 /// TODO must be able to iterate over all destinations
 #[derive(Debug)]
-pub struct NetworkPartition<const ECHO_SIZE: MessageSize, H: ApexSamplingPortP4 + 'static> {
+pub struct NetworkPartition<
+    const PORT_MTU: MessageSize,
+    const TABLE_SIZE: usize,
+    H: ApexSamplingPortP4 + 'static,
+> {
     config: Config,
-    router: &'static OnceCell<RouterP4<ECHO_SIZE, H>>,
+    router: &'static OnceCell<RouterP4<TABLE_SIZE>>,
+    // TODO make into struct
+    source_ports:
+        &'static OnceCell<LinearMap<ChannelId, SamplingPortSource<PORT_MTU, H>, TABLE_SIZE>>,
+    // TODO make into struct
+    destination_ports:
+        &'static OnceCell<LinearMap<ChannelId, SamplingPortDestination<PORT_MTU, H>, TABLE_SIZE>>,
     entry_point: SystemAddress,
 }
 
-impl<const ECHO_SIZE: MessageSize, H> NetworkPartition<ECHO_SIZE, H>
+impl<const ECHO_SIZE: MessageSize, const TABLE_SIZE: usize, H>
+    NetworkPartition<ECHO_SIZE, TABLE_SIZE, H>
 where
     H: ApexSamplingPortP4,
 {
     /// Create a new instance of the network partition
     pub fn new(
         config: Config,
-        router: &'static OnceCell<RouterP4<ECHO_SIZE, H>>,
+        router: &'static OnceCell<RouterP4<TABLE_SIZE>>,
+        source_ports: &'static OnceCell<
+            LinearMap<ChannelId, SamplingPortSource<ECHO_SIZE, H>, TABLE_SIZE>,
+        >,
+        destination_ports: &'static OnceCell<
+            LinearMap<ChannelId, SamplingPortDestination<ECHO_SIZE, H>, TABLE_SIZE>,
+        >,
         entry_point: SystemAddress,
     ) -> Self {
-        NetworkPartition::<ECHO_SIZE, H> {
+        NetworkPartition::<ECHO_SIZE, TABLE_SIZE, H> {
             config,
             router,
+            source_ports,
+            destination_ports,
             entry_point,
         }
     }
 }
 
 // TODO create all ports and processes from config
-impl<const MSG_SIZE: MessageSize, H> Partition<H> for NetworkPartition<MSG_SIZE, H>
+impl<const MSG_SIZE: MessageSize, const TABLE_SIZE: usize, H> Partition<H>
+    for NetworkPartition<MSG_SIZE, TABLE_SIZE, H>
 where
     H: ApexSamplingPortP4 + ApexProcessP4 + ApexPartitionP4 + Debug,
 {
     fn cold_start(&self, ctx: &mut StartContext<H>) {
-        let mut router = RouterP4::<MSG_SIZE, H>::new();
-        let echo_request = ChannelName::from_str("EchoRequest").unwrap();
-        let echo_reply = ChannelName::from_str("EchoReply").unwrap();
+        let mut router = RouterP4::<TABLE_SIZE>::new();
 
         // Cannot dynamically init ports with values from config because message sizes are not known at compile time
         // Maybe code generation could be used to translate the config into code -> const values -> can be used in generics
@@ -70,13 +88,21 @@ where
             })
             .last();
 
+        let mut destination_ports: LinearMap<
+            ChannelId,
+            SamplingPortDestination<MSG_SIZE, H>,
+            TABLE_SIZE,
+        > = LinearMap::default();
+
         if let Some(config) = echo_request_port_config {
             let name = Name::from_str("EchoRequest").unwrap();
             let port = ctx
                 .create_sampling_port_destination::<MSG_SIZE>(name, config.validity)
                 .unwrap();
-            router.add_local_destination(echo_request.clone(), port);
+            _ = destination_ports.insert(ChannelId::from(0), port).unwrap();
         }
+
+        self.destination_ports.set(destination_ports).unwrap();
 
         let echo_reply_port_config = self
             .config
@@ -93,17 +119,25 @@ where
             })
             .last();
 
+        let mut source_ports: LinearMap<ChannelId, SamplingPortSource<MSG_SIZE, H>, TABLE_SIZE> =
+            LinearMap::default();
+
         if let Some(_) = echo_reply_port_config {
             let port = ctx
-                .create_sampling_port_source::<MSG_SIZE>(echo_reply.clone().into_inner())
+                .create_sampling_port_source::<MSG_SIZE>(Name::from_str("EchoReply").unwrap())
                 .unwrap();
 
-            router.add_local_source(echo_reply.clone(), port);
-            router.add_output_route(echo_request.clone(), 0).unwrap();
-            router.add_input_route(0, echo_reply.clone()).unwrap();
+            _ = source_ports.insert(ChannelId::from(1), port).unwrap();
+            // TODO Loopback table
+            router
+                .add_output_route(ChannelId::from(0), VirtualLinkId::from(0))
+                .unwrap(); // TODO add virtual link with ID 0
+            router
+                .add_input_route(VirtualLinkId::from(0), ChannelId::from(1))
+                .unwrap();
         }
 
-        // TODO use config properly
+        self.source_ports.set(source_ports).unwrap();
         self.router.set(router).unwrap();
 
         // Periodic

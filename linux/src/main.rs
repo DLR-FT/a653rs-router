@@ -32,11 +32,11 @@ fn main() {
 }
 
 extern "C" fn entry_point() {
+    // TODO move to partition module
     let input = ChannelName::from_str("EchoRequest").unwrap();
-    let output = ChannelName::from_str("EchoReply").unwrap();
     let router = ROUTER.get().unwrap();
     loop {
-        let result = router.echo::<ECHO_PORT_SIZE_BYTES>(&input, &output);
+        let result = router.route_local_output::<ECHO_PORT_SIZE_BYTES>(&input);
         match result {
             Ok(_) => {
                 trace!("Replied to echo")

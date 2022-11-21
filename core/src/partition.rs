@@ -1,7 +1,8 @@
 use crate::config::*;
 use crate::echo::PortSampler;
+use crate::network::VirtualLink;
 use crate::ports::ChannelName;
-use crate::routing::RouterP4;
+use crate::routing::{Router, RouterP4};
 use apex_rs::prelude::*;
 use core::str::FromStr;
 use once_cell::sync::OnceCell;
@@ -49,8 +50,9 @@ where
 {
     fn cold_start(&self, ctx: &mut StartContext<H>) {
         let mut router = RouterP4::<MSG_SIZE, H>::new();
+        let echo_request = ChannelName::from_str("EchoRequest").unwrap();
+        let echo_reply = ChannelName::from_str("EchoReply").unwrap();
 
-        // TODO
         // Cannot dynamically init ports with values from config because message sizes are not known at compile time
         // Maybe code generation could be used to translate the config into code -> const values -> can be used in generics
         let echo_request_port_config = self
@@ -73,7 +75,7 @@ where
             let port = ctx
                 .create_sampling_port_destination::<MSG_SIZE>(name, config.validity)
                 .unwrap();
-            router.add_local_destination(ChannelName::from_str("EchoRequest").unwrap(), port);
+            router.add_local_destination(echo_request.clone(), port);
         }
 
         let echo_reply_port_config = self
@@ -93,11 +95,15 @@ where
 
         if let Some(_) = echo_reply_port_config {
             let port = ctx
-                .create_sampling_port_source::<MSG_SIZE>(Name::from_str("EchoReply").unwrap())
+                .create_sampling_port_source::<MSG_SIZE>(echo_reply.clone().into_inner())
                 .unwrap();
 
-            router.add_local_source(ChannelName::from_str("EchoReply").unwrap(), port);
+            router.add_local_source(echo_reply.clone(), port);
+            router.add_output_route(echo_request.clone(), 0).unwrap();
+            router.add_input_route(0, echo_reply.clone()).unwrap();
         }
+
+        // TODO use config properly
         self.router.set(router).unwrap();
 
         // Periodic

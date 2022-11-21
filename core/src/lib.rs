@@ -17,6 +17,7 @@
 mod config;
 mod echo;
 mod error;
+mod network;
 mod partition;
 mod ports;
 mod routing;

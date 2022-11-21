@@ -12,6 +12,7 @@ trait RouteLookup<L, R> {
     type RemoteDestinations: Iterator<Item = R>;
     type LocalDestinations: Iterator<Item = L>;
 
+    // TODO use Option?
     fn get_local_destinations(&self, source: &R) -> Result<Self::LocalDestinations, Error>;
 
     fn get_remote_destinations(&self, source: &L) -> Result<Self::RemoteDestinations, Error>;
@@ -86,7 +87,6 @@ where
     type RemoteDestinations = std::vec::IntoIter<R>;
     type LocalDestinations = std::vec::IntoIter<L>;
 
-    // TODO refactor
     fn add_output_route(&mut self, source: L, destination: R) -> Result<(), Error> {
         if let Some(_) = self.output.iter().find(|&x| x.1 == destination) {
             return Err(Error::InvalidRoute);
@@ -118,15 +118,6 @@ pub trait Router {
     /// An address from the set of remote addresses (e.g. virtual link IDs).
     type RemoteAddress;
 
-    /// TODO replace echo with port -> VL -> port on same hypervisor. This needs a loopback interface / VL that connects ports on same hypervisor.
-    fn echo<const MSG_SIZE: MessageSize>(
-        &self,
-        source: &Self::LocalAddress,
-        destination: &Self::LocalAddress,
-    ) -> Result<(), Error>
-    where
-        [u8; MSG_SIZE as usize]:;
-
     /// Forward an incoming message to a local port.
     fn route_remote_input<const MSG_SIZE: MessageSize>(
         &self,
@@ -143,17 +134,19 @@ pub trait Router {
     where
         [u8; MSG_SIZE as usize]:;
 
-    // fn add_output_route(
-    //     &mut self,
-    //     source: Self::LocalAddress,
-    //     destination: Self::RemoteAddress,
-    // ) -> Result<(), Error>;
+    /// Add an output route.
+    fn add_output_route(
+        &mut self,
+        source: Self::LocalAddress,
+        destination: Self::RemoteAddress,
+    ) -> Result<(), Error>;
 
-    // fn add_input_route(
-    //     &mut self,
-    //     source: Self::RemoteAddress,
-    //     destination: Self::LocalAddress,
-    // ) -> Result<(), Error>;
+    /// Add an input route.
+    fn add_input_route(
+        &mut self,
+        source: Self::RemoteAddress,
+        destination: Self::LocalAddress,
+    ) -> Result<(), Error>;
 }
 
 /// A router that uses the P4 interface of the hypervisor.
@@ -201,42 +194,15 @@ where
         // TODO prevent addition of duplicate keys
         self.port_sources.push((channel, destination))
     }
-
-    // TODO add_remote_source, add_remote_destination
 }
 
 impl<const SAMPLING_PORT_SIZE: MessageSize, H> Router for RouterP4<SAMPLING_PORT_SIZE, H>
 where
     H: ApexSamplingPortP4,
 {
+    // TODO refactor result handling and port reading / sending
     type LocalAddress = ChannelName;
     type RemoteAddress = VirtualLinkId;
-
-    fn echo<const MSG_SIZE: MessageSize>(
-        &self,
-        source: &Self::LocalAddress,
-        destination: &Self::LocalAddress,
-    ) -> Result<(), Error>
-    where
-        [u8; MSG_SIZE as usize]:,
-    {
-        let in_port = self.port_destinations.iter().find(|x| x.0 == *source);
-
-        let mut buffer = [0u8; MSG_SIZE as usize];
-        let (validity, received) = match in_port {
-            Some((_, port)) => port.receive(&mut buffer),
-            None => Err(Error::ReceiveFail)?,
-        }?;
-        if validity == Validity::Invalid {
-            return Err(Error::InvalidData);
-        }
-        if let Some((_, port)) = self.port_sources.iter().find(|x| x.0 == *destination) {
-            let result = port.send(received)?;
-            Ok(result)
-        } else {
-            Err(Error::NoLink)
-        }
-    }
 
     fn route_remote_input<const MSG_SIZE: MessageSize>(
         &self,
@@ -251,10 +217,53 @@ where
     fn route_local_output<const MSG_SIZE: MessageSize>(
         &self,
         source: &Self::LocalAddress,
-    ) -> Result<(), Error> {
+    ) -> Result<(), Error>
+    where
+        [u8; MSG_SIZE as usize]:,
+    {
+        let link = self.port_destinations.iter().find(|x| x.0 == *source);
+        if link.is_none() {
+            return Err(Error::NoLink);
+        }
+        let (_, link) = link.unwrap();
+        let mut buffer = [0u8; MSG_SIZE as usize];
+        let (valid, data) = link.receive(&mut buffer)?;
+
+        if valid == Validity::Invalid {
+            return Err(Error::InvalidData);
+        }
+
         self.route_table
             .get_remote_destinations(source)?
-            .for_each(|_| todo!("Send to remote")); // TODO report what failed
+            .for_each(|x| {
+                // check if destination is in input table
+                if let Ok(locals) = self.route_table.get_local_destinations(&x) {
+                    for local in locals {
+                        if let Some((_, link)) = self.port_sources.iter().find(|&x| x.0 == local) {
+                            link.send(data).unwrap();
+                        }
+                    }
+                }
+                // TODO send to remotes
+            }); // TODO report what failed
         Ok(())
+    }
+
+    /// Add an output route.
+    fn add_output_route(
+        &mut self,
+        source: Self::LocalAddress,
+        destination: Self::RemoteAddress,
+    ) -> Result<(), Error> {
+        self.route_table.add_output_route(source, destination)
+    }
+
+    /// Add an input route.
+    fn add_input_route(
+        &mut self,
+        source: Self::RemoteAddress,
+        destination: Self::LocalAddress,
+    ) -> Result<(), Error> {
+        self.route_table.add_input_route(source, destination)
     }
 }

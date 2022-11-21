@@ -1,70 +1,42 @@
-use crate::error::Error;
 use std::str::{FromStr, Utf8Error};
 
 use apex_rs::{
     bindings::ApexName,
-    prelude::{
-        ApexSamplingPortP1, ApexSamplingPortP4, ApexUnsigned, MessageSize, Name,
-        SamplingPortDestination, SamplingPortSource,
-    },
+    prelude::{ApexUnsigned, Name},
 };
 
 // TODO link -> channel name -> port config -> port destination / source
 
-pub struct PortLookupError(Error);
+/// An ID of a virtual link.
+///
+/// Virtual links connect ports of different hypervisors and their contents may be transmitted over the network.
+/// Each virtual link is a directed channel between a single source port and zero or more destination ports.
+/// The virtual link ID is transmitted as an ID that identifies the virtual link to the network. For example the
+/// id may be used as a VLAN tag id or ARINC 429 label words. If the size of the label used inside the network is
+/// smaller than the 32 Bit, care must be taken by the system integrator that no IDs larger than the maximum size
+/// are assigned. Implementations of the network interface layer should therefore cast this value to the desired
+/// size that // is required by the underlying network protocol.
+pub type VirtualLinkId = u32;
 
-impl From<Error> for PortLookupError {
-    fn from(val: Error) -> Self {
-        PortLookupError(val)
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, Copy)]
-pub struct VirtualLinkId(u16);
-
-impl VirtualLinkId {
-    pub fn new(id: u16) -> Self {
-        Self(id)
-    }
-
-    pub fn into_inner(self) -> u16 {
-        self.0
-    }
-
-    pub fn as_u8(self) -> u8 {
-        let v = self.0 as u8;
-        v
-    }
-
-    pub fn as_u16(self) -> u16 {
-        self.into_inner()
-    }
-}
-
-impl Default for VirtualLinkId {
-    fn default() -> Self {
-        VirtualLinkId(0)
-    }
-}
-
-struct VirtualLink;
-
-pub trait LinkLookup {
-    fn get_destination(source: VirtualLinkId) -> Result<VirtualLink, Error>;
-}
-
+/// The name of a channel between the network partition and another partition.
+///
+/// A name uniquely identifies a channel on a hypervisor. Each channel that is connected to the network partition
+/// must belong to exactly one virtual link.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ChannelName(Name);
 
 impl ChannelName {
+    /// Creates a new ChannelName.
     pub fn new(name: Name) -> Self {
         ChannelName(name)
     }
 
+    /// Converts a channel name to a string slice.
     pub fn to_str(&self) -> Result<&str, Utf8Error> {
         self.0.to_str()
     }
 
+    /// Returns the name of the channel.
     pub fn into_inner(self) -> Name {
         self.0
     }

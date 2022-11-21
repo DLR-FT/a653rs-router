@@ -1,5 +1,9 @@
 # TODO
 
+- loopback interface for echo port -> VL -> port
+- network interface layer
+- traffic shaper (credit based)
+
 ## Open problems
 
 ### Configure partition with configuration contents

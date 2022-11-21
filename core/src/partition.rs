@@ -73,7 +73,7 @@ where
             let port = ctx
                 .create_sampling_port_destination::<MSG_SIZE>(name, config.validity)
                 .unwrap();
-            router.add_port_destination(ChannelName::from_str("EchoRequest").unwrap(), port);
+            router.add_local_destination(ChannelName::from_str("EchoRequest").unwrap(), port);
         }
 
         let echo_reply_port_config = self
@@ -96,7 +96,7 @@ where
                 .create_sampling_port_source::<MSG_SIZE>(Name::from_str("EchoReply").unwrap())
                 .unwrap();
 
-            router.add_port_source(ChannelName::from_str("EchoReply").unwrap(), port);
+            router.add_local_source(ChannelName::from_str("EchoReply").unwrap(), port);
         }
         self.router.set(router).unwrap();
 

@@ -3,8 +3,7 @@
 use crate::error::Error;
 use crate::ports::{ChannelName, VirtualLinkId};
 use apex_rs::prelude::{
-    ApexByte, ApexSamplingPortP1, ApexSamplingPortP1Ext, ApexSamplingPortP4, MessageSize,
-    SamplingPortDestination, SamplingPortId, SamplingPortSource, Validity,
+    ApexSamplingPortP4, MessageSize, SamplingPortDestination, SamplingPortSource, Validity,
 };
 
 type RouteTableEntry<S, D> = (S, D);
@@ -105,19 +104,21 @@ where
     }
 }
 
-struct VirtualLink;
-
-impl VirtualLink {
-    fn send(&self, buffer: &[ApexByte]) -> Result<(), Error> {
-        todo!()
-    }
-}
-
-// Could be used inside Box<dyn Router>?
+/// A router that forwards messages.
+///
+/// The router can forward messages explicitly from one address to another.
+/// This is meant for special services like the an echo service that locally forwards messages directly from one
+/// port to another on the same hypervisor.
+/// The router forwards messages either according to the rules of an input route table (remote address -> local address)
+/// or according to an output route table (local address -> remote address).
 pub trait Router {
+    /// An address from the set of local addresses (e.g. channel names / port ids).
     type LocalAddress;
+
+    /// An address from the set of remote addresses (e.g. virtual link IDs).
     type RemoteAddress;
 
+    /// TODO replace echo with port -> VL -> port on same hypervisor. This needs a loopback interface / VL that connects ports on same hypervisor.
     fn echo<const MSG_SIZE: MessageSize>(
         &self,
         source: &Self::LocalAddress,
@@ -126,6 +127,7 @@ pub trait Router {
     where
         [u8; MSG_SIZE as usize]:;
 
+    /// Forward an incoming message to a local port.
     fn route_remote_input<const MSG_SIZE: MessageSize>(
         &self,
         source: &Self::RemoteAddress,
@@ -133,6 +135,7 @@ pub trait Router {
     where
         [u8; MSG_SIZE as usize]:;
 
+    /// Forward an outgoing message to an outgoing link.
     fn route_local_output<const MSG_SIZE: MessageSize>(
         &self,
         source: &Self::LocalAddress,
@@ -153,7 +156,9 @@ pub trait Router {
     // ) -> Result<(), Error>;
 }
 
-// TODO init statically in linux partition
+/// A router that uses the P4 interface of the hypervisor.
+///
+/// The router holds references to all local ports, because only P1 would support looking up channels from the hypervisor.
 #[derive(Debug)]
 pub struct RouterP4<const MSG_SIZE: MessageSize, H>
 where
@@ -168,6 +173,7 @@ impl<const MSG_SIZE: MessageSize, H> RouterP4<MSG_SIZE, H>
 where
     H: ApexSamplingPortP4,
 {
+    /// Creare a new router with an empty route table.
     pub fn new() -> Self {
         RouterP4 {
             route_table: RouteTable::default(),
@@ -176,7 +182,8 @@ where
         }
     }
 
-    pub fn add_port_destination(
+    /// A a new port that can be used as a destination.
+    pub fn add_local_destination(
         &mut self,
         channel: ChannelName,
         destination: SamplingPortDestination<MSG_SIZE, H>,
@@ -185,7 +192,8 @@ where
         self.port_destinations.push((channel, destination))
     }
 
-    pub fn add_port_source(
+    /// A a new port that can be used as a source.
+    pub fn add_local_source(
         &mut self,
         channel: ChannelName,
         destination: SamplingPortSource<MSG_SIZE, H>,
@@ -193,6 +201,8 @@ where
         // TODO prevent addition of duplicate keys
         self.port_sources.push((channel, destination))
     }
+
+    // TODO add_remote_source, add_remote_destination
 }
 
 impl<const SAMPLING_PORT_SIZE: MessageSize, H> Router for RouterP4<SAMPLING_PORT_SIZE, H>

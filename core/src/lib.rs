@@ -3,7 +3,6 @@
 #![no_std]
 #![allow(incomplete_features)]
 #![feature(generic_const_exprs)]
-//#![no_std]
 #![warn(
     missing_debug_implementations,
     missing_docs,
@@ -21,6 +20,7 @@ mod network;
 mod partition;
 mod ports;
 mod routing;
+mod shaper;
 
 /// Standard Prelude to be used by network partition implementations (e.g. network_partition_linux)
 pub mod prelude {
@@ -30,4 +30,5 @@ pub mod prelude {
     pub use crate::partition::*;
     pub use crate::ports::*;
     pub use crate::routing::*;
+    pub use crate::shaper::*;
 }

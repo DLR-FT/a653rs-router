@@ -36,6 +36,10 @@ pub enum Error {
     /// A queue has no more free capacity.
     QueueOverflow,
 
+    TransmitNotAllowed,
+
+    BlockNotAllowed,
+
     /// An unspecified error.
     Unknown,
 }

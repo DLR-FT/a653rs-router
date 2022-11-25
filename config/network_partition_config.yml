@@ -1,5 +1,5 @@
 stack_size:
-  periodic_process: 100KB
+  periodic_process: 1MB
 ports:
   - !SamplingPortDestination
     channel: EchoRequest

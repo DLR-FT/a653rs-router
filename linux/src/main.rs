@@ -49,7 +49,8 @@ extern "C" fn entry_point() {
     let router = ROUTER.get().unwrap();
     let dst_ports = DESTINATION_PORTS.get().unwrap();
     let src_ports = SOURCE_PORTS.get().unwrap();
-    let virtual_links: LinearMap<VirtualLinkId, NetworkLink, TABLE_SIZE> = LinearMap::new();
+
+    // TODO map from virtual link to network interface for multiple interfaces
 
     loop {
         //     // Read from all ports and enqueue
@@ -105,7 +106,16 @@ extern "C" fn entry_point() {
                 }
             }
 
-            // TODO Check if the packet needs to be send to the network -> use outbound queue
+            //let frame = Frame::new(dst_address, buffer);
+            // TODO do shaping before that
+            //let res = network_interface.send_frame(&frame);
+            //if res.is_err() {
+            //// TODO store error and return all stored errors as result
+            //error!(
+            //"Failed to send frame to link for virtual link {dst_address:?}: {:?}",
+            //res.err().unwrap()
+            //);
+            //}
 
             //let _frame = Frame::<FRAME_PAYLOAD_SIZE>::from(&buffer);
             // TODO submit including virtual link tag and sequence number
@@ -120,29 +130,43 @@ extern "C" fn entry_point() {
             }
         }
 
-        let do_collect_network_port =
-            |_link: &VirtualLinkId, _port: &NetworkLink| -> Result<(), Error> {
-                // TODO read from network port
-                // TODO write to source ports
-                Ok(())
-            };
-
-        for (vl_id, port) in virtual_links.iter() {
-            if let Err(err) = do_collect_network_port(vl_id, port) {
-                error!("{err:?}");
-            }
-        }
-
-        let do_submit_network_port = |_port: &NetworkLink| -> Result<(), Error> {
-            // TODO apply shaping to queues of network ports and send frames to network
+        let do_collect_network_port = || -> Result<(), Error> {
+            //let mut buffer = [0u8; FRAME_MTU];
+            //let res = network_interface.receive_frame(&mut buffer);
+            //if res.is_err() {
+            //    // TODO store error and return it
+            //} else {
+            //    let frame = res.unwrap();
+            //    let link = frame.link();
+            //    let payload = frame.payload();
+            //    let local_ports = router.route_remote_input(&link);
+            //    if local_ports.is_err() {
+            //        // TODO store error and return it
+            //    } else {
+            //        for port in local_ports.ok().unwrap() {
+            //            // TODO handle error
+            //            src_ports.get(&port).unwrap().send(&payload).unwrap();
+            //        }
+            //    }
+            //}
             Ok(())
         };
 
-        for (_vl_id, port) in virtual_links.iter() {
-            if let Err(err) = do_submit_network_port(port) {
-                error!("{err:?}");
-            }
+        if let Err(err) = do_collect_network_port() {
+            error!("{err:?}");
         }
+
+        // let do_submit_network_port =
+        //     |_port: &FakeNetworkInterface<FRAME_MTU>| -> Result<(), Error> {
+        //         // TODO apply shaping to queues of network ports and send frames to network
+        //         Ok(())
+        //     };
+
+        // for queue in queues {
+        // if let Err(err) = do_submit_queue_port(port) {
+        // error!("{err:?}");
+        // }
+        // }
 
         Hypervisor::periodic_wait().unwrap();
     }

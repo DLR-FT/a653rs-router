@@ -65,10 +65,3 @@ impl Default for ChannelId {
         ChannelId(0)
     }
 }
-
-/// A (virtual) network link.
-#[derive(Debug)]
-pub struct NetworkLink {
-    // link id
-    // queue
-}

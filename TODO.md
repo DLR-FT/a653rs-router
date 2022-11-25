@@ -5,6 +5,10 @@
 - traffic shaper (credit based)
 - network interface layer
 - queueing ports
+- cucumber
+- use SKE in CI for testing with XNG
+- real-time verification with RTLola
+- requirements testing with Cucumber
 
 ## Open problems
 

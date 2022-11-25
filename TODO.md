@@ -1,5 +1,6 @@
 # TODO
 
+- use ListMap in route table instead of Vec
 - test network port that just stores and traces all frames
 - test network port that can be programmed to receive frames for testing 
 - traffic shaper (credit based)

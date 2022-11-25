@@ -16,7 +16,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    hypervisor.url = "git+ssh://git@github.com/aeronautical-informatics/apex-linux.git?ref=main";
+    hypervisor.url = "github:aeronautical-informatics/apex-linux/main";
   };
 
   outputs = { self, nixpkgs, utils, devshell, fenix, hypervisor, naersk, ... }@inputs:

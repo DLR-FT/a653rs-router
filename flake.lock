@@ -46,11 +46,11 @@
         "rust-analyzer-src": "rust-analyzer-src"
       },
       "locked": {
-        "lastModified": 1667629660,
-        "narHash": "sha256-71b4x8FXol8GkuTDqlal1s4tIWZVTl0ftorU4dXeOA8=",
+        "lastModified": 1669357571,
+        "narHash": "sha256-jKMZjewUOD6s71xP8zaTZ/oB3dtHM2D/cLgHoNQ9s80=",
         "owner": "nix-community",
         "repo": "fenix",
-        "rev": "3d0ef396ff6e6298539d32477df28e1ea8fc8b8a",
+        "rev": "0d4b86633d6c5438a7b97d485f02e7e18101a541",
         "type": "github"
       },
       "original": {
@@ -121,18 +121,18 @@
         "utils": "utils"
       },
       "locked": {
-        "lastModified": 1667574074,
-        "narHash": "sha256-WlCQX9S+n/SkHkgpFRlqWtSZqFlf+5COtXIkdcrv5Ro=",
-        "ref": "main",
-        "rev": "108e3d0ac728091691d3fad2b72c314190f3f44a",
-        "revCount": 22,
-        "type": "git",
-        "url": "ssh://git@github.com/aeronautical-informatics/apex-linux.git"
+        "lastModified": 1669192268,
+        "narHash": "sha256-hiZWpkTc/H0DADXTsc342YJikSmWzg8jSH6t2mfGvwI=",
+        "owner": "aeronautical-informatics",
+        "repo": "apex-linux",
+        "rev": "7d38db3c1f9b9d14ffed58853ff0645f6622d326",
+        "type": "github"
       },
       "original": {
+        "owner": "aeronautical-informatics",
         "ref": "main",
-        "type": "git",
-        "url": "ssh://git@github.com/aeronautical-informatics/apex-linux.git"
+        "repo": "apex-linux",
+        "type": "github"
       }
     },
     "naersk": {
@@ -227,8 +227,8 @@
     "nixpkgs_4": {
       "locked": {
         "lastModified": 0,
-        "narHash": "sha256-mRXqCdlnxPgm3Wk7mNAOanl7B3Q3U5scYTEiyYmNEOE=",
-        "path": "/nix/store/qdblsqzrzarf9am35r6nqnvlsl7dammk-source",
+        "narHash": "sha256-u4HKBBfTOPpFsGnM7sjS0+F67Hmf2or3uHKNVxXZtiM=",
+        "path": "/nix/store/0ffrx945y2q1m8i706b09wa3ajz3g9p5-source",
         "type": "path"
       },
       "original": {
@@ -249,11 +249,11 @@
     "rust-analyzer-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1667604648,
-        "narHash": "sha256-dQsgWsAYQh6PJEr60LH5xjGwECTeGNswUwviyhjVsjs=",
+        "lastModified": 1669325252,
+        "narHash": "sha256-c4cqmy1lrPRC/Uwf+Sim4xxptVk7fH/STHeqe9BKOVU=",
         "owner": "rust-lang",
         "repo": "rust-analyzer",
-        "rev": "66900a7e05313242d997a61e896d4f7ff1c8ead0",
+        "rev": "1e6a49a801708a8bcbe429ce03f614a7951bdb11",
         "type": "github"
       },
       "original": {

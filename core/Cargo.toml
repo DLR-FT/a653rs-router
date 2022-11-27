@@ -10,5 +10,4 @@ serde = { version = "1.0", default-features = false, features = ["derive"] }
 once_cell = "1.16"
 bytesize = { version = "1.1", features = ["serde"] }
 humantime-serde = "1.1"
-thiserror = "1.0"
-heapless = "0.7"
+heapless = { version = "0.7", features = ["serde"] }

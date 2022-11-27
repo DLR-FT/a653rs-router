@@ -364,6 +364,7 @@ dependencies = [
  "atomic-polyfill",
  "hash32",
  "rustc_version 0.4.0",
+ "serde",
  "spin",
  "stable_deref_trait",
 ]
@@ -611,7 +612,6 @@ dependencies = [
  "humantime-serde",
  "once_cell",
  "serde",
- "thiserror",
 ]
 
 [[package]]

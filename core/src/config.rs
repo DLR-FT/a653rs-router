@@ -1,6 +1,12 @@
 use bytesize::ByteSize;
+use core::time::Duration;
+use heapless::String;
+use heapless::Vec;
 use serde::{Deserialize, Deserializer, Serialize};
-use std::time::Duration;
+
+const MAX_PORTS: usize = 10;
+const MAX_LINKS: usize = 10;
+const MAX_CHANNEL_NAME: usize = 32;
 
 /// The ID of a virtual link.
 ///
@@ -9,7 +15,7 @@ use std::time::Duration;
 type VirtualLinkId = u16;
 
 /// The name of a channel.
-type ChannelName = String;
+type ChannelName = String<MAX_CHANNEL_NAME>;
 
 /// Configuration of the network partition
 ///
@@ -56,10 +62,10 @@ pub struct Config {
     pub stack_size: StackSizeConfig,
 
     /// The ports the partition should create to connect to channels.
-    pub ports: Vec<Port>,
+    pub ports: Vec<Port, MAX_PORTS>,
 
     /// The virtual links the partition is attached to.
-    pub virtual_links: Vec<VirtualLinkConfig>,
+    pub virtual_links: Vec<VirtualLinkConfig, MAX_LINKS>,
 }
 
 /// Configures the amount of stack memory to reserve for the prcesses of the partition.
@@ -146,7 +152,7 @@ fn de_size_str<'de, D>(de: D) -> Result<ByteSize, D::Error>
 where
     D: Deserializer<'de>,
 {
-    String::deserialize(de)?
+    String::<MAX_CHANNEL_NAME>::deserialize(de)?
         .parse::<ByteSize>()
         .map_err(serde::de::Error::custom)
 }

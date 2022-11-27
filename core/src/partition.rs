@@ -3,11 +3,11 @@ use crate::echo::PortSampler;
 use crate::ports::{ChannelId, VirtualLinkId};
 use crate::routing::{Router, RouterP4};
 use apex_rs::prelude::*;
+use core::fmt::Debug;
 use core::str::FromStr;
+use core::time::Duration;
 use heapless::LinearMap;
 use once_cell::sync::OnceCell;
-use std::fmt::Debug;
-use std::time::Duration;
 
 type SystemAddress = extern "C" fn();
 

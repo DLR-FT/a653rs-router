@@ -1,54 +1,42 @@
 ///! Error types
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
 
 // TODO more precise errors
 
 /// General error type for this crate.
-#[derive(Error, Clone, Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub enum Error {
     /// Failed to send data to a port.
-    #[error("failed to send data")]
     SendFail,
 
     /// Failed to receive data from a port.
-    #[error("failed to receive data")]
     ReceiveFail,
 
     /// Received invalid data.
-    #[error("received data was invalid")]
     InvalidData,
 
     /// There is no route from the source port or virtual link.
-    #[error("no route")]
     NoRoute,
 
     /// There is no link to the destination.
-    #[error("no link")]
     NoLink,
 
     /// The route is invalid.
-    #[error("invalid route")]
     InvalidRoute,
 
     /// An error occured while talking to the hypervisor.
-    #[error("APEX error")]
     ApexError(apex_rs::prelude::Error),
 
     /// Insufficient credit
-    #[error("insufficient credit for sending message")]
     InsufficientCredit,
 
     /// It has been tried to dequeue an item from an empty queue.
-    #[error("queue is empty")]
     QueueEmpty,
 
     /// A queue has no more free capacity.
-    #[error("queue overflowed")]
     QueueOverflow,
 
     /// An unspecified error.
-    #[error("unknown routing error")]
     Unknown,
 }
 

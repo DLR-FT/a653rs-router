@@ -15,7 +15,7 @@ const TABLE_SIZE: usize = 10;
 
 // TODO use once big OnceCell<struct>
 static CONFIG: OnceCell<Config> = OnceCell::new();
-static ROUTER: OnceCell<RouterP4<TABLE_SIZE>> = OnceCell::new();
+static ROUTER: OnceCell<Router<TABLE_SIZE>> = OnceCell::new();
 static SOURCE_PORTS: OnceCell<
     LinearMap<ChannelId, SamplingPortSource<PORT_MTU, Hypervisor>, TABLE_SIZE>,
 > = OnceCell::new();

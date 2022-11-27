@@ -1,7 +1,7 @@
 use crate::config::*;
 use crate::echo::PortSampler;
 use crate::ports::{ChannelId, VirtualLinkId};
-use crate::routing::{Router, RouterP4};
+use crate::routing::Router;
 use apex_rs::prelude::*;
 use core::fmt::Debug;
 use core::str::FromStr;
@@ -25,7 +25,7 @@ pub struct NetworkPartition<
     H: ApexSamplingPortP4 + 'static,
 > {
     config: Config,
-    router: &'static OnceCell<RouterP4<TABLE_SIZE>>,
+    router: &'static OnceCell<Router<TABLE_SIZE>>,
     // TODO make into struct
     source_ports:
         &'static OnceCell<LinearMap<ChannelId, SamplingPortSource<PORT_MTU, H>, TABLE_SIZE>>,
@@ -43,7 +43,7 @@ where
     /// Create a new instance of the network partition
     pub fn new(
         config: Config,
-        router: &'static OnceCell<RouterP4<TABLE_SIZE>>,
+        router: &'static OnceCell<Router<TABLE_SIZE>>,
         source_ports: &'static OnceCell<
             LinearMap<ChannelId, SamplingPortSource<ECHO_SIZE, H>, TABLE_SIZE>,
         >,
@@ -69,7 +69,7 @@ where
     H: ApexSamplingPortP4 + ApexProcessP4 + ApexPartitionP4 + Debug,
 {
     fn cold_start(&self, ctx: &mut StartContext<H>) {
-        let mut router = RouterP4::<TABLE_SIZE>::new();
+        let mut router = Router::<TABLE_SIZE>::new();
 
         // Cannot dynamically init ports with values from config because message sizes are not known at compile time
         // Maybe code generation could be used to translate the config into code -> const values -> can be used in generics

@@ -125,7 +125,7 @@
             cargoBuildOptions = x: x ++ [ "-p" pname "--target" "x86_64-unknown-linux-musl" ];
             cargoTestOptions = x: x ++ [ "-p" pname "--target" "x86_64-unknown-linux-musl" ];
             doCheck = true;
-            doDoc = true;
+            #doDoc = true;
           };
           echo-partition = naerskLib.buildPackage rec {
             pname = "echo";
@@ -133,7 +133,7 @@
             cargoBuildOptions = x: x ++ [ "-p" pname "--target" "x86_64-unknown-linux-musl" ];
             cargoTestOptions = x: x ++ [ "-p" pname "--target" "x86_64-unknown-linux-musl" ];
             doCheck = true;
-            doDoc = true;
+            #doDoc = true;
           };
         };
       });

@@ -29,20 +29,20 @@ type ChannelName = String<MAX_CHANNEL_NAME>;
 ///     stack_size: StackSizeConfig {
 ///       periodic_process: ByteSize::kb(100),
 ///     },
-///     ports: vec![
+///     ports: heapless::Vec::from_slice(&[
 ///         Port::SamplingPortDestination(SamplingPortDestinationConfig {
-///             channel: String::from("EchoRequest"),
+///             channel: heapless::String::from("EchoRequest"),
 ///             msg_size: ByteSize::kb(2),
 ///             validity: Duration::from_secs(1),
 ///             virtual_link: 0,
 ///         }),
 ///         Port::SamplingPortSource(SamplingPortSourceConfig {
-///             channel: String::from("EchoReply"),
+///             channel: heapless::String::from("EchoReply"),
 ///             msg_size: ByteSize::kb(2),
 ///             virtual_link: 1,
 ///         }),
-///     ],
-///     virtual_links: vec![
+///     ]).unwrap(),
+///     virtual_links: heapless::Vec::from_slice(&[
 ///         VirtualLinkConfig {
 ///             id: 0,
 ///             period: Duration::from_millis(100),
@@ -53,7 +53,7 @@ type ChannelName = String<MAX_CHANNEL_NAME>;
 ///             period: Duration::from_millis(500),
 ///             msg_size: ByteSize::kb(1),
 ///         },
-///     ],
+///     ]).unwrap(),
 /// };
 /// ```
 #[derive(Debug, Serialize, Deserialize, Clone)]

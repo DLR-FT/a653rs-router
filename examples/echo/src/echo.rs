@@ -1,11 +1,21 @@
 use apex_rs::prelude::*;
 use apex_rs_postcard::sampling::{SamplingPortDestinationExt, SamplingPortSourceExt};
+use core::hint;
+use core::str::FromStr;
+use core::time::Duration;
 use log::{error, info, trace};
-use network_partition::prelude::*;
 use once_cell::sync::OnceCell;
-use std::str::FromStr;
-use std::thread::sleep;
-use std::time::Duration;
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, Copy, Clone, Debug)]
+/// Echo message
+struct Echo {
+    /// A sequence number.
+    pub sequence: u32,
+
+    /// The time at which the message has been created.
+    pub when_ms: u64,
+}
 
 pub trait RunableProcess {
     // TODO should take ownership of port, but can't take ownership of port as part of static lifetime process
@@ -67,7 +77,9 @@ where
                     trace!("Failed to receive anything");
                 }
             }
-            sleep(Duration::from_millis(20));
+            for _ in 0..10000 {
+                hint::spin_loop()
+            }
         }
     }
 }

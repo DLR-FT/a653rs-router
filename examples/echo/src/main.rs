@@ -1,3 +1,4 @@
+#![no_std]
 #![allow(incomplete_features)]
 #![feature(generic_const_exprs)]
 
@@ -5,10 +6,10 @@ mod echo;
 
 use apex_rs::prelude::*;
 use apex_rs_linux::partition::{ApexLinuxPartition, ApexLogger};
+use core::time::Duration;
 use echo::*;
 use log::LevelFilter;
 use once_cell::sync::{Lazy, OnceCell};
-use std::time::Duration;
 
 const ECHO_SIZE: MessageSize = 1000;
 

@@ -1,5 +1,4 @@
 use crate::config::*;
-use crate::echo::PortSampler;
 use crate::ports::{ChannelId, VirtualLinkId};
 use crate::routing::Router;
 use apex_rs::prelude::*;
@@ -157,20 +156,5 @@ where
 
     fn warm_start(&self, ctx: &mut StartContext<H>) {
         self.cold_start(ctx)
-    }
-}
-
-/// Runs the main loop of the network partition.
-pub fn run<const MSG_SIZE: MessageSize, H>(
-    input: &SamplingPortDestination<MSG_SIZE, H>,
-    output: &SamplingPortSource<MSG_SIZE, H>,
-) -> !
-where
-    H: ApexSamplingPortP4 + ApexTimeP4Ext,
-    [u8; MSG_SIZE as usize]:,
-{
-    loop {
-        _ = input.forward(&output);
-        <H as ApexTimeP4Ext>::periodic_wait().unwrap();
     }
 }

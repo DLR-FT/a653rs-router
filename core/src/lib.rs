@@ -16,7 +16,6 @@
 )]
 
 mod config;
-mod echo;
 mod error;
 mod network;
 mod partition;
@@ -26,7 +25,6 @@ mod routing;
 /// Standard Prelude to be used by network partition implementations (e.g. network_partition_linux)
 pub mod prelude {
     pub use crate::config::*;
-    pub use crate::echo::{Echo, PortSampler};
     pub use crate::error::Error;
     pub use crate::network::*;
     pub use crate::partition::*;

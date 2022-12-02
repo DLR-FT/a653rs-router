@@ -1,7 +1,10 @@
 extern crate log;
 
+use std::time::Duration;
+
 use apex_rs::prelude::*;
 use apex_rs_linux::partition::{ApexLinuxPartition, ApexLogger};
+use bytesize::ByteSize;
 use heapless::LinearMap;
 use log::{error, trace, warn, LevelFilter};
 use network_partition::prelude::{Error, *};
@@ -49,6 +52,9 @@ extern "C" fn entry_point() {
     let router = ROUTER.get().unwrap();
     let dst_ports = DESTINATION_PORTS.get().unwrap();
     let src_ports = SOURCE_PORTS.get().unwrap();
+    let mut shaper = CreditBasedShaper::<1>::new(ByteSize::mb(10));
+    let echo_queue = shaper.add_queue(ByteSize::kb(1)).unwrap();
+    let mut echo_buffer = [0u8; PORT_MTU as usize];
 
     // TODO map from virtual link to network interface for multiple interfaces
 
@@ -77,12 +83,10 @@ extern "C" fn entry_point() {
 
         // TODO refactor
 
-        let do_collect_dst_port = |id: &ChannelId,
-                                   port: &SamplingPortDestination<PORT_MTU, Hypervisor>|
+        let mut do_collect_dst_port = |id: &ChannelId,
+                                       port: &SamplingPortDestination<PORT_MTU, Hypervisor>|
          -> Result<(), Error> {
-            let mut buffer = [0u8; PORT_MTU as usize];
-
-            let (valid, _) = port.receive(&mut buffer)?;
+            let (valid, _) = port.receive(&mut echo_buffer)?;
             if valid == Validity::Invalid {
                 return Err(Error::InvalidData);
             }
@@ -95,7 +99,7 @@ extern "C" fn entry_point() {
                     if port.is_none() {
                         warn!("Port with id {port_id:?} not initialized");
                     } else {
-                        let send_result = port.unwrap().send(&buffer);
+                        let send_result = port.unwrap().send(&echo_buffer);
                         if send_result.is_err() {
                             error!(
                                 "Failed to send to port {port_id:?}: {:?}",
@@ -106,7 +110,10 @@ extern "C" fn entry_point() {
                 }
             }
 
-            //let frame = Frame::new(dst_address, buffer);
+            let frame = Frame::from(echo_buffer);
+            let transmission = Transmission::for_frame(echo_queue, &frame);
+            shaper.request_transmission(&transmission).unwrap();
+
             // TODO do shaping before that
             //let res = network_interface.send_frame(&frame);
             //if res.is_err() {
@@ -156,6 +163,18 @@ extern "C" fn entry_point() {
             error!("{err:?}");
         }
 
+        while let Some(q) = shaper.next_queue() {
+            // transmit
+            if q == echo_queue {
+                shaper
+                    .record_transmission(&Transmission::new(
+                        echo_queue,
+                        Duration::from_millis(100),
+                        ByteSize::kb(1),
+                    ))
+                    .unwrap();
+            }
+        }
         // let do_submit_network_port =
         //     |_port: &FakeNetworkInterface<FRAME_MTU>| -> Result<(), Error> {
         //         // TODO apply shaping to queues of network ports and send frames to network

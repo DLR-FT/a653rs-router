@@ -1,6 +1,7 @@
 //! Traffic shapers
 
 use crate::error::Error;
+use crate::network::Frame;
 use bytesize::ByteSize;
 use core::time::Duration;
 use heapless::Vec;
@@ -73,6 +74,15 @@ impl Transmission {
         }
     }
 
+    /// Creates a new transmission for a frame.
+    pub fn for_frame<const PL_SIZE: usize>(queue: QueueId, frame: &Frame<PL_SIZE>) -> Self {
+        Self {
+            queue_id: queue,
+            duration: Duration::ZERO,
+            bits: frame.len() as u64,
+        }
+    }
+
     /// Updates the transmission with the actual duration of the transmission.
     pub fn with_duration(mut self, duration: Duration) -> Self {
         self.duration = duration;
@@ -91,6 +101,7 @@ impl Transmission {
 pub trait Shaper {
     /// Requests that the shaper allows the queue to perform a transmission.
     fn request_transmission(&mut self, transmission: &Transmission) -> Result<(), Error>;
+    // TODO fn cance_transmission
     /// Notifies the shaper, that a transmission took place.
     /// Returns the number of consumed bits.
     fn record_transmission(&mut self, transmission: &Transmission) -> Result<(), Error>;
@@ -385,4 +396,6 @@ mod tests {
                 "Recorded rate: {byte_per_second}, Limit: {limit}, Recorded bytes: {total_byte}, Recorded time: {total_time}"
             );
     }
+
+    // TODO testcase for bandwidth limits of individual queues
 }

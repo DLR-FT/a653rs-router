@@ -620,6 +620,7 @@ version = "0.1.0"
 dependencies = [
  "apex-rs",
  "apex-rs-linux",
+ "bytesize",
  "heapless",
  "log",
  "network-partition",

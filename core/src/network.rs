@@ -2,39 +2,45 @@ use core::time::Duration;
 
 use crate::error::Error;
 
-pub type FrameSize = usize;
-
 /// A frame that is managed by the queue.
 #[derive(Debug, PartialEq, Eq)]
-pub struct Frame<'a>(&'a [u8]);
+pub struct Frame<const PL_SIZE: usize>([u8; PL_SIZE]);
 
-impl<'a> Frame<'a> {
-    pub const fn into_inner(self) -> &'a [u8] {
+impl<const PL_SIZE: usize> Frame<PL_SIZE> {
+    /// The contents of a frame.
+    pub const fn into_inner(self) -> [u8; PL_SIZE] {
         self.0
+    }
+
+    pub const fn len(&self) -> usize {
+        self.0.len()
     }
 }
 
-impl<'a> From<&'a [u8]> for Frame<'a> {
-    fn from(val: &'a [u8]) -> Self {
+impl<const PL_SIZE: usize> From<[u8; PL_SIZE]> for Frame<PL_SIZE> {
+    fn from(val: [u8; PL_SIZE]) -> Self {
         Self(val)
     }
 }
 
-impl<'a> From<Frame<'a>> for &'a [u8] {
-    fn from(val: Frame<'a>) -> Self {
+impl<const PL_SIZE: usize> From<Frame<PL_SIZE>> for [u8; PL_SIZE] {
+    fn from(val: Frame<PL_SIZE>) -> Self {
         val.0
     }
 }
 
 /// A network interface.
-pub trait Interface<const MTU: usize> {
+pub trait Interface {
     /// Sends a frame with a payload of length PAYLOAD_SIZE.
-    fn send<'a>(&self, frame: Frame<'a>) -> Result<Duration, Error>;
+    fn send<const PL_SIZE: usize>(&self, frame: Frame<PL_SIZE>) -> Result<Duration, Error>;
 
     /// Receives a frame with a payload of length PAYLOAD_SIZE using the supplied buffer.
     ///
     /// The buffer has to be large enough to contain the entire frame.
-    fn receive<'a>(&self, buffer: &mut Frame<'a>) -> Result<&'a Frame, Error>;
+    fn receive<const PL_SIZE: usize>(
+        &self,
+        buffer: &mut Frame<PL_SIZE>,
+    ) -> Result<&Frame<PL_SIZE>, Error>;
 }
 
 #[cfg(test)]

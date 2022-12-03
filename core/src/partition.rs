@@ -1,7 +1,7 @@
 use crate::config::*;
-use crate::network::VirtualLinkId;
 use crate::ports::ChannelId;
 use crate::routing::Router;
+use crate::virtual_link::VirtualLinkId;
 use apex_rs::prelude::*;
 use core::fmt::Debug;
 use core::str::FromStr;

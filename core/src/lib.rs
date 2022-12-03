@@ -32,4 +32,5 @@ pub mod prelude {
     pub use crate::ports::*;
     pub use crate::routing::*;
     pub use crate::shaper::*;
+    pub use crate::virtual_link::*;
 }

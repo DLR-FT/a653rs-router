@@ -79,7 +79,7 @@ impl Transmission {
         Self {
             queue_id: queue,
             duration: Duration::ZERO,
-            bits: frame.len() as u64,
+            bits: frame.len() as u64, // TODO should be actual size of frame (depends on N.I.L)
         }
     }
 

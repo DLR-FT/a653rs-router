@@ -1,7 +1,8 @@
 //! Routing
 
 use crate::error::Error;
-use crate::ports::{ChannelId, VirtualLinkId};
+use crate::network::VirtualLinkId;
+use crate::ports::ChannelId;
 use heapless::Vec;
 
 type RouteTableEntry<S, D> = (S, D);

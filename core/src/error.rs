@@ -36,9 +36,8 @@ pub enum Error {
     /// A queue has no more free capacity.
     QueueOverflow,
 
+    /// Transmission is not allowed at the time.
     TransmitNotAllowed,
-
-    BlockNotAllowed,
 
     /// An unspecified error.
     Unknown,

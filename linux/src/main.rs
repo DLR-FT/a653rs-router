@@ -6,7 +6,7 @@ use apex_rs::prelude::*;
 use apex_rs_linux::partition::{ApexLinuxPartition, ApexLogger};
 use bytesize::ByteSize;
 use heapless::LinearMap;
-use log::{error, trace, warn, LevelFilter};
+use log::{error, trace, LevelFilter};
 use network_partition::prelude::{Error, *};
 use once_cell::sync::OnceCell;
 
@@ -47,122 +47,34 @@ fn main() {
     partition.run();
 }
 
+fn process_destination_port<'a, H: ApexSamplingPortP4>(
+    port: &'a SamplingPortDestination<PORT_MTU, H>,
+    router: &'a dyn RouteLookup<TABLE_SIZE>,
+    srcs: &'a dyn SamplingPortLookup<PORT_MTU, H>,
+    queues: &'a dyn QueueLookup<PORT_MTU>,
+) -> Result<(), Error> {
+    let mut frame = Frame::<PORT_MTU>::default();
+    let frame = port.receive_frame(&mut frame)?;
+    let link = frame.get_virtual_link(router)?;
+    link.forward_sampling_port(frame, srcs, queues)
+}
+
 extern "C" fn entry_point() {
     // TODO move to partition module
     let router = ROUTER.get().unwrap();
-    let dst_ports = DESTINATION_PORTS.get().unwrap();
-    let src_ports = SOURCE_PORTS.get().unwrap();
+    let port_dsts = DESTINATION_PORTS.get().unwrap();
+    let port_srcs = SOURCE_PORTS.get().unwrap();
     let mut shaper = CreditBasedShaper::<1>::new(ByteSize::mb(10));
     let echo_queue = shaper.add_queue(ByteSize::kb(1)).unwrap();
-    let mut echo_buffer = [0u8; PORT_MTU as usize];
-
-    // TODO map from virtual link to network interface for multiple interfaces
+    let queues: LinearMap<QueueId, Queue<PORT_MTU>, TABLE_SIZE> = LinearMap::default();
 
     loop {
-        //     // Read from all ports and enqueue
-        //     // let received = port.receive();
-        //     // try queue.enqueue(received);
-        //     let next_frame = shaper.try_get_next_frame::<FRAME_SIZE>(&mut queue);
-        //     match next_frame {
-        //         Ok(_) => {
-        //             let result = router.route_local_output::<ECHO_PORT_SIZE_BYTES>(&input);
-        //             match result {
-        //                 Ok(_) => {
-        //                     trace!("Replied to echo")
-        //                 }
-        //                 Err(err) => {
-        //                     error!("Failed to reply to echo: {err:?}")
-        //                 }
-        //             }
-        //         }
-        //         Err(err) => {
-        //             error!("{err:?}");
-        //         }
-        //     }
-        //     shaper.restore(&mut queue);
-
-        // TODO refactor
-
-        let mut do_collect_dst_port = |id: &ChannelId,
-                                       port: &SamplingPortDestination<PORT_MTU, Hypervisor>|
-         -> Result<(), Error> {
-            let (valid, _) = port.receive(&mut echo_buffer)?;
-            if valid == Validity::Invalid {
-                return Err(Error::InvalidData);
-            }
-            let dst_address = router.route_local_output(id)?;
-
-            // Try to find local ports that want are part of virtual link and deliver immediately.
-            if let Ok(local_ports) = router.route_remote_input(&dst_address) {
-                for port_id in local_ports {
-                    let port = src_ports.get(&port_id);
-                    if port.is_none() {
-                        warn!("Port with id {port_id:?} not initialized");
-                    } else {
-                        let send_result = port.unwrap().send(&echo_buffer);
-                        if send_result.is_err() {
-                            error!(
-                                "Failed to send to port {port_id:?}: {:?}",
-                                send_result.err().unwrap()
-                            );
-                        }
-                    }
-                }
-            }
-
-            let frame = Frame::from(echo_buffer);
-            let transmission = Transmission::for_frame(echo_queue, &frame);
-            shaper.request_transmission(&transmission).unwrap();
-
-            // TODO do shaping before that
-            //let res = network_interface.send_frame(&frame);
-            //if res.is_err() {
-            //// TODO store error and return all stored errors as result
-            //error!(
-            //"Failed to send frame to link for virtual link {dst_address:?}: {:?}",
-            //res.err().unwrap()
-            //);
-            //}
-
-            //let _frame = Frame::<FRAME_PAYLOAD_SIZE>::from(&buffer);
-            // TODO submit including virtual link tag and sequence number
-            // virtual_links[&dst_address].queue.enqueue(frame)?;
-
-            Ok(())
-        };
-
-        for (id, port) in dst_ports.iter() {
-            if let Err(err) = do_collect_dst_port(id, port) {
-                error!("{err:?}");
+        for (_, dst) in port_dsts {
+            let res = process_destination_port(&dst, router, port_srcs, &queues);
+            if res.is_err() {
+                error!("Failed to deliver frame to all destinations: {res:?}");
             }
         }
-
-        let do_collect_network_port = || -> Result<(), Error> {
-            //let mut buffer = [0u8; FRAME_MTU];
-            //let res = network_interface.receive_frame(&mut buffer);
-            //if res.is_err() {
-            //    // TODO store error and return it
-            //} else {
-            //    let frame = res.unwrap();
-            //    let link = frame.link();
-            //    let payload = frame.payload();
-            //    let local_ports = router.route_remote_input(&link);
-            //    if local_ports.is_err() {
-            //        // TODO store error and return it
-            //    } else {
-            //        for port in local_ports.ok().unwrap() {
-            //            // TODO handle error
-            //            src_ports.get(&port).unwrap().send(&payload).unwrap();
-            //        }
-            //    }
-            //}
-            Ok(())
-        };
-
-        if let Err(err) = do_collect_network_port() {
-            error!("{err:?}");
-        }
-
         while let Some(q) = shaper.next_queue() {
             // transmit
             if q == echo_queue {
@@ -175,18 +87,6 @@ extern "C" fn entry_point() {
                     .unwrap();
             }
         }
-        // let do_submit_network_port =
-        //     |_port: &FakeNetworkInterface<FRAME_MTU>| -> Result<(), Error> {
-        //         // TODO apply shaping to queues of network ports and send frames to network
-        //         Ok(())
-        //     };
-
-        // for queue in queues {
-        // if let Err(err) = do_submit_queue_port(port) {
-        // error!("{err:?}");
-        // }
-        // }
-
         Hypervisor::periodic_wait().unwrap();
     }
 }

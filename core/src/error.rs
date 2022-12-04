@@ -1,6 +1,8 @@
 ///! Error types
 use serde::{Deserialize, Serialize};
 
+use crate::prelude::{ChannelId, VirtualLinkId};
+
 // TODO more precise errors
 
 /// General error type for this crate.
@@ -22,7 +24,7 @@ pub enum Error {
     NoLink,
 
     /// The route is invalid.
-    InvalidRoute,
+    InvalidRoute(RouteError),
 
     /// An error occured while talking to the hypervisor.
     ApexError(apex_rs::prelude::Error),
@@ -46,5 +48,23 @@ pub enum Error {
 impl From<apex_rs::prelude::Error> for Error {
     fn from(val: apex_rs::prelude::Error) -> Self {
         Self::ApexError(val)
+    }
+}
+
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
+pub enum RouteError {
+    Local(ChannelId),
+    Remote(VirtualLinkId),
+}
+
+impl From<ChannelId> for RouteError {
+    fn from(val: ChannelId) -> Self {
+        Self::Local(val)
+    }
+}
+
+impl From<VirtualLinkId> for RouteError {
+    fn from(val: VirtualLinkId) -> Self {
+        Self::Remote(val)
     }
 }

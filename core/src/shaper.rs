@@ -2,6 +2,7 @@
 
 use crate::error::Error;
 use crate::network::Frame;
+use crate::network::PayloadSize;
 use bytesize::ByteSize;
 use core::time::Duration;
 use heapless::Vec;
@@ -75,7 +76,10 @@ impl Transmission {
     }
 
     /// Creates a new transmission for a frame.
-    pub fn for_frame<const PL_SIZE: usize>(queue: QueueId, frame: &Frame<PL_SIZE>) -> Self {
+    pub fn for_frame<const PL_SIZE: PayloadSize>(queue: QueueId, frame: &Frame<PL_SIZE>) -> Self
+    where
+        [(); PL_SIZE as usize]:,
+    {
         Self {
             queue_id: queue,
             duration: Duration::ZERO,

@@ -1,5 +1,12 @@
+use serde::{Deserialize, Serialize};
+// TODO
+// - iterate over self.ports
+// - lookup virtual link id of port
+// - read port contents into frame
+// - return iterator over new frames<'a>
+
 /// An ID of a hypervisor port.
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ChannelId(u32);
 
 impl ChannelId {

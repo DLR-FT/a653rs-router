@@ -401,5 +401,13 @@ mod tests {
             );
     }
 
+    #[test]
+    fn given_empty_queue_with_credit_when_next_queue_then_none() {
+        let mut shaper: CreditBasedShaper<1> = CreditBasedShaper::new(ByteSize::mb(10));
+        let q: u32 = shaper.add_queue(ByteSize::mb(1)).unwrap().into();
+        let mut status = shaper.queues.get_mut(q as usize).unwrap();
+        status.backlog = 0;
+        assert!(shaper.next_queue().is_none());
+    }
     // TODO testcase for bandwidth limits of individual queues
 }

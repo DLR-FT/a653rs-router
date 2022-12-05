@@ -3,6 +3,7 @@
 use crate::error::{Error, RouteError};
 use crate::network::{Frame, PayloadSize, QueueLookup};
 use crate::ports::SamplingPortLookup;
+use crate::prelude::{Shaper, Transmission};
 use crate::routing::{PortIdIterator, RouteLookup};
 use crate::shaper::QueueId;
 use apex_rs::prelude::ApexSamplingPortP4;
@@ -104,6 +105,7 @@ pub trait Forward {
         frame: &Frame<PL_SIZE>,
         src_ports: &dyn SamplingPortLookup<PL_SIZE, H>,
         queue: &mut dyn QueueLookup<PL_SIZE>,
+        shaper: &mut dyn Shaper,
     ) -> Result<(), Error>
     where
         [(); PL_SIZE as usize]:;
@@ -115,6 +117,7 @@ impl<const PORTS: usize> Forward for VirtualLinkDestinations<PORTS> {
         frame: &Frame<PL_SIZE>,
         src_ports: &dyn SamplingPortLookup<PL_SIZE, H>,
         queues: &mut dyn QueueLookup<PL_SIZE>,
+        shaper: &mut dyn Shaper,
     ) -> Result<(), Error>
     where
         [(); PL_SIZE as usize]:,
@@ -129,7 +132,8 @@ impl<const PORTS: usize> Forward for VirtualLinkDestinations<PORTS> {
         }
 
         if let Some(q) = queues.get_queue(&self.queue) {
-            q.enqueue(*frame)?;
+            q.enqueue_frame(*frame)?;
+            shaper.request_transmission(&Transmission::for_frame(self.queue, frame))?;
         }
 
         Ok(())

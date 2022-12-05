@@ -53,11 +53,12 @@ fn process_destination_port<'a, H: ApexSamplingPortP4>(
     router: &'a dyn RouteLookup<TABLE_SIZE>,
     srcs: &'a dyn SamplingPortLookup<PORT_MTU, H>,
     queues: &'a mut dyn QueueLookup<PORT_MTU>,
+    shaper: &'a mut dyn Shaper,
 ) -> Result<(), Error> {
     let mut frame = Frame::<PORT_MTU>::default();
     let frame = port.receive_frame(&mut frame)?;
     let link = frame.get_virtual_link(router)?;
-    link.forward_sampling_port(frame, srcs, queues)
+    link.forward_sampling_port(frame, srcs, queues, shaper)
 }
 
 extern "C" fn entry_point() {
@@ -69,26 +70,25 @@ extern "C" fn entry_point() {
     let echo_queue = shaper.add_queue(ByteSize::kb(1)).unwrap();
     let mut queues: LinearMap<QueueId, Queue<Frame<PORT_MTU>, QUEUE_CAPACITY>, TABLE_SIZE> =
         LinearMap::default();
-    queues.insert(QueueId::from(0), Queue::default()).unwrap();
+    queues.insert(echo_queue, Queue::default()).unwrap();
 
     loop {
         for (_, dst) in port_dsts {
-            let res = process_destination_port(dst, router, port_srcs, &mut queues);
+            let res = process_destination_port(dst, router, port_srcs, &mut queues, &mut shaper);
             if res.is_err() {
                 error!("Failed to deliver frame to all destinations: {res:?}");
             }
         }
-        while let Some(q) = shaper.next_queue() {
+        let mut frames_transmitted = 0;
+        while let Some(q_id) = shaper.next_queue() {
             // transmit
-            if q == echo_queue {
-                shaper
-                    .record_transmission(&Transmission::new(
-                        echo_queue,
-                        Duration::from_millis(100),
-                        ByteSize::kb(1),
-                    ))
-                    .unwrap();
-            }
+            let q = queues.get_mut(&q_id).unwrap();
+            let frame = FrameQueue::dequeue_frame(q).unwrap();
+            // TODO q.send_network
+            let transmission = Transmission::for_frame(q_id, &frame);
+            shaper.record_transmission(transmission).unwrap();
+            frames_transmitted += 1;
+            trace!("Frames transmitted: {frames_transmitted:?}");
         }
         Hypervisor::periodic_wait().unwrap();
     }

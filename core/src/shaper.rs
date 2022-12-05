@@ -108,7 +108,7 @@ pub trait Shaper {
     // TODO fn cance_transmission
     /// Notifies the shaper, that a transmission took place.
     /// Returns the number of consumed bits.
-    fn record_transmission(&mut self, transmission: &Transmission) -> Result<(), Error>;
+    fn record_transmission(&mut self, transmission: Transmission) -> Result<(), Error>;
     /// Gets the id of the queue that may transmit the next frame.
     fn next_queue(&mut self) -> Option<QueueId>;
 }
@@ -158,7 +158,7 @@ impl<const NUM_QUEUES: usize> Shaper for CreditBasedShaper<NUM_QUEUES> {
         Ok(())
     }
 
-    fn record_transmission(&mut self, transmission: &Transmission) -> Result<(), Error> {
+    fn record_transmission(&mut self, transmission: Transmission) -> Result<(), Error> {
         let mut consumed = false;
         for q in self.queues.iter_mut() {
             if q.id == transmission.queue_id {
@@ -181,7 +181,7 @@ impl<const NUM_QUEUES: usize> Shaper for CreditBasedShaper<NUM_QUEUES> {
     /// It is assumed that each queue services frames of a limited size so there is a lo_credit for each queue.
     fn next_queue(&mut self) -> Option<QueueId> {
         for q in self.queues.iter_mut() {
-            if q.transmit_allowed() {
+            if q.transmit_allowed() && q.backlog > 0 {
                 q.transmit = true;
                 return Some(q.id);
             }
@@ -381,12 +381,12 @@ mod tests {
             // ... transmit
             if next_q == q1 {
                 let t = Transmission::new(q1, DURATION_Q1, MTU_Q1);
-                s.record_transmission(&t).unwrap();
+                s.record_transmission(t).unwrap();
                 total_byte += MTU_Q1.as_u64();
                 total_time += DURATION_Q1;
             } else {
                 let t = Transmission::new(q2, DURATION_Q2, MTU_Q2);
-                s.record_transmission(&t).unwrap();
+                s.record_transmission(t).unwrap();
                 total_byte += MTU_Q2.as_u64();
                 total_time += DURATION_Q2;
             }

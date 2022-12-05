@@ -1,17 +1,11 @@
 //! Virtual links.
 
-use crate::error::Error;
-use crate::error::RouteError;
-use crate::network::Frame;
-use crate::network::PayloadSize;
-use crate::prelude::ChannelId;
-use crate::prelude::FrameQueue;
+use crate::error::{Error, RouteError};
+use crate::network::{Frame, PayloadSize, QueueLookup};
+use crate::ports::SamplingPortLookup;
 use crate::routing::{PortIdIterator, RouteLookup};
 use crate::shaper::QueueId;
-use apex_rs::prelude::{
-    ApexSamplingPortP4, MessageSize, SamplingPortDestination, SamplingPortSource, Validity,
-};
-use heapless::LinearMap;
+use apex_rs::prelude::ApexSamplingPortP4;
 use serde::{Deserialize, Serialize};
 
 /// An ID of a virtual link.
@@ -102,73 +96,6 @@ pub trait ReceiveFrame {
         [(); PL_SIZE as usize]:;
 }
 
-impl<const MSG_SIZE: MessageSize, H: ApexSamplingPortP4> ReceiveFrame
-    for SamplingPortDestination<MSG_SIZE, H>
-{
-    fn receive_frame<'a, const PL_SIZE: PayloadSize>(
-        &self,
-        frame: &'a mut Frame<PL_SIZE>,
-    ) -> Result<&'a Frame<PL_SIZE>, Error>
-    where
-        [(); PL_SIZE as usize]:,
-    {
-        let (valid, _) = self.receive(&mut frame.payload)?;
-        if valid == Validity::Valid {
-            Ok(frame)
-        } else {
-            Err(Error::InvalidData)
-        }
-    }
-}
-
-/// Looks up a sampling port source by its internal ID.
-pub trait SamplingPortLookup<const MSG_SIZE: MessageSize, H: ApexSamplingPortP4> {
-    /// Gets the sampling port source by the internal `id`.
-    fn get_sampling_port_source<'a>(
-        &'a self,
-        id: &ChannelId,
-    ) -> Option<&'a SamplingPortSource<MSG_SIZE, H>>
-    where
-        H: ApexSamplingPortP4;
-}
-
-impl<const MSG_SIZE: MessageSize, H: ApexSamplingPortP4, const PORTS: usize>
-    SamplingPortLookup<MSG_SIZE, H>
-    for LinearMap<ChannelId, SamplingPortSource<MSG_SIZE, H>, PORTS>
-{
-    fn get_sampling_port_source<'a>(
-        &'a self,
-        id: &ChannelId,
-    ) -> Option<&'a SamplingPortSource<MSG_SIZE, H>>
-    where
-        H: ApexSamplingPortP4,
-    {
-        self.get(id)
-    }
-}
-
-/// Looks up a sampling port source by its internal ID.
-// TODO rename to FrameQueueLookup
-pub trait QueueLookup<const PL_SIZE: PayloadSize>
-where
-    [(); PL_SIZE as usize]:,
-{
-    /// Gets the sampling port source by the internal `id`.
-    fn get_queue(&mut self, id: &QueueId) -> Option<&mut (dyn FrameQueue<PL_SIZE>)>;
-}
-
-impl<const PL_SIZE: PayloadSize, const QUEUES: usize, const QUEUE_CAPACITY: usize>
-    QueueLookup<PL_SIZE>
-    for LinearMap<QueueId, heapless::spsc::Queue<Frame<PL_SIZE>, QUEUE_CAPACITY>, QUEUES>
-where
-    [(); PL_SIZE as usize]:,
-{
-    fn get_queue(&mut self, id: &QueueId) -> Option<&mut (dyn FrameQueue<PL_SIZE>)> {
-        let q = self.get_mut(id)?;
-        Some(q)
-    }
-}
-
 /// Forwards a frame to a set of port sources and network queues.
 pub trait Forward {
     /// Forwards a frame to its destinations, which can be port sources or network queues.
@@ -207,9 +134,4 @@ impl<const PORTS: usize> Forward for VirtualLinkDestinations<PORTS> {
 
         Ok(())
     }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
 }

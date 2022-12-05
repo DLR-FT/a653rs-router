@@ -1,7 +1,9 @@
 use core::time::Duration;
 
 use crate::error::Error;
+use crate::shaper::QueueId;
 use crate::virtual_link::VirtualLinkId;
+use heapless::LinearMap;
 
 /// Size of a frame payload.
 pub type PayloadSize = u32;
@@ -115,12 +117,31 @@ where
     }
 }
 
+/// Looks up a queue by its internal ID.
+pub trait QueueLookup<const PL_SIZE: PayloadSize>
+where
+    [(); PL_SIZE as usize]:,
+{
+    /// Gets the sampling port source by the internal `id`.
+    fn get_queue(&mut self, id: &QueueId) -> Option<&mut (dyn FrameQueue<PL_SIZE>)>;
+}
+
+impl<const PL_SIZE: PayloadSize, const QUEUES: usize, const QUEUE_CAPACITY: usize>
+    QueueLookup<PL_SIZE>
+    for LinearMap<QueueId, heapless::spsc::Queue<Frame<PL_SIZE>, QUEUE_CAPACITY>, QUEUES>
+where
+    [(); PL_SIZE as usize]:,
+{
+    fn get_queue(&mut self, id: &QueueId) -> Option<&mut (dyn FrameQueue<PL_SIZE>)> {
+        let q = self.get_mut(id)?;
+        Some(q)
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use heapless::spsc::Queue;
-
     use super::*;
-    use core::mem::size_of_val;
+    use heapless::spsc::Queue;
 
     #[test]
     fn given_frame_when_len_then_len_of_payload() {
@@ -128,7 +149,7 @@ mod tests {
             link: VirtualLinkId::from(0),
             payload: [0u8; 10],
         };
-        assert_eq!(10, size_of_val(&f.payload));
+        assert_eq!(10, f.len());
     }
 
     #[test]

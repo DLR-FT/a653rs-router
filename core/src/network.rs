@@ -7,7 +7,7 @@ use crate::virtual_link::VirtualLinkId;
 pub type PayloadSize = u32;
 
 /// A frame that is managed by the queue.
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct Frame<const PL_SIZE: PayloadSize>
 where
     [u8; PL_SIZE as usize]:,
@@ -82,8 +82,30 @@ pub(crate) trait Interface {
 }
 
 /// A queue for storing frames that are waiting to be transmitted.
-#[derive(Debug)]
-pub struct Queue<const PL_SIZE: PayloadSize>;
+pub trait FrameQueue<const PL_SIZE: PayloadSize>
+where
+    [(); PL_SIZE as usize]:,
+{
+    /// Saves a frame to the queue to be written to the network later.
+    fn enqueue(&mut self, frame: Frame<PL_SIZE>) -> Result<(), Frame<PL_SIZE>>;
+
+    /// Retrieves a frame from the queue to write it to the network.
+    fn dequeue(&mut self) -> Option<Frame<PL_SIZE>>;
+}
+
+impl<const PL_SIZE: PayloadSize, const QUEUE_CAPACITY: usize> FrameQueue<PL_SIZE>
+    for heapless::spsc::Queue<Frame<PL_SIZE>, QUEUE_CAPACITY>
+where
+    [(); PL_SIZE as usize]:,
+{
+    fn enqueue(&mut self, frame: Frame<PL_SIZE>) -> Result<(), Frame<PL_SIZE>> {
+        self.enqueue(frame)
+    }
+
+    fn dequeue(&mut self) -> Option<Frame<PL_SIZE>> {
+        self.dequeue()
+    }
+}
 
 #[cfg(test)]
 mod tests {

@@ -287,7 +287,7 @@ mod tests {
             backlog: 0,
         };
 
-        assert_eq!(false, queue.transmit_allowed());
+        assert!(!queue.transmit_allowed());
     }
 
     #[test]
@@ -300,7 +300,7 @@ mod tests {
             send_slope: 20,
             backlog: 0,
         };
-        assert_eq!(true, queue.transmit_allowed());
+        assert!(queue.transmit_allowed());
     }
 
     #[test]

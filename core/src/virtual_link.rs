@@ -5,7 +5,7 @@ use crate::error::RouteError;
 use crate::network::Frame;
 use crate::network::PayloadSize;
 use crate::prelude::ChannelId;
-use crate::prelude::Queue;
+use crate::prelude::FrameQueue;
 use crate::routing::{PortIdIterator, RouteLookup};
 use crate::shaper::QueueId;
 use apex_rs::prelude::{
@@ -147,17 +147,25 @@ impl<const MSG_SIZE: MessageSize, H: ApexSamplingPortP4, const PORTS: usize>
     }
 }
 
-/// Looks up a queue by its ID.
-pub trait QueueLookup<const PL_SIZE: PayloadSize> {
-    /// Gets a queue by its internal `id`.
-    fn get_queue<'a>(&'a self, id: &'a QueueId) -> Option<&'a Queue<PL_SIZE>>;
+/// Looks up a sampling port source by its internal ID.
+// TODO rename to FrameQueueLookup
+pub trait QueueLookup<const PL_SIZE: PayloadSize>
+where
+    [(); PL_SIZE as usize]:,
+{
+    /// Gets the sampling port source by the internal `id`.
+    fn get_queue(&mut self, id: &QueueId) -> Option<&mut (dyn FrameQueue<PL_SIZE>)>;
 }
 
-impl<const PL_SIZE: PayloadSize, const QUEUES: usize> QueueLookup<PL_SIZE>
-    for LinearMap<QueueId, Queue<PL_SIZE>, QUEUES>
+impl<const PL_SIZE: PayloadSize, const QUEUES: usize, const QUEUE_CAPACITY: usize>
+    QueueLookup<PL_SIZE>
+    for LinearMap<QueueId, heapless::spsc::Queue<Frame<PL_SIZE>, QUEUE_CAPACITY>, QUEUES>
+where
+    [(); PL_SIZE as usize]:,
 {
-    fn get_queue<'a>(&'a self, id: &'a QueueId) -> Option<&'a Queue<PL_SIZE>> {
-        self.get(id)
+    fn get_queue(&mut self, id: &QueueId) -> Option<&mut (dyn FrameQueue<PL_SIZE>)> {
+        let q = self.get_mut(id)?;
+        Some(q)
     }
 }
 
@@ -168,7 +176,7 @@ pub trait Forward {
         self,
         frame: &Frame<PL_SIZE>,
         src_ports: &dyn SamplingPortLookup<PL_SIZE, H>,
-        queues: &mut dyn QueueLookup<PL_SIZE>,
+        queue: &mut dyn QueueLookup<PL_SIZE>,
     ) -> Result<(), Error>
     where
         [(); PL_SIZE as usize]:;
@@ -193,15 +201,15 @@ impl<const PORTS: usize> Forward for VirtualLinkDestinations<PORTS> {
             port.send(&frame.payload)?; // TODO maybe collect errors and try every port?
         }
 
-        // TODO enqueue frame by copying it
-        let _queue = queues
-            .get_queue(&self.queue)
-            .ok_or(Error::InvalidRoute(RouteError::from(frame.link)))?;
-        //queue.push(*frame);
+        if let Some(q) = queues.get_queue(&self.queue) {
+            q.enqueue(*frame)?;
+        }
 
         Ok(())
     }
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::*;
+}

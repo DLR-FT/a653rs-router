@@ -1,7 +1,7 @@
 ///! Error types
 use serde::{Deserialize, Serialize};
 
-use crate::prelude::{ChannelId, VirtualLinkId};
+use crate::prelude::{ChannelId, Frame, PayloadSize, VirtualLinkId};
 
 // TODO more precise errors
 
@@ -51,6 +51,16 @@ impl From<apex_rs::prelude::Error> for Error {
     }
 }
 
+impl<const PL_SIZE: PayloadSize> From<Frame<PL_SIZE>> for Error
+where
+    [(); PL_SIZE as usize]:,
+{
+    fn from(_: Frame<PL_SIZE>) -> Self {
+        Error::SendFail
+    }
+}
+
+/// A routing error.
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub enum RouteError {
     Local(ChannelId),

@@ -7,7 +7,7 @@ use crate::virtual_link::VirtualLinkId;
 pub type PayloadSize = u32;
 
 /// A frame that is managed by the queue.
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct Frame<const PL_SIZE: PayloadSize>
 where
     [u8; PL_SIZE as usize]:,
@@ -87,6 +87,8 @@ where
     [(); PL_SIZE as usize]:,
 {
     /// Saves a frame to the queue to be written to the network later.
+    /// If the underlying queue has no more free space, the oldest frame is dropped from the front
+    /// and the new frame is inserted at the back.
     fn enqueue(&mut self, frame: Frame<PL_SIZE>) -> Result<(), Frame<PL_SIZE>>;
 
     /// Retrieves a frame from the queue to write it to the network.
@@ -99,7 +101,13 @@ where
     [(); PL_SIZE as usize]:,
 {
     fn enqueue(&mut self, frame: Frame<PL_SIZE>) -> Result<(), Frame<PL_SIZE>> {
-        self.enqueue(frame)
+        let res = self.enqueue(frame);
+        if res.is_err() {
+            _ = self.dequeue();
+            self.enqueue(frame)
+        } else {
+            res
+        }
     }
 
     fn dequeue(&mut self) -> Option<Frame<PL_SIZE>> {
@@ -109,6 +117,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use heapless::spsc::Queue;
+
     use super::*;
     use core::mem::size_of_val;
 
@@ -119,5 +129,18 @@ mod tests {
             payload: [0u8; 10],
         };
         assert_eq!(10, size_of_val(&f.payload));
+    }
+
+    #[test]
+    fn given_queue_is_full_when_enqueue_then_drop_first_and_insert() {
+        let mut q: Queue<Frame<10>, 5> = Queue::default();
+        for i in 0..4 {
+            assert!(FrameQueue::enqueue(&mut q, Frame::from([i; 10])).is_ok());
+        }
+        assert_eq!(q.capacity(), q.len());
+        assert_eq!(*q.peek().unwrap(), Frame::from([0; 10]));
+        assert!(FrameQueue::enqueue(&mut q, Frame::from([5; 10])).is_ok());
+        assert!(q.into_iter().any(|x| *x == Frame::from([5; 10])));
+        assert!(!q.into_iter().any(|x| *x == Frame::from([4; 10])));
     }
 }

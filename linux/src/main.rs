@@ -15,7 +15,7 @@ type Hypervisor = ApexLinuxPartition;
 // TODO should be configured from config using proc-macro
 const PORT_MTU: MessageSize = 10000;
 const TABLE_SIZE: usize = 10;
-const QUEUE_CAPACITY: usize = 1;
+const QUEUE_CAPACITY: usize = 2;
 
 // TODO use once big OnceCell<struct>
 static CONFIG: OnceCell<Config> = OnceCell::new();
@@ -69,6 +69,7 @@ extern "C" fn entry_point() {
     let echo_queue = shaper.add_queue(ByteSize::kb(1)).unwrap();
     let mut queues: LinearMap<QueueId, Queue<Frame<PORT_MTU>, QUEUE_CAPACITY>, TABLE_SIZE> =
         LinearMap::default();
+    queues.insert(QueueId::from(0), Queue::default()).unwrap();
 
     loop {
         for (_, dst) in port_dsts {

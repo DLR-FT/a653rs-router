@@ -51,7 +51,7 @@ fn process_destination_port<'a, H: ApexSamplingPortP4>(
     port: &'a SamplingPortDestination<PORT_MTU, H>,
     router: &'a dyn RouteLookup<TABLE_SIZE>,
     srcs: &'a dyn SamplingPortLookup<PORT_MTU, H>,
-    queues: &'a dyn QueueLookup<PORT_MTU>,
+    queues: &'a mut dyn QueueLookup<PORT_MTU>,
 ) -> Result<(), Error> {
     let mut frame = Frame::<PORT_MTU>::default();
     let frame = port.receive_frame(&mut frame)?;
@@ -66,11 +66,11 @@ extern "C" fn entry_point() {
     let port_srcs = SOURCE_PORTS.get().unwrap();
     let mut shaper = CreditBasedShaper::<1>::new(ByteSize::mb(10));
     let echo_queue = shaper.add_queue(ByteSize::kb(1)).unwrap();
-    let queues: LinearMap<QueueId, Queue<PORT_MTU>, TABLE_SIZE> = LinearMap::default();
+    let mut queues: LinearMap<QueueId, Queue<PORT_MTU>, TABLE_SIZE> = LinearMap::default();
 
     loop {
         for (_, dst) in port_dsts {
-            let res = process_destination_port(&dst, router, port_srcs, &queues);
+            let res = process_destination_port(dst, router, port_srcs, &mut queues);
             if res.is_err() {
                 error!("Failed to deliver frame to all destinations: {res:?}");
             }

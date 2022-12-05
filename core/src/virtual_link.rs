@@ -23,7 +23,7 @@ use serde::{Deserialize, Serialize};
 /// smaller than the 32 Bit, care must be taken by the system integrator that no IDs larger than the maximum size
 /// are assigned. Implementations of the network interface layer should therefore cast this value to the desired
 /// size that // is required by the underlying network protocol.
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 pub struct VirtualLinkId(u32);
 
 impl VirtualLinkId {
@@ -45,12 +45,6 @@ impl From<VirtualLinkId> for u32 {
     }
 }
 
-impl Default for VirtualLinkId {
-    fn default() -> VirtualLinkId {
-        VirtualLinkId(0)
-    }
-}
-
 impl From<VirtualLinkId> for QueueId {
     fn from(val: VirtualLinkId) -> Self {
         Self::from(val.into_inner())
@@ -60,9 +54,9 @@ impl From<VirtualLinkId> for QueueId {
 /// Looks up the destinations of a virtual link from the router.
 pub trait LookupVirtualLink<const PORTS: usize> {
     /// Gets the virtual link associated with the frame.
-    fn get_virtual_link<'a>(
+    fn get_virtual_link(
         &self,
-        router: &'a dyn RouteLookup<PORTS>,
+        router: &dyn RouteLookup<PORTS>,
     ) -> Result<VirtualLinkDestinations<PORTS>, Error>;
 }
 
@@ -81,9 +75,9 @@ impl<const PORTS: usize, const PL_SIZE: PayloadSize> LookupVirtualLink<PORTS> fo
 where
     [(); PL_SIZE as usize]:,
 {
-    fn get_virtual_link<'a>(
+    fn get_virtual_link(
         &self,
-        router: &'a dyn RouteLookup<PORTS>,
+        router: &dyn RouteLookup<PORTS>,
     ) -> Result<VirtualLinkDestinations<PORTS>, Error> {
         let ports = router.route_remote_input(&self.link)?;
         let vl = VirtualLinkDestinations::<PORTS> {
@@ -149,7 +143,7 @@ impl<const MSG_SIZE: MessageSize, H: ApexSamplingPortP4, const PORTS: usize>
     where
         H: ApexSamplingPortP4,
     {
-        self.get(&id)
+        self.get(id)
     }
 }
 
@@ -170,22 +164,22 @@ impl<const PL_SIZE: PayloadSize, const QUEUES: usize> QueueLookup<PL_SIZE>
 /// Forwards a frame to a set of port sources and network queues.
 pub trait Forward {
     /// Forwards a frame to its destinations, which can be port sources or network queues.
-    fn forward_sampling_port<'a, const PL_SIZE: PayloadSize, H: ApexSamplingPortP4>(
+    fn forward_sampling_port<const PL_SIZE: PayloadSize, H: ApexSamplingPortP4>(
         self,
         frame: &Frame<PL_SIZE>,
-        src_ports: &'a dyn SamplingPortLookup<PL_SIZE, H>,
-        queues: &'a dyn QueueLookup<PL_SIZE>,
+        src_ports: &dyn SamplingPortLookup<PL_SIZE, H>,
+        queues: &mut dyn QueueLookup<PL_SIZE>,
     ) -> Result<(), Error>
     where
         [(); PL_SIZE as usize]:;
 }
 
 impl<const PORTS: usize> Forward for VirtualLinkDestinations<PORTS> {
-    fn forward_sampling_port<'a, const PL_SIZE: PayloadSize, H: ApexSamplingPortP4>(
+    fn forward_sampling_port<const PL_SIZE: PayloadSize, H: ApexSamplingPortP4>(
         self,
         frame: &Frame<PL_SIZE>,
-        src_ports: &'a dyn SamplingPortLookup<PL_SIZE, H>,
-        queues: &'a dyn QueueLookup<PL_SIZE>,
+        src_ports: &dyn SamplingPortLookup<PL_SIZE, H>,
+        queues: &mut dyn QueueLookup<PL_SIZE>,
     ) -> Result<(), Error>
     where
         [(); PL_SIZE as usize]:,
@@ -207,4 +201,9 @@ impl<const PORTS: usize> Forward for VirtualLinkDestinations<PORTS> {
 
         Ok(())
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
 }

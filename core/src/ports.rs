@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 // - return iterator over new frames<'a>
 
 /// An ID of a hypervisor port.
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize, Default)]
 pub struct ChannelId(u32);
 
 impl ChannelId {
@@ -25,11 +25,5 @@ impl From<u32> for ChannelId {
 impl From<ChannelId> for u32 {
     fn from(val: ChannelId) -> u32 {
         val.0
-    }
-}
-
-impl Default for ChannelId {
-    fn default() -> ChannelId {
-        ChannelId(0)
     }
 }

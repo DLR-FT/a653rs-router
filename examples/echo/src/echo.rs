@@ -31,7 +31,7 @@ where
     fn run_process(&self) -> ! {
         let mut i: u32 = 0;
         loop {
-            i = i + 1;
+            i += 1;
             let now = <H as ApexTimeP4Ext>::get_time().unwrap_duration();
             let data = Echo {
                 sequence: i,

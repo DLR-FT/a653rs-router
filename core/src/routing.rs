@@ -19,17 +19,13 @@ impl<const TABLE_SIZE: usize> RouteTable<TABLE_SIZE> {
         &'a self,
         source: &'a VirtualLinkId,
     ) -> Result<PortIdIterator<TABLE_SIZE>, Error> {
-        let is_empty = self.input.iter().find(|x| x.0 == *source).is_none();
-        if is_empty {
+        if !self.input.iter().any(|x| x.0 == *source) {
             return Err(Error::NoRoute);
         }
-        let destinations = self.input.iter().filter_map(|x| {
-            if x.0 == *source {
-                Some(x.1.clone())
-            } else {
-                None
-            }
-        });
+        let destinations =
+            self.input
+                .iter()
+                .filter_map(|x| if x.0 == *source { Some(x.1) } else { None });
         Ok(destinations.collect())
     }
 
@@ -50,10 +46,10 @@ impl<const TABLE_SIZE: usize> RouteTable<TABLE_SIZE> {
         source: ChannelId,
         destination: VirtualLinkId,
     ) -> Result<(), Error> {
-        if let Some(_) = self.output.iter().find(|&x| x.1 == destination) {
+        if self.output.iter().any(|x| x.1 == destination) {
             return Err(Error::InvalidRoute(RouteError::from(source)));
         }
-        if let Err(_) = self.output.push((source, destination)) {
+        if self.output.push((source, destination)).is_err() {
             return Err(Error::InvalidRoute(RouteError::from(source)));
         }
         Ok(())
@@ -64,10 +60,10 @@ impl<const TABLE_SIZE: usize> RouteTable<TABLE_SIZE> {
         source: VirtualLinkId,
         destination: ChannelId,
     ) -> Result<(), Error> {
-        if let Some(_) = self.input.iter().find(|&x| x.1 == destination) {
+        if self.input.iter().any(|x| x.1 == destination) {
             return Err(Error::InvalidRoute(RouteError::from(source)));
         }
-        if let Err(_) = self.input.push((source, destination)) {
+        if self.input.push((source, destination)).is_err() {
             return Err(Error::InvalidRoute(RouteError::from(source)));
         }
         Ok(())
@@ -94,19 +90,12 @@ pub trait RouteLookup<const PORTS: usize> {
 /// port to another on the same hypervisor.
 /// The router forwards messages either according to the rules of an input route table (remote address -> local address)
 /// or according to an output route table (local address -> remote address).
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct Router<const TABLE_SIZE: usize> {
     route_table: RouteTable<TABLE_SIZE>,
 }
 
 impl<const TABLE_SIZE: usize> Router<TABLE_SIZE> {
-    /// Creates a new router.
-    pub fn new() -> Self {
-        Router::<TABLE_SIZE> {
-            route_table: RouteTable::default(),
-        }
-    }
-
     /// Add an output route.
     pub fn add_output_route(
         &mut self,
@@ -132,7 +121,7 @@ impl<const PORTS: usize> RouteLookup<PORTS> for Router<PORTS> {
         source: &'a VirtualLinkId,
     ) -> Result<PortIdIterator<PORTS>, Error> {
         let destinations = self.route_table.get_local_destinations(source)?;
-        let ports = PortIdIterator::from(destinations);
+        let ports = destinations;
         Ok(ports)
     }
 

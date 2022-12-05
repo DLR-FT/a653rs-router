@@ -142,11 +142,11 @@ impl<const NUM_QUEUES: usize> CreditBasedShaper<NUM_QUEUES> {
         } else {
             Err(Error::Unknown) // TODO
         }?;
-        if let Err(_) = self.queues.push(q) {
+        if self.queues.push(q).is_err() {
             return Err(Error::Unknown); // TODO
         }
 
-        return Ok(id);
+        Ok(id)
     }
 }
 
@@ -247,7 +247,7 @@ impl QueueStatus {
             return Err(Error::TransmitNotAllowed);
         }
         let consumed = (self.send_slope * (duration.as_millis() as u64)) / 1000;
-        self.credit = self.credit - (consumed as i128);
+        self.credit -= consumed as i128;
         self.backlog -= bits;
         Ok(consumed)
     }

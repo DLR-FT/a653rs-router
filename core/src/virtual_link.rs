@@ -204,6 +204,4 @@ impl<const PORTS: usize> Forward for VirtualLinkDestinations<PORTS> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-}
+mod tests {}

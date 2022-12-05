@@ -22,13 +22,6 @@ impl<const PL_SIZE: PayloadSize> Frame<PL_SIZE>
 where
     [(); PL_SIZE as usize]:,
 {
-    /// Creates an empty frame for virtual link 0.
-    pub fn default() -> Self {
-        Self {
-            link: VirtualLinkId::default(),
-            payload: [0u8; PL_SIZE as usize],
-        }
-    }
     /// The contents of a frame.
     pub const fn into_inner(self) -> (VirtualLinkId, [u8; PL_SIZE as usize]) {
         (self.link, self.payload)
@@ -37,6 +30,24 @@ where
     /// The lengt of the payload of the frame.
     pub const fn len(&self) -> usize {
         PL_SIZE as usize
+    }
+
+    /// True if the payload has length 0.
+    pub const fn is_empty(&self) -> bool {
+        PL_SIZE == 0
+    }
+}
+
+impl<const PL_SIZE: PayloadSize> Default for Frame<PL_SIZE>
+where
+    [(); PL_SIZE as usize]:,
+{
+    /// Creates an empty frame for virtual link 0.
+    fn default() -> Self {
+        Self {
+            link: VirtualLinkId::default(),
+            payload: [0u8; PL_SIZE as usize],
+        }
     }
 }
 

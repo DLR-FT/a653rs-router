@@ -69,7 +69,7 @@ where
     H: ApexSamplingPortP4 + ApexProcessP4 + ApexPartitionP4 + Debug,
 {
     fn cold_start(&self, ctx: &mut StartContext<H>) {
-        let mut router = Router::<TABLE_SIZE>::new();
+        let mut router = Router::<TABLE_SIZE>::default();
 
         // Cannot dynamically init ports with values from config because message sizes are not known at compile time
         // Maybe code generation could be used to translate the config into code -> const values -> can be used in generics
@@ -122,7 +122,7 @@ where
         let mut source_ports: LinearMap<ChannelId, SamplingPortSource<MSG_SIZE, H>, TABLE_SIZE> =
             LinearMap::default();
 
-        if let Some(_) = echo_reply_port_config {
+        if echo_reply_port_config.is_some() {
             let port = ctx
                 .create_sampling_port_source::<MSG_SIZE>(Name::from_str("EchoReply").unwrap())
                 .unwrap();

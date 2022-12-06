@@ -1,7 +1,5 @@
 extern crate log;
 
-use std::time::Duration;
-
 use apex_rs::prelude::*;
 use apex_rs_linux::partition::{ApexLinuxPartition, ApexLogger};
 use bytesize::ByteSize;
@@ -49,16 +47,16 @@ fn main() {
 }
 
 fn process_destination_port<'a, H: ApexSamplingPortP4>(
-    port: &'a SamplingPortDestination<PORT_MTU, H>,
+    port: (&ChannelId, &SamplingPortDestination<PORT_MTU, H>),
     router: &'a dyn RouteLookup<TABLE_SIZE>,
     srcs: &'a dyn SamplingPortLookup<PORT_MTU, H>,
     queues: &'a mut dyn QueueLookup<PORT_MTU>,
     shaper: &'a mut dyn Shaper,
 ) -> Result<(), Error> {
-    let mut frame = Frame::<PORT_MTU>::default();
-    let frame = port.receive_frame(&mut frame)?;
-    let link = frame.get_virtual_link(router)?;
-    link.forward_sampling_port(frame, srcs, queues, shaper)
+    let mut message = Message::<PORT_MTU>::default();
+    let message = port.receive_message(&mut message)?;
+    let link = message.get_virtual_link(router)?;
+    link.forward(message, srcs, queues, shaper)
 }
 
 extern "C" fn entry_point() {
@@ -73,7 +71,7 @@ extern "C" fn entry_point() {
     queues.insert(echo_queue, Queue::default()).unwrap();
 
     loop {
-        for (_, dst) in port_dsts {
+        for dst in port_dsts {
             let res = process_destination_port(dst, router, port_srcs, &mut queues, &mut shaper);
             if res.is_err() {
                 error!("Failed to deliver frame to all destinations: {res:?}");

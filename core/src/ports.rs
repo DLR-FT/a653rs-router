@@ -1,5 +1,5 @@
 use crate::error::Error;
-use crate::prelude::{Frame, PayloadSize, ReceiveFrame};
+use crate::prelude::PayloadSize;
 use apex_rs::prelude::{
     ApexSamplingPortP4, MessageSize, SamplingPortDestination, SamplingPortSource, Validity,
 };
@@ -35,19 +35,64 @@ impl From<ChannelId> for u32 {
     }
 }
 
-impl<const MSG_SIZE: MessageSize, H: ApexSamplingPortP4> ReceiveFrame
-    for SamplingPortDestination<MSG_SIZE, H>
+/// A message from the hypervisor, but annotated with the originating channel's id.
+#[derive(Debug, Copy, Clone)]
+pub struct Message<const PL_SIZE: PayloadSize>
+where
+    [(); PL_SIZE as usize]:,
 {
-    fn receive_frame<'a, const PL_SIZE: PayloadSize>(
+    pub port: ChannelId,
+    pub payload: [u8; PL_SIZE as usize],
+}
+
+impl<const PL_SIZE: PayloadSize> Message<PL_SIZE>
+where
+    [(); PL_SIZE as usize]:,
+{
+    /// Gets the payload the message originated from.
+    pub const fn into_inner(self) -> (ChannelId, [u8; PL_SIZE as usize]) {
+        (self.port, self.payload)
+    }
+}
+
+impl<const PL_SIZE: PayloadSize> Default for Message<PL_SIZE>
+where
+    [(); PL_SIZE as usize]:,
+{
+    fn default() -> Self {
+        Message {
+            port: ChannelId::from(0),
+            payload: [0u8; PL_SIZE as usize],
+        }
+    }
+}
+
+/// Receives a message from a port.
+pub trait ReceiveMessage {
+    /// Receives a message from the hypervisor.
+    fn receive_message<'a, const PL_SIZE: PayloadSize>(
         &self,
-        frame: &'a mut Frame<PL_SIZE>,
-    ) -> Result<&'a Frame<PL_SIZE>, Error>
+        message: &'a mut Message<PL_SIZE>,
+    ) -> Result<&'a Message<PL_SIZE>, Error>
+    where
+        [(); PL_SIZE as usize]:;
+}
+
+impl<const MSG_SIZE: MessageSize, H: ApexSamplingPortP4> ReceiveMessage
+    for (&ChannelId, &SamplingPortDestination<MSG_SIZE, H>)
+{
+    fn receive_message<'a, const PL_SIZE: PayloadSize>(
+        &self,
+        message: &'a mut Message<PL_SIZE>,
+    ) -> Result<&'a Message<PL_SIZE>, Error>
     where
         [(); PL_SIZE as usize]:,
     {
-        let (valid, _) = self.receive(&mut frame.payload)?;
+        // TODO has to set link id.
+        let (valid, _) = self.1.receive(&mut message.payload)?;
         if valid == Validity::Valid {
-            Ok(frame)
+            message.port = *self.0;
+            Ok(message)
         } else {
             Err(Error::InvalidData)
         }

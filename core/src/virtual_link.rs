@@ -3,7 +3,7 @@
 use crate::error::{Error, RouteError};
 use crate::network::{Frame, PayloadSize, QueueLookup};
 use crate::ports::SamplingPortLookup;
-use crate::prelude::{Shaper, Transmission};
+use crate::prelude::{ChannelId, Message, Shaper, Transmission};
 use crate::routing::{PortIdIterator, RouteLookup};
 use crate::shaper::QueueId;
 use apex_rs::prelude::ApexSamplingPortP4;
@@ -62,6 +62,7 @@ pub trait LookupVirtualLink<const PORTS: usize> {
 /// Stores information about a virtual link and
 #[derive(Debug)]
 pub struct VirtualLinkDestinations<const PORTS: usize> {
+    link: VirtualLinkId,
     queue: QueueId,
     ports: PortIdIterator<PORTS>,
 }
@@ -76,7 +77,27 @@ where
     ) -> Result<VirtualLinkDestinations<PORTS>, Error> {
         let ports = router.route_remote_input(&self.link)?;
         let vl = VirtualLinkDestinations::<PORTS> {
+            link: self.link,
             queue: QueueId::from(self.link),
+            ports,
+        };
+        Ok(vl)
+    }
+}
+
+impl<const PORTS: usize, const PL_SIZE: PayloadSize> LookupVirtualLink<PORTS> for Message<PL_SIZE>
+where
+    [(); PL_SIZE as usize]:,
+{
+    fn get_virtual_link(
+        &self,
+        router: &dyn RouteLookup<PORTS>,
+    ) -> Result<VirtualLinkDestinations<PORTS>, Error> {
+        let vl_id = router.route_local_output(&self.port)?;
+        let ports = router.route_remote_input(&vl_id)?;
+        let vl = VirtualLinkDestinations::<PORTS> {
+            link: vl_id,
+            queue: QueueId::from(vl_id),
             ports,
         };
         Ok(vl)
@@ -100,9 +121,9 @@ pub trait ReceiveFrame {
 /// Forwards a frame to a set of port sources and network queues.
 pub trait Forward {
     /// Forwards a frame to its destinations, which can be port sources or network queues.
-    fn forward_sampling_port<const PL_SIZE: PayloadSize, H: ApexSamplingPortP4>(
+    fn forward<const PL_SIZE: PayloadSize, H: ApexSamplingPortP4>(
         self,
-        frame: &Frame<PL_SIZE>,
+        message: &Message<PL_SIZE>,
         src_ports: &dyn SamplingPortLookup<PL_SIZE, H>,
         queue: &mut dyn QueueLookup<PL_SIZE>,
         shaper: &mut dyn Shaper,
@@ -112,9 +133,9 @@ pub trait Forward {
 }
 
 impl<const PORTS: usize> Forward for VirtualLinkDestinations<PORTS> {
-    fn forward_sampling_port<const PL_SIZE: PayloadSize, H: ApexSamplingPortP4>(
+    fn forward<const PL_SIZE: PayloadSize, H: ApexSamplingPortP4>(
         self,
-        frame: &Frame<PL_SIZE>,
+        message: &Message<PL_SIZE>,
         src_ports: &dyn SamplingPortLookup<PL_SIZE, H>,
         queues: &mut dyn QueueLookup<PL_SIZE>,
         shaper: &mut dyn Shaper,
@@ -128,12 +149,16 @@ impl<const PORTS: usize> Forward for VirtualLinkDestinations<PORTS> {
                 .get_sampling_port_source(&p)
                 .ok_or(Error::InvalidRoute(RouteError::from(p)))?;
 
-            port.send(&frame.payload)?; // TODO maybe collect errors and try every port?
+            port.send(&message.payload)?; // TODO maybe collect errors and try every port?
         }
 
         if let Some(q) = queues.get_queue(&self.queue) {
-            q.enqueue_frame(*frame)?;
-            shaper.request_transmission(&Transmission::for_frame(self.queue, frame))?;
+            let frame = Frame {
+                link: self.link,
+                payload: message.payload,
+            };
+            q.enqueue_frame(frame)?;
+            shaper.request_transmission(&Transmission::for_frame(self.queue, &frame))?;
         }
 
         Ok(())

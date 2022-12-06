@@ -64,6 +64,7 @@
           git.hooks.enable = true;
           git.hooks.pre-commit.text = ''
             treefmt --fail-on-change
+            cargo clippy -- -D warnings
           '';
           commands = [
             {

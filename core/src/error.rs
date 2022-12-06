@@ -41,6 +41,9 @@ pub enum Error {
     /// Transmission is not allowed at the time.
     TransmitNotAllowed,
 
+    /// Failed to send a frame to the network.
+    InterfaceSendFail,
+
     /// An unspecified error.
     Unknown,
 }

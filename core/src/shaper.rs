@@ -92,6 +92,12 @@ impl Transmission {
         self.duration = duration;
         self
     }
+
+    /// Modifies the transmission to have a different size.
+    pub fn with_size(mut self, size: ByteSize) -> Self {
+        self.bits = size.as_u64();
+        self
+    }
 }
 
 // TODO shape collection of queues

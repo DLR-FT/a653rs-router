@@ -3,7 +3,7 @@
 use crate::error::{Error, RouteError};
 use crate::network::{Frame, PayloadSize, QueueLookup};
 use crate::ports::SamplingPortLookup;
-use crate::prelude::{ChannelId, Message, Shaper, Transmission};
+use crate::prelude::{Message, Shaper, Transmission};
 use crate::routing::{PortIdIterator, RouteLookup};
 use crate::shaper::QueueId;
 use apex_rs::prelude::ApexSamplingPortP4;
@@ -104,24 +104,42 @@ where
     }
 }
 
-/// Receive a frame.
-/// This should be implemented by things that can receive data from the network or from the hypervisor.
-/// The ID of the frame should designate from which port / interface the data has been received.
-pub trait ReceiveFrame {
-    /// Receive a frame using the given frame as the destination.
-    /// Returns the an `Ok` value of `frame` if the payload was received correctly.
-    fn receive_frame<'a, const PL_SIZE: PayloadSize>(
-        &self,
-        frame: &'a mut Frame<PL_SIZE>,
-    ) -> Result<&'a Frame<PL_SIZE>, Error>
+/// Forwards a frame to a set of port sources and network queues.
+pub trait ForwardFrame {
+    /// Forwards a frame to its destinations, which can be port sources or network queues.
+    fn forward_frame<const PL_SIZE: PayloadSize, H: ApexSamplingPortP4>(
+        self,
+        frame: &Frame<PL_SIZE>,
+        src_ports: &dyn SamplingPortLookup<PL_SIZE, H>,
+    ) -> Result<(), Error>
     where
         [(); PL_SIZE as usize]:;
 }
 
-/// Forwards a frame to a set of port sources and network queues.
-pub trait Forward {
-    /// Forwards a frame to its destinations, which can be port sources or network queues.
-    fn forward<const PL_SIZE: PayloadSize, H: ApexSamplingPortP4>(
+impl<const PORTS: usize> ForwardFrame for VirtualLinkDestinations<PORTS> {
+    fn forward_frame<const PL_SIZE: PayloadSize, H: ApexSamplingPortP4>(
+        self,
+        frame: &Frame<PL_SIZE>,
+        src_ports: &dyn SamplingPortLookup<PL_SIZE, H>,
+    ) -> Result<(), Error>
+    where
+        [(); PL_SIZE as usize]:,
+    {
+        for src_port_id in self.ports {
+            let port = src_ports
+                .get_sampling_port_source(&src_port_id)
+                .ok_or(Error::InvalidRoute(RouteError::from(src_port_id)))?;
+
+            port.send(&frame.payload)?
+        }
+        Ok(())
+    }
+}
+
+/// Forwards a message to a set of port sources and network queues.
+pub trait ForwardMessage {
+    /// Forwards a message to its destinations, which can be port sources or network queues.
+    fn forward_message<const PL_SIZE: PayloadSize, H: ApexSamplingPortP4>(
         self,
         message: &Message<PL_SIZE>,
         src_ports: &dyn SamplingPortLookup<PL_SIZE, H>,
@@ -132,8 +150,8 @@ pub trait Forward {
         [(); PL_SIZE as usize]:;
 }
 
-impl<const PORTS: usize> Forward for VirtualLinkDestinations<PORTS> {
-    fn forward<const PL_SIZE: PayloadSize, H: ApexSamplingPortP4>(
+impl<const PORTS: usize> ForwardMessage for VirtualLinkDestinations<PORTS> {
+    fn forward_message<const PL_SIZE: PayloadSize, H: ApexSamplingPortP4>(
         self,
         message: &Message<PL_SIZE>,
         src_ports: &dyn SamplingPortLookup<PL_SIZE, H>,

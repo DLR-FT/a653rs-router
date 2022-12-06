@@ -41,7 +41,10 @@ pub struct Message<const PL_SIZE: PayloadSize>
 where
     [(); PL_SIZE as usize]:,
 {
+    /// ID of the port the message was received on.
     pub port: ChannelId,
+
+    /// Payload of the message.
     pub payload: [u8; PL_SIZE as usize],
 }
 

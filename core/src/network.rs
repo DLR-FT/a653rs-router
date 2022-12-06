@@ -25,6 +25,11 @@ impl<const PL_SIZE: PayloadSize> Frame<PL_SIZE>
 where
     [(); PL_SIZE as usize]:,
 {
+    /// Creates a new frame that originated from `link` with the `payload`.
+    pub fn new(link: VirtualLinkId, payload: [u8; PL_SIZE as usize]) -> Self {
+        Self { link, payload }
+    }
+
     /// The contents of a frame.
     pub const fn into_inner(self) -> (VirtualLinkId, [u8; PL_SIZE as usize]) {
         (self.link, self.payload)
@@ -139,20 +144,26 @@ where
     }
 }
 
-pub trait SendNetworkFrame {
-    fn send_network<const PL_SIZE: PayloadSize>(
+/// Sends a frame to the network.
+pub trait SendFrame {
+    /// Sends a frame to the network.
+    /// If successful, returns statistics about the transmission.
+    fn send_frame<const PL_SIZE: PayloadSize>(
         &self,
+        queue: QueueId,
         frame: &Frame<PL_SIZE>,
-    ) -> Result<Transmission, Error>
+    ) -> Result<Transmission, Transmission>
     where
         [(); PL_SIZE as usize]:;
 }
 
-pub trait ReceiveNetworkFrame {
-    fn receive_network<const PL_SIZE: PayloadSize>(
+/// Receives a frame from the network.
+pub trait ReceiveFrame {
+    /// Receives a frame fromt the network.
+    fn receive_frame<'a, const PL_SIZE: PayloadSize>(
         &self,
-        frame: &mut Frame<PL_SIZE>,
-    ) -> Result<&Frame<PL_SIZE>, Error>
+        frame: &'a mut Frame<PL_SIZE>,
+    ) -> Result<&'a Frame<PL_SIZE>, Error>
     where
         [(); PL_SIZE as usize]:;
 }

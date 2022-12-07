@@ -1,28 +1,26 @@
 # TODO
 
+## Do
 - test network port that just stores and traces all frames
-- test network port that can be programmed to receive frames for testing 
-- traffic shaper (credit based)
+- tracing with uprobes
 - network interface layer
-- queueing ports
-- cucumber
+- support for queueing ports
+- better test coverage
+
+## Maybe
 - use SKE in CI for testing with XNG
-- real-time verification with RTLola
 - requirements testing with Cucumber
 
-## Open problems
+## Open Problems
 
 ### Configure partition with configuration contents
 - ports can not be configured without knowing the message sizes in advance
 - should not require a YAML-Parser as part of the compiled partition
-- ports should be able to be agnostic of message content
-
-#### Solutions
 - proc-macro to generate ports with constant generic parameters from config
-- (could use unchecked sampling_port_send / receive)
 - for prototype: statically define a set of ports of fixed sizes
   - configure based on settings in config
 
-### Forwarding from one sampling-port to another
+### Forwarding of sampling-ports over the network
 - data validity / age is attached to sampling port -> has to be signaled in-band?
 - can not be guaranteed for sampling ports over network, because of network delay that is unknown to receiving hypervisor
+  - network delay is bounded -> can be used by receiving hypervisor

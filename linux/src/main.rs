@@ -17,9 +17,10 @@ type Hypervisor = ApexLinuxPartition;
 const PORT_MTU: MessageSize = 10000;
 const TABLE_SIZE: usize = 10;
 const QUEUE_CAPACITY: usize = 2;
+const INTERFACES: usize = 1;
 
 // TODO use once big OnceCell<struct>
-static CONFIG: OnceCell<Config> = OnceCell::new();
+static CONFIG: OnceCell<Config<TABLE_SIZE, TABLE_SIZE, INTERFACES>> = OnceCell::new();
 static ROUTER: OnceCell<Router<TABLE_SIZE>> = OnceCell::new();
 static SOURCE_PORTS: OnceCell<
     LinearMap<ChannelId, SamplingPortSource<PORT_MTU, Hypervisor>, TABLE_SIZE>,
@@ -32,14 +33,14 @@ fn main() {
     ApexLogger::install_panic_hook();
     ApexLogger::install_logger(LevelFilter::Trace).unwrap();
     let config = include_str!("../../config/network_partition_config.yml");
-    let parsed_config = serde_yaml::from_str::<Config>(config);
+    let parsed_config = serde_yaml::from_str::<Config<TABLE_SIZE, TABLE_SIZE, INTERFACES>>(config);
     if let Err(error) = parsed_config {
         error!("{error:?}");
         panic!();
     }
     CONFIG.set(parsed_config.ok().unwrap()).unwrap();
     trace!("Have config: {CONFIG:?}");
-    let partition = NetworkPartition::<PORT_MTU, TABLE_SIZE, Hypervisor>::new(
+    let partition = NetworkPartition::<PORT_MTU, TABLE_SIZE, INTERFACES, Hypervisor>::new(
         CONFIG.get().unwrap().clone(),
         &ROUTER,
         &SOURCE_PORTS,
@@ -90,9 +91,8 @@ extern "C" fn entry_point() {
             .and_then(|f| f.forward_frame(&frame, port_srcs));
 
         if let Err(err) = res {
-            error!("Failed to receive frame: {err:?}");
+            error!("Failed to forward frame: {err:?}");
         }
-        trace!("Received frame: {frame:?}");
 
         let mut frames_transmitted = 0;
         while let Some(q_id) = shaper.next_queue() {
@@ -135,7 +135,8 @@ mod tests {
     fn parse_code_section_config() {
         // TODO should be configured from config using proc-macro
         let config = include_str!("../../config/network_partition_config.yml");
-        let parsed = serde_yaml::from_str::<Config>(config);
+        let parsed = serde_yaml::from_str::<Config<4, 2, 1>>(config);
+        println!("{parsed:?}");
         assert!(parsed.is_ok());
     }
 }

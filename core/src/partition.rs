@@ -22,9 +22,10 @@ type SystemAddress = extern "C" fn();
 pub struct NetworkPartition<
     const PORT_MTU: MessageSize,
     const TABLE_SIZE: usize,
+    const INTERFACES: usize,
     H: ApexSamplingPortP4 + 'static,
 > {
-    config: Config,
+    config: Config<TABLE_SIZE, TABLE_SIZE, INTERFACES>,
     router: &'static OnceCell<Router<TABLE_SIZE>>,
     // TODO make into struct
     source_ports:
@@ -35,14 +36,14 @@ pub struct NetworkPartition<
     entry_point: SystemAddress,
 }
 
-impl<const ECHO_SIZE: MessageSize, const TABLE_SIZE: usize, H>
-    NetworkPartition<ECHO_SIZE, TABLE_SIZE, H>
+impl<const ECHO_SIZE: MessageSize, const TABLE_SIZE: usize, const INTERFACES: usize, H>
+    NetworkPartition<ECHO_SIZE, TABLE_SIZE, INTERFACES, H>
 where
     H: ApexSamplingPortP4,
 {
     /// Create a new instance of the network partition
     pub fn new(
-        config: Config,
+        config: Config<TABLE_SIZE, TABLE_SIZE, INTERFACES>,
         router: &'static OnceCell<Router<TABLE_SIZE>>,
         source_ports: &'static OnceCell<
             LinearMap<ChannelId, SamplingPortSource<ECHO_SIZE, H>, TABLE_SIZE>,
@@ -52,7 +53,7 @@ where
         >,
         entry_point: SystemAddress,
     ) -> Self {
-        NetworkPartition::<ECHO_SIZE, TABLE_SIZE, H> {
+        NetworkPartition::<ECHO_SIZE, TABLE_SIZE, INTERFACES, H> {
             config,
             router,
             source_ports,
@@ -63,8 +64,8 @@ where
 }
 
 // TODO create all ports and processes from config
-impl<const MSG_SIZE: MessageSize, const TABLE_SIZE: usize, H> Partition<H>
-    for NetworkPartition<MSG_SIZE, TABLE_SIZE, H>
+impl<const MSG_SIZE: MessageSize, const TABLE_SIZE: usize, const INTERFACES: usize, H> Partition<H>
+    for NetworkPartition<MSG_SIZE, TABLE_SIZE, INTERFACES, H>
 where
     H: ApexSamplingPortP4 + ApexProcessP4 + ApexPartitionP4 + Debug,
 {

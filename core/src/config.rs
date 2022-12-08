@@ -4,8 +4,6 @@ use heapless::String;
 use heapless::Vec;
 use serde::{Deserialize, Deserializer, Serialize};
 
-const MAX_PORTS: usize = 10;
-const MAX_LINKS: usize = 10;
 const MAX_CHANNEL_NAME: usize = 32;
 
 /// The ID of a virtual link.
@@ -17,6 +15,9 @@ type VirtualLinkId = u16;
 /// The name of a channel.
 type ChannelName = String<MAX_CHANNEL_NAME>;
 
+/// The id of an interface.
+type InterfaceId = u16;
+
 /// Configuration of the network partition
 ///
 /// # Examples
@@ -25,7 +26,7 @@ type ChannelName = String<MAX_CHANNEL_NAME>;
 /// use std::time::Duration;
 /// use network_partition::prelude::*;
 ///
-/// let config = Config {
+/// let config = Config::<10, 10, 10> {
 ///     stack_size: StackSizeConfig {
 ///       periodic_process: ByteSize::kb(100),
 ///     },
@@ -45,27 +46,37 @@ type ChannelName = String<MAX_CHANNEL_NAME>;
 ///     virtual_links: heapless::Vec::from_slice(&[
 ///         VirtualLinkConfig {
 ///             id: 0,
-///             period: Duration::from_millis(100),
+///             rate: ByteSize::kb(100),
 ///             msg_size: ByteSize::kb(1),
 ///         },
 ///         VirtualLinkConfig {
 ///             id: 1,
-///             period: Duration::from_millis(500),
+///             rate: ByteSize::kb(1),
 ///             msg_size: ByteSize::kb(1),
 ///         },
 ///     ]).unwrap(),
+///     interfaces: heapless::Vec::from_slice(&[
+///        InterfaceConfig {
+///            id: 0,
+///            rate: ByteSize::kb(100),
+///            mtu: ByteSize::kb(1),
+///        },
+///     ]).unwrap()
 /// };
 /// ```
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Config {
+pub struct Config<const PORTS: usize, const LINKS: usize, const INTERFACES: usize> {
     /// The amount of memory to reserve on the stack for the processes of the partition.
     pub stack_size: StackSizeConfig,
 
     /// The ports the partition should create to connect to channels.
-    pub ports: Vec<Port, MAX_PORTS>,
+    pub ports: Vec<Port, PORTS>,
 
     /// The virtual links the partition is attached to.
-    pub virtual_links: Vec<VirtualLinkConfig, MAX_LINKS>,
+    pub virtual_links: Vec<VirtualLinkConfig, LINKS>,
+
+    /// The interfaces that will be attached to the partition.
+    pub interfaces: Vec<InterfaceConfig, INTERFACES>,
 }
 
 /// Configures the amount of stack memory to reserve for the prcesses of the partition.
@@ -85,15 +96,30 @@ pub struct VirtualLinkConfig {
     /// The unique ID of the virtual link
     pub id: VirtualLinkId,
 
-    /// The minimum interval between two messages.
-    ///
-    /// Together with the message size, this directly relates to the bandwidth allocation gap (BAG).
-    #[serde(with = "humantime_serde")]
-    pub period: Duration,
+    /// The maximum rate the link may transmit at.
+    #[serde(deserialize_with = "de_size_str")]
+    pub rate: ByteSize,
 
     /// The maximum size of a message that will be transmited using this virtual link.
     #[serde(deserialize_with = "de_size_str")]
     pub msg_size: ByteSize,
+}
+
+/// Configuration for an interface.
+///
+/// Interfaces are used to connect multiple hypervisors and transmit all virtual links.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct InterfaceConfig {
+    /// The unique ID of the virtual link
+    pub id: InterfaceId,
+
+    /// The maximum rate the interface can transmit at.
+    #[serde(deserialize_with = "de_size_str")]
+    pub rate: ByteSize,
+
+    /// The maximum size of a message that will be transmited using this virtual link.
+    #[serde(deserialize_with = "de_size_str")]
+    pub mtu: ByteSize,
 }
 
 /// A port of a communication channel with the hypervisor.

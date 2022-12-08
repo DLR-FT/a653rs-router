@@ -16,5 +16,9 @@ virtual_links:
   - id: 0 # destination virtual link
     # TODO Name?
     # minimum period -> max data rate
-    period: 100ms # The expected minimum interval between new data. partitions do not have to generate data each time they are scheduled
+    rate: 1KB # kB/s
     msg_size: 1KB # TODO The message size could be derived from  the configuration of the channel
+interfaces:
+  - id: 0
+    rate: 100KB
+    mtu: 1.5KB

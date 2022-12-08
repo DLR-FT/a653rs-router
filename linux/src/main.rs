@@ -3,11 +3,13 @@
 
 extern crate log;
 
+use std::time::Duration;
+
 use apex_rs::prelude::*;
 use apex_rs_linux::partition::{ApexLinuxPartition, ApexLogger};
 use bytesize::ByteSize;
 use heapless::{spsc::Queue, LinearMap};
-use log::{error, trace, LevelFilter};
+use log::{error, trace, warn, LevelFilter};
 use network_partition::prelude::*;
 use once_cell::sync::OnceCell;
 
@@ -51,12 +53,14 @@ fn main() {
 }
 
 extern "C" fn entry_point() {
+    let mut time = Duration::ZERO;
     // TODO move to partition module
+    // Interface without route.
     let interface = PseudoInterface::<PORT_MTU>::new(
         Frame::new(VirtualLinkId::from(1), [1u8; PORT_MTU as usize]),
-        ByteSize::kb(10),
+        ByteSize::mb(1),
     );
-    let echo_allowed_rate = ByteSize::kb(1);
+    let echo_allowed_rate = ByteSize::kb(100);
     //let interface = UdpSender::new(socket, echo_allowed_rate);
     let router = ROUTER.get().unwrap();
     let port_dsts = DESTINATION_PORTS.get().unwrap();
@@ -70,6 +74,10 @@ extern "C" fn entry_point() {
     // TODO init ports
 
     loop {
+        let time_diff = Hypervisor::get_time().unwrap_duration() - time;
+        shaper.restore_all(time_diff).unwrap();
+        time = Hypervisor::get_time().unwrap_duration();
+
         for dst in port_dsts {
             let mut message = Message::<PORT_MTU>::default();
             let res = dst
@@ -91,11 +99,15 @@ extern "C" fn entry_point() {
             .and_then(|f| f.forward_frame(&frame, port_srcs));
 
         if let Err(err) = res {
-            error!("Failed to forward frame: {err:?}");
+            warn!("Failed to forward frame: {err:?}");
         }
 
         let mut frames_transmitted = 0;
+
+        let mut transmitted = false;
         while let Some(q_id) = shaper.next_queue() {
+            transmitted = true;
+            trace!("Attempting transmission from queue {q_id:?}");
             // transmit
             let q = queues.get_mut(&q_id).unwrap();
             let frame = FrameQueue::dequeue_frame(q).unwrap();
@@ -117,6 +129,12 @@ extern "C" fn entry_point() {
             trace!("Frames transmitted: {frames_transmitted:?}");
         }
 
+        if !transmitted {
+            let time_diff = Hypervisor::get_time().unwrap_duration() - time;
+            shaper.restore_all(time_diff).unwrap();
+        }
+
+        time = Hypervisor::get_time().unwrap_duration();
         Hypervisor::periodic_wait().unwrap();
     }
 }

@@ -6,6 +6,7 @@ use crate::network::PayloadSize;
 use bytesize::ByteSize;
 use core::time::Duration;
 use heapless::Vec;
+use log::trace;
 
 // TODO TrafficClass -> bandwidth_fraction = idle_slope / port_transmit_rate
 // Make sure total port_transmit_rate is not exceeded
@@ -115,6 +116,11 @@ pub trait Shaper {
     /// Notifies the shaper, that a transmission took place.
     /// Returns the number of consumed bits.
     fn record_transmission(&mut self, transmission: Transmission) -> Result<(), Error>;
+
+    /// Restores credit to all queues.
+    /// Should be called if no transmissions were recorded during a timeframe of length restore.
+    fn restore_all(&mut self, restore: Duration) -> Result<(), Error>;
+
     /// Gets the id of the queue that may transmit the next frame.
     fn next_queue(&mut self) -> Option<QueueId>;
 }
@@ -187,12 +193,22 @@ impl<const NUM_QUEUES: usize> Shaper for CreditBasedShaper<NUM_QUEUES> {
     /// It is assumed that each queue services frames of a limited size so there is a lo_credit for each queue.
     fn next_queue(&mut self) -> Option<QueueId> {
         for q in self.queues.iter_mut() {
+            trace!("Queue: {q:?}");
             if q.transmit_allowed() && q.backlog > 0 {
                 q.transmit = true;
                 return Some(q.id);
             }
         }
         None
+    }
+
+    fn restore_all(&mut self, restore: Duration) -> Result<(), Error> {
+        for q in self.queues.iter_mut() {
+            if q.backlog > 0 {
+                _ = q.restore(&restore)?;
+            }
+        }
+        Ok(())
     }
 }
 
@@ -230,6 +246,7 @@ struct QueueStatus {
 impl QueueStatus {
     /// Creates a new CreditQueue.
     fn new(id: QueueId, idle_slope: u64, port_transmit_rate: u64) -> Self {
+        trace!("idle_slope: {idle_slope:?}, port_transmit_rate: {port_transmit_rate:?}");
         Self {
             id,
             idle_slope,
@@ -255,15 +272,19 @@ impl QueueStatus {
         let consumed = (self.send_slope * (duration.as_millis() as u64)) / 1000;
         self.credit -= consumed as i128;
         self.backlog -= bits;
+
+        trace!("Consumed {consumed}");
+
         Ok(consumed)
     }
 
     /// Increases the credit, while the queue was blocked by the port transmitting conflicting
     /// traffic or a higher priority queue has queued frames.
     fn restore(&mut self, time: &Duration) -> Result<u64, Error> {
-        if self.transmit_allowed() && self.backlog > 0 {
+        if !self.transmit && self.backlog > 0 {
             let credited_bytes = self.idle_slope * (time.as_millis() as u64) / 1000;
             self.credit += credited_bytes as i128;
+            trace!("Credited {credited_bytes}");
             Ok(credited_bytes)
         } else {
             if self.backlog == 0 && !self.transmit {

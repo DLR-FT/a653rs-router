@@ -45,8 +45,10 @@ where
     where
         [(); PL_SIZE as usize]:,
     {
-        let duration = (self.mtu.as_u64() * 1000) / self.rate.as_u64();
-        let duration = Duration::from_millis(duration);
+        let mtu = self.mtu.as_u64() as f64;
+        let rate = self.rate.as_u64() as f64;
+        let duration = mtu * 1_000_000.0 / rate;
+        let duration = Duration::from_nanos(duration as u64);
         Ok(Transmission::new(
             queue,
             duration,

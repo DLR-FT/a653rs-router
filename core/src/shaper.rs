@@ -6,7 +6,6 @@ use crate::network::PayloadSize;
 use bytesize::ByteSize;
 use core::time::Duration;
 use heapless::Vec;
-use log::trace;
 
 // TODO TrafficClass -> bandwidth_fraction = idle_slope / port_transmit_rate
 // Make sure total port_transmit_rate is not exceeded
@@ -84,7 +83,7 @@ impl Transmission {
         Self {
             queue_id: queue,
             duration: Duration::ZERO,
-            bits: frame.len() as u64, // TODO should be actual size of frame (depends on N.I.L)
+            bits: 8 * (frame.len() as u64), // TODO should be actual size of frame (depends on N.I.L)
         }
     }
 
@@ -96,7 +95,7 @@ impl Transmission {
 
     /// Modifies the transmission to have a different size.
     pub fn with_size(mut self, size: ByteSize) -> Self {
-        self.bits = size.as_u64();
+        self.bits = size.as_u64() * 8;
         self
     }
 }
@@ -193,7 +192,6 @@ impl<const NUM_QUEUES: usize> Shaper for CreditBasedShaper<NUM_QUEUES> {
     /// It is assumed that each queue services frames of a limited size so there is a lo_credit for each queue.
     fn next_queue(&mut self) -> Option<QueueId> {
         for q in self.queues.iter_mut() {
-            trace!("Queue: {q:?}");
             if q.transmit_allowed() && q.backlog > 0 {
                 q.transmit = true;
                 return Some(q.id);
@@ -246,7 +244,6 @@ struct QueueStatus {
 impl QueueStatus {
     /// Creates a new CreditQueue.
     fn new(id: QueueId, idle_slope: u64, port_transmit_rate: u64) -> Self {
-        trace!("idle_slope: {idle_slope:?}, port_transmit_rate: {port_transmit_rate:?}");
         Self {
             id,
             idle_slope,
@@ -272,9 +269,6 @@ impl QueueStatus {
         let consumed = (self.send_slope * (duration.as_millis() as u64)) / 1000;
         self.credit -= consumed as i128;
         self.backlog -= bits;
-
-        trace!("Consumed {consumed}");
-
         Ok(consumed)
     }
 
@@ -284,7 +278,6 @@ impl QueueStatus {
         if !self.transmit && self.backlog > 0 {
             let credited_bytes = self.idle_slope * (time.as_millis() as u64) / 1000;
             self.credit += credited_bytes as i128;
-            trace!("Credited {credited_bytes}");
             Ok(credited_bytes)
         } else {
             if self.backlog == 0 && !self.transmit {

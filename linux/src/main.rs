@@ -58,7 +58,7 @@ extern "C" fn entry_point() {
     // Interface without route.
     let interface = PseudoInterface::<PORT_MTU>::new(
         Frame::new(VirtualLinkId::from(1), [1u8; PORT_MTU as usize]),
-        ByteSize::mb(1),
+        ByteSize::mb(100),
     );
     let echo_allowed_rate = ByteSize::kb(100);
     //let interface = UdpSender::new(socket, echo_allowed_rate);

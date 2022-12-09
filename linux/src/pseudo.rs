@@ -1,8 +1,11 @@
 use core::time::Duration;
+use log::trace;
 
 use bytesize::ByteSize;
 
-use crate::prelude::{Error, Frame, PayloadSize, QueueId, ReceiveFrame, SendFrame, Transmission};
+use network_partition::prelude::{
+    Error, Frame, PayloadSize, QueueId, ReceiveFrame, SendFrame, Transmission,
+};
 
 /// Pseudo network interface.
 ///
@@ -73,6 +76,7 @@ where
             frame
                 .payload
                 .clone_from_slice(&self.frame.payload[0..(PL_SIZE as usize)]);
+            trace!("Frame received: {frame:?}");
             Ok(frame)
         } else {
             Err(Error::InvalidData)

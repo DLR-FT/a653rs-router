@@ -1,6 +1,8 @@
 #![feature(generic_const_exprs)]
 #![allow(incomplete_features)]
 
+mod pseudo;
+
 extern crate log;
 
 use std::time::Duration;
@@ -12,6 +14,7 @@ use heapless::{spsc::Queue, LinearMap};
 use log::{error, trace, warn, LevelFilter};
 use network_partition::prelude::*;
 use once_cell::sync::OnceCell;
+use pseudo::PseudoInterface;
 
 type Hypervisor = ApexLinuxPartition;
 

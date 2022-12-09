@@ -122,6 +122,9 @@ pub trait Shaper {
 
     /// Gets the id of the queue that may transmit the next frame.
     fn next_queue(&mut self) -> Option<QueueId>;
+
+    /// Gets the length of the backlog of a queue.
+    fn get_backlog(&self, queue: &QueueId) -> Option<u64>;
 }
 
 /// A credit-based shaper similar to 802.1Qav.
@@ -165,7 +168,7 @@ impl<const NUM_QUEUES: usize> Shaper for CreditBasedShaper<NUM_QUEUES> {
     fn request_transmission(&mut self, transmission: &Transmission) -> Result<(), Error> {
         let q_id: usize = transmission.queue_id.0 as usize;
         let q = self.queues.get_mut(q_id).ok_or(Error::InvalidData)?; // TODO better error
-        q.submit(transmission.bits);
+        _ = q.submit(transmission.bits);
         Ok(())
     }
 
@@ -207,6 +210,10 @@ impl<const NUM_QUEUES: usize> Shaper for CreditBasedShaper<NUM_QUEUES> {
             }
         }
         Ok(())
+    }
+
+    fn get_backlog(&self, queue: &QueueId) -> Option<u64> {
+        self.queues.get(queue.0 as usize).map(|q| q.backlog)
     }
 }
 
@@ -266,19 +273,23 @@ impl QueueStatus {
         if !self.transmit_allowed() {
             return Err(Error::TransmitNotAllowed);
         }
-        let consumed = (self.send_slope * (duration.as_millis() as u64)) / 1000;
-        self.credit -= consumed as i128;
+        let send_slope = self.send_slope as f64;
+        let duration_ns = (duration.as_nanos() as f64) / 1_000_000_000.0;
+        let consumed = (send_slope * duration_ns) as i128;
+        self.credit -= consumed;
         self.backlog -= bits;
-        Ok(consumed)
+        Ok(consumed as u64)
     }
 
     /// Increases the credit, while the queue was blocked by the port transmitting conflicting
     /// traffic or a higher priority queue has queued frames.
     fn restore(&mut self, time: &Duration) -> Result<u64, Error> {
         if !self.transmit && self.backlog > 0 {
-            let credited_bytes = self.idle_slope * (time.as_millis() as u64) / 1000;
+            let idle_slope = self.idle_slope as f64;
+            let time = time.as_nanos() as f64;
+            let credited_bytes = idle_slope * time / 1_000_000_000.0;
             self.credit += credited_bytes as i128;
-            Ok(credited_bytes)
+            Ok(credited_bytes as u64)
         } else {
             if self.backlog == 0 && !self.transmit {
                 self.credit = 0;
@@ -287,8 +298,9 @@ impl QueueStatus {
         }
     }
 
-    fn submit(&mut self, bits: u64) {
-        self.backlog += bits;
+    fn submit(&mut self, bits: u64) -> Result<u64, u64> {
+        self.backlog = self.backlog.checked_add(bits).ok_or(bits)?;
+        Ok(self.backlog)
     }
 }
 

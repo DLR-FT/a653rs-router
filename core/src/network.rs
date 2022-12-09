@@ -97,7 +97,8 @@ where
     /// Saves a frame to the queue to be written to the network later.
     /// If the underlying queue has no more free space, the oldest frame is dropped from the front
     /// and the new frame is inserted at the back.
-    fn enqueue_frame(&mut self, frame: Frame<PL_SIZE>) -> Result<(), Frame<PL_SIZE>>;
+    /// Returns the current size of the queue in bytes.
+    fn enqueue_frame(&mut self, frame: Frame<PL_SIZE>) -> Result<u64, Frame<PL_SIZE>>;
 
     /// Retrieves a frame from the queue to write it to the network.
     fn dequeue_frame(&mut self) -> Option<Frame<PL_SIZE>>;
@@ -108,13 +109,14 @@ impl<const PL_SIZE: PayloadSize, const QUEUE_CAPACITY: usize> FrameQueue<PL_SIZE
 where
     [(); PL_SIZE as usize]:,
 {
-    fn enqueue_frame(&mut self, frame: Frame<PL_SIZE>) -> Result<(), Frame<PL_SIZE>> {
+    fn enqueue_frame(&mut self, frame: Frame<PL_SIZE>) -> Result<u64, Frame<PL_SIZE>> {
         let res = self.enqueue(frame);
         if res.is_err() {
             _ = self.dequeue();
-            self.enqueue(frame)
+            self.enqueue(frame)?;
+            Ok(self.len() as u64 * PL_SIZE as u64)
         } else {
-            res
+            Ok(self.len() as u64 * PL_SIZE as u64)
         }
     }
 

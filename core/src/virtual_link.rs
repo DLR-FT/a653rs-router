@@ -175,8 +175,11 @@ impl<const PORTS: usize> ForwardMessage for VirtualLinkDestinations<PORTS> {
                 link: self.link,
                 payload: message.payload,
             };
-            q.enqueue_frame(frame)?;
-            shaper.request_transmission(&Transmission::for_frame(self.queue, &frame))?;
+            let q_len = q.enqueue_frame(frame)?;
+            if shaper.get_backlog(&self.queue).ok_or(Error::Unknown)? < q_len {
+                // TODO better error handling
+                shaper.request_transmission(&Transmission::for_frame(self.queue, &frame))?;
+            }
         }
 
         Ok(())

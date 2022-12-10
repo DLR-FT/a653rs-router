@@ -1,5 +1,5 @@
 use crate::config::*;
-use crate::ports::ChannelId;
+use crate::ports::PortId;
 use crate::routing::Router;
 use crate::virtual_link::VirtualLinkId;
 use apex_rs::prelude::*;
@@ -28,11 +28,10 @@ pub struct NetworkPartition<
     config: Config<TABLE_SIZE, TABLE_SIZE, INTERFACES>,
     router: &'static OnceCell<Router<TABLE_SIZE>>,
     // TODO make into struct
-    source_ports:
-        &'static OnceCell<LinearMap<ChannelId, SamplingPortSource<PORT_MTU, H>, TABLE_SIZE>>,
+    source_ports: &'static OnceCell<LinearMap<PortId, SamplingPortSource<PORT_MTU, H>, TABLE_SIZE>>,
     // TODO make into struct
     destination_ports:
-        &'static OnceCell<LinearMap<ChannelId, SamplingPortDestination<PORT_MTU, H>, TABLE_SIZE>>,
+        &'static OnceCell<LinearMap<PortId, SamplingPortDestination<PORT_MTU, H>, TABLE_SIZE>>,
     entry_point: SystemAddress,
 }
 
@@ -46,10 +45,10 @@ where
         config: Config<TABLE_SIZE, TABLE_SIZE, INTERFACES>,
         router: &'static OnceCell<Router<TABLE_SIZE>>,
         source_ports: &'static OnceCell<
-            LinearMap<ChannelId, SamplingPortSource<ECHO_SIZE, H>, TABLE_SIZE>,
+            LinearMap<PortId, SamplingPortSource<ECHO_SIZE, H>, TABLE_SIZE>,
         >,
         destination_ports: &'static OnceCell<
-            LinearMap<ChannelId, SamplingPortDestination<ECHO_SIZE, H>, TABLE_SIZE>,
+            LinearMap<PortId, SamplingPortDestination<ECHO_SIZE, H>, TABLE_SIZE>,
         >,
         entry_point: SystemAddress,
     ) -> Self {
@@ -90,7 +89,7 @@ where
             .last();
 
         let mut destination_ports: LinearMap<
-            ChannelId,
+            PortId,
             SamplingPortDestination<MSG_SIZE, H>,
             TABLE_SIZE,
         > = LinearMap::default();
@@ -100,7 +99,7 @@ where
             let port = ctx
                 .create_sampling_port_destination::<MSG_SIZE>(name, config.validity)
                 .unwrap();
-            _ = destination_ports.insert(ChannelId::from(0), port).unwrap();
+            _ = destination_ports.insert(PortId::from(0), port).unwrap();
         }
 
         self.destination_ports.set(destination_ports).unwrap();
@@ -120,7 +119,7 @@ where
             })
             .last();
 
-        let mut source_ports: LinearMap<ChannelId, SamplingPortSource<MSG_SIZE, H>, TABLE_SIZE> =
+        let mut source_ports: LinearMap<PortId, SamplingPortSource<MSG_SIZE, H>, TABLE_SIZE> =
             LinearMap::default();
 
         if echo_reply_port_config.is_some() {
@@ -128,13 +127,13 @@ where
                 .create_sampling_port_source::<MSG_SIZE>(Name::from_str("EchoReply").unwrap())
                 .unwrap();
 
-            _ = source_ports.insert(ChannelId::from(1), port).unwrap();
+            _ = source_ports.insert(PortId::from(1), port).unwrap();
             // TODO Loopback table
             router
-                .add_output_route(ChannelId::from(0), VirtualLinkId::from(0))
+                .add_output_route(PortId::from(0), VirtualLinkId::from(0))
                 .unwrap(); // TODO add virtual link with ID 0
             router
-                .add_input_route(VirtualLinkId::from(0), ChannelId::from(1))
+                .add_input_route(VirtualLinkId::from(0), PortId::from(1))
                 .unwrap();
         }
 

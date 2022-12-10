@@ -1,7 +1,7 @@
 //! Routing
 
 use crate::error::{Error, RouteError};
-use crate::ports::ChannelId;
+use crate::ports::PortId;
 use crate::prelude::VirtualLinkId;
 use heapless::Vec;
 
@@ -10,8 +10,8 @@ type RouteTableEntry<S, D> = (S, D);
 // TODO use heapless::LinearMap
 #[derive(Debug, Default)]
 struct RouteTable<const TABLE_SIZE: usize> {
-    input: Vec<RouteTableEntry<VirtualLinkId, ChannelId>, TABLE_SIZE>,
-    output: Vec<RouteTableEntry<ChannelId, VirtualLinkId>, TABLE_SIZE>,
+    input: Vec<RouteTableEntry<VirtualLinkId, PortId>, TABLE_SIZE>,
+    output: Vec<RouteTableEntry<PortId, VirtualLinkId>, TABLE_SIZE>,
 }
 
 impl<const TABLE_SIZE: usize> RouteTable<TABLE_SIZE> {
@@ -29,10 +29,7 @@ impl<const TABLE_SIZE: usize> RouteTable<TABLE_SIZE> {
         Ok(destinations.collect())
     }
 
-    fn get_remote_destinations<'a>(
-        &'a self,
-        source: &'a ChannelId,
-    ) -> Result<VirtualLinkId, Error> {
+    fn get_remote_destinations<'a>(&'a self, source: &'a PortId) -> Result<VirtualLinkId, Error> {
         let destination = self
             .output
             .iter()
@@ -43,7 +40,7 @@ impl<const TABLE_SIZE: usize> RouteTable<TABLE_SIZE> {
 
     fn add_output_route(
         &mut self,
-        source: ChannelId,
+        source: PortId,
         destination: VirtualLinkId,
     ) -> Result<(), Error> {
         if self.output.iter().any(|x| x.1 == destination) {
@@ -55,11 +52,7 @@ impl<const TABLE_SIZE: usize> RouteTable<TABLE_SIZE> {
         Ok(())
     }
 
-    fn add_input_route(
-        &mut self,
-        source: VirtualLinkId,
-        destination: ChannelId,
-    ) -> Result<(), Error> {
+    fn add_input_route(&mut self, source: VirtualLinkId, destination: PortId) -> Result<(), Error> {
         if self.input.iter().any(|x| x.1 == destination) {
             return Err(Error::InvalidRoute(RouteError::from(source)));
         }
@@ -80,7 +73,7 @@ pub trait RouteLookup<const PORTS: usize> {
     ) -> Result<PortIdIterator<PORTS>, Error>;
 
     /// Route local output from ports to network.
-    fn route_local_output(&self, source: &ChannelId) -> Result<VirtualLinkId, Error>;
+    fn route_local_output(&self, source: &PortId) -> Result<VirtualLinkId, Error>;
 }
 
 /// A router that forwards messages.
@@ -99,7 +92,7 @@ impl<const TABLE_SIZE: usize> Router<TABLE_SIZE> {
     /// Add an output route.
     pub fn add_output_route(
         &mut self,
-        source: ChannelId,
+        source: PortId,
         destination: VirtualLinkId,
     ) -> Result<(), Error> {
         self.route_table.add_output_route(source, destination)
@@ -109,7 +102,7 @@ impl<const TABLE_SIZE: usize> Router<TABLE_SIZE> {
     pub fn add_input_route(
         &mut self,
         source: VirtualLinkId,
-        destination: ChannelId,
+        destination: PortId,
     ) -> Result<(), Error> {
         self.route_table.add_input_route(source, destination)
     }
@@ -125,7 +118,7 @@ impl<const PORTS: usize> RouteLookup<PORTS> for Router<PORTS> {
         Ok(ports)
     }
 
-    fn route_local_output(&self, source: &ChannelId) -> Result<VirtualLinkId, Error> {
+    fn route_local_output(&self, source: &PortId) -> Result<VirtualLinkId, Error> {
         let destinations = self.route_table.get_remote_destinations(source)?;
         Ok(destinations)
     }
@@ -134,12 +127,12 @@ impl<const PORTS: usize> RouteLookup<PORTS> for Router<PORTS> {
 /// An iterator over the IDs of destination ports.
 #[derive(Debug)]
 pub struct PortIdIterator<const TABLE_SIZE: usize> {
-    ports: Vec<ChannelId, TABLE_SIZE>,
+    ports: Vec<PortId, TABLE_SIZE>,
     current: usize,
 }
 
-impl<const TABLE_SIZE: usize> FromIterator<ChannelId> for PortIdIterator<TABLE_SIZE> {
-    fn from_iter<T: IntoIterator<Item = ChannelId>>(iter: T) -> Self {
+impl<const TABLE_SIZE: usize> FromIterator<PortId> for PortIdIterator<TABLE_SIZE> {
+    fn from_iter<T: IntoIterator<Item = PortId>>(iter: T) -> Self {
         let mut p = Self {
             ports: Vec::default(),
             current: 0,
@@ -153,7 +146,7 @@ impl<const TABLE_SIZE: usize> FromIterator<ChannelId> for PortIdIterator<TABLE_S
 }
 
 impl<const TABLE_SIZE: usize> Iterator for PortIdIterator<TABLE_SIZE> {
-    type Item = ChannelId;
+    type Item = PortId;
 
     fn next(&mut self) -> Option<Self::Item> {
         let next = self.current;

@@ -28,10 +28,10 @@ const INTERFACES: usize = 1;
 static CONFIG: OnceCell<Config<TABLE_SIZE, TABLE_SIZE, INTERFACES>> = OnceCell::new();
 static ROUTER: OnceCell<Router<TABLE_SIZE>> = OnceCell::new();
 static SOURCE_PORTS: OnceCell<
-    LinearMap<ChannelId, SamplingPortSource<PORT_MTU, Hypervisor>, TABLE_SIZE>,
+    LinearMap<PortId, SamplingPortSource<PORT_MTU, Hypervisor>, TABLE_SIZE>,
 > = OnceCell::new();
 static DESTINATION_PORTS: OnceCell<
-    LinearMap<ChannelId, SamplingPortDestination<PORT_MTU, Hypervisor>, TABLE_SIZE>,
+    LinearMap<PortId, SamplingPortDestination<PORT_MTU, Hypervisor>, TABLE_SIZE>,
 > = OnceCell::new();
 
 fn main() {

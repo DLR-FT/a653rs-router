@@ -1,7 +1,7 @@
 ///! Error types
 use serde::{Deserialize, Serialize};
 
-use crate::prelude::{ChannelId, Frame, PayloadSize, VirtualLinkId};
+use crate::prelude::{Frame, PayloadSize, PortId, VirtualLinkId};
 
 // TODO more precise errors
 
@@ -66,12 +66,12 @@ where
 /// A routing error.
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub enum RouteError {
-    Local(ChannelId),
+    Local(PortId),
     Remote(VirtualLinkId),
 }
 
-impl From<ChannelId> for RouteError {
-    fn from(val: ChannelId) -> Self {
+impl From<PortId> for RouteError {
+    fn from(val: PortId) -> Self {
         Self::Local(val)
     }
 }

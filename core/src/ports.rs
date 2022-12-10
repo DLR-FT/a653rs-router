@@ -14,23 +14,23 @@ use serde::{Deserialize, Serialize};
 
 /// An ID of a hypervisor port.
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize, Default)]
-pub struct ChannelId(u32);
+pub struct PortId(u32);
 
-impl ChannelId {
+impl PortId {
     /// Returns the name of the channel.
     pub fn into_inner(self) -> u32 {
         self.0
     }
 }
 
-impl From<u32> for ChannelId {
-    fn from(val: u32) -> ChannelId {
-        ChannelId(val)
+impl From<u32> for PortId {
+    fn from(val: u32) -> PortId {
+        PortId(val)
     }
 }
 
-impl From<ChannelId> for u32 {
-    fn from(val: ChannelId) -> u32 {
+impl From<PortId> for u32 {
+    fn from(val: PortId) -> u32 {
         val.0
     }
 }
@@ -42,7 +42,7 @@ where
     [(); PL_SIZE as usize]:,
 {
     /// ID of the port the message was received on.
-    pub port: ChannelId,
+    pub port: PortId,
 
     /// Payload of the message.
     pub payload: [u8; PL_SIZE as usize],
@@ -53,7 +53,7 @@ where
     [(); PL_SIZE as usize]:,
 {
     /// Gets the payload the message originated from.
-    pub const fn into_inner(self) -> (ChannelId, [u8; PL_SIZE as usize]) {
+    pub const fn into_inner(self) -> (PortId, [u8; PL_SIZE as usize]) {
         (self.port, self.payload)
     }
 }
@@ -64,7 +64,7 @@ where
 {
     fn default() -> Self {
         Message {
-            port: ChannelId::from(0),
+            port: PortId::from(0),
             payload: [0u8; PL_SIZE as usize],
         }
     }
@@ -82,7 +82,7 @@ pub trait ReceiveMessage {
 }
 
 impl<const MSG_SIZE: MessageSize, H: ApexSamplingPortP4> ReceiveMessage
-    for (&ChannelId, &SamplingPortDestination<MSG_SIZE, H>)
+    for (&PortId, &SamplingPortDestination<MSG_SIZE, H>)
 {
     fn receive_message<'a, const PL_SIZE: PayloadSize>(
         &self,
@@ -107,19 +107,18 @@ pub trait SamplingPortLookup<const MSG_SIZE: MessageSize, H: ApexSamplingPortP4>
     /// Gets the sampling port source by the internal `id`.
     fn get_sampling_port_source<'a>(
         &'a self,
-        id: &ChannelId,
+        id: &PortId,
     ) -> Option<&'a SamplingPortSource<MSG_SIZE, H>>
     where
         H: ApexSamplingPortP4;
 }
 
 impl<const MSG_SIZE: MessageSize, H: ApexSamplingPortP4, const PORTS: usize>
-    SamplingPortLookup<MSG_SIZE, H>
-    for LinearMap<ChannelId, SamplingPortSource<MSG_SIZE, H>, PORTS>
+    SamplingPortLookup<MSG_SIZE, H> for LinearMap<PortId, SamplingPortSource<MSG_SIZE, H>, PORTS>
 {
     fn get_sampling_port_source<'a>(
         &'a self,
-        id: &ChannelId,
+        id: &PortId,
     ) -> Option<&'a SamplingPortSource<MSG_SIZE, H>>
     where
         H: ApexSamplingPortP4,

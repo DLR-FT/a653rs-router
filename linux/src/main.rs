@@ -55,6 +55,24 @@ fn main() {
     partition.run();
 }
 
+fn process_destination_port<const MTU: PayloadSize, const TABLE: usize, H: ApexSamplingPortP4>(
+    port_id: &PortId,
+    port: &SamplingPortDestination<MTU, H>,
+    router: &dyn RouteLookup<TABLE>,
+    ports: &dyn SamplingPortLookup<MTU, H>,
+    queues: &mut dyn QueueLookup<MTU>,
+    shaper: &mut dyn Shaper,
+) -> Result<(), network_partition::prelude::Error>
+where
+    [(); MTU as usize]:,
+{
+    let mut message = Message::<MTU>::default();
+    (port_id, port)
+        .receive_message(&mut message)
+        .and_then(|m| m.get_virtual_link(router))
+        .and_then(|link| link.forward_message(&message, ports, queues, shaper))
+}
+
 extern "C" fn entry_point() {
     let mut time = Duration::ZERO;
     // TODO move to partition module
@@ -82,14 +100,9 @@ extern "C" fn entry_point() {
         time = Hypervisor::get_time().unwrap_duration();
 
         for dst in port_dsts {
-            let mut message = Message::<PORT_MTU>::default();
-            let res = dst
-                .receive_message(&mut message)
-                .and_then(|m| m.get_virtual_link(router))
-                .and_then(|link| {
-                    link.forward_message(&message, port_srcs, &mut queues, &mut shaper)
-                });
-            if res.is_err() {
+            if let Err(res) =
+                process_destination_port(dst.0, dst.1, router, port_srcs, &mut queues, &mut shaper)
+            {
                 error!("Failed to deliver frame to all destinations: {res:?}");
             }
         }

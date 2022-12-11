@@ -82,11 +82,11 @@ pub trait LocalToNetAndLocal: ReceiveHypervisor + SendNetwork + QueueIdable {}
 pub trait NetToLocal: ReceiveNetwork + VirtualLinkIdable {}
 
 /// Different types of virtual links.
-pub enum VirtualLink {
-    LocalToLocal(&'static mut dyn ReceiveHypervisor),
-    LocalToNet(&'static mut dyn LocalToNet),
-    LocalToNetAndLocal(&'static mut dyn LocalToNetAndLocal),
-    NetToLocal(&'static mut dyn NetToLocal),
+pub enum VirtualLink<'a> {
+    LocalToLocal(&'a mut dyn ReceiveHypervisor),
+    LocalToNet(&'a mut dyn LocalToNet),
+    LocalToNetAndLocal(&'a mut dyn LocalToNetAndLocal),
+    NetToLocal(&'a mut dyn NetToLocal),
 }
 
 #[derive(Debug)]
@@ -162,9 +162,8 @@ where
 {
     let curr = queue.len() as u64;
     let next = queue.enqueue_frame(frame)?;
-
-    let transmission = Transmission::new(*queue_id, Duration::ZERO, ByteSize::b(MTU as u64));
     if curr < next {
+        let transmission = Transmission::new(*queue_id, Duration::ZERO, ByteSize::b(MTU as u64));
         shaper.request_transmission(&transmission)?;
     }
     Ok(())

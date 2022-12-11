@@ -87,7 +87,7 @@ pub struct StackSizeConfig {
 }
 
 /// A data-rate in bit/s.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct DataRate(u64);
 
 impl DataRate {

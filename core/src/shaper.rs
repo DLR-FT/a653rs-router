@@ -1,9 +1,8 @@
 //! Traffic shapers
 
-use crate::error::Error;
+use crate::{config::DataRate, error::Error};
 use bytesize::ByteSize;
 use core::time::Duration;
-use heapless::Vec;
 
 // TODO TrafficClass -> bandwidth_fraction = idle_slope / port_transmit_rate
 // Make sure total port_transmit_rate is not exceeded
@@ -86,13 +85,6 @@ impl Transmission {
     }
 }
 
-// TODO shape collection of queues
-// get stati
-// find next queue
-// transmit
-// credit queues
-// return
-
 /// A traffic shaper.
 pub trait Shaper {
     /// Requests that the shaper allows the queue to perform a transmission.
@@ -115,38 +107,27 @@ pub trait Shaper {
 
 /// A credit-based shaper similar to 802.1Qav.
 #[derive(Debug)]
-pub struct CreditBasedShaper<const NUM_QUEUES: usize> {
-    port_transmit_rate: u64,
-    free_bandwidth: u64,
-    queues: Vec<QueueStatus, NUM_QUEUES>,
+pub struct CreditBasedShaper<const QUEUES: usize> {
+    queues: [QueueStatus; QUEUES],
 }
 
-impl<const NUM_QUEUES: usize> CreditBasedShaper<NUM_QUEUES> {
+impl<const QUEUES: usize> CreditBasedShaper<QUEUES> {
     /// Creates a new credit-based shaper.
-    pub fn new(port_transmit_rate: ByteSize) -> Self {
-        let port_transmit_rate = port_transmit_rate.as_u64() * 8;
-        Self {
-            port_transmit_rate,
-            free_bandwidth: port_transmit_rate,
-            queues: Vec::default(),
-        }
-    }
-
-    /// Adds a new queue to the shaper that uses a share of the bandwidth specified by `share`.
-    pub fn add_queue(&mut self, share: ByteSize) -> Result<QueueId, Error> {
-        let share = share.as_u64() * 8;
-        let id = QueueId::from(self.queues.len() as u32);
-        let q = if self.free_bandwidth >= share {
-            self.free_bandwidth -= share;
-            Ok(QueueStatus::new(id, share, self.port_transmit_rate))
-        } else {
-            Err(Error::Unknown) // TODO
-        }?;
-        if self.queues.push(q).is_err() {
-            return Err(Error::Unknown); // TODO
+    pub fn create(port_transmit_rate: DataRate, shares: [DataRate; QUEUES]) -> Result<Self, Error> {
+        let port_transmit_rate = port_transmit_rate.as_u64();
+        let mut free = port_transmit_rate;
+        let mut queues = [QueueStatus::default(); QUEUES];
+        for (id, share) in shares.iter().enumerate() {
+            let rate = share.clone().as_u64();
+            if free >= rate {
+                free -= rate;
+                queues[id] = QueueStatus::new(QueueId(id as u32), rate, port_transmit_rate);
+            } else {
+                return Err(Error::Unknown); // TODO "Link is underprovisioned. Check bandwidth allocations of virtual links.");
+            }
         }
 
-        Ok(id)
+        Ok(Self { queues })
     }
 }
 
@@ -204,7 +185,7 @@ impl<const NUM_QUEUES: usize> Shaper for CreditBasedShaper<NUM_QUEUES> {
 }
 
 /// A stream that is managed by the shaper.
-#[derive(Debug, Default, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 struct QueueStatus {
     /// Queue id.
     id: QueueId,
@@ -352,35 +333,56 @@ mod tests {
 
     #[test]
     fn given_not_enough_remaining_bandwidth_when_queue_added_then_error() {
-        let mut s = CreditBasedShaper::<2>::new(ByteSize::kb(128));
-        assert!(s.add_queue(ByteSize::kb(90)).is_ok());
-        assert!(s.add_queue(ByteSize::kb(90)).is_err());
+        let s = CreditBasedShaper::<2>::create(
+            DataRate::b(128_000),
+            [DataRate::b(90_000), DataRate::b(90_000)],
+        );
+        assert!(s.is_err())
+    }
+
+    #[test]
+    fn given_enough_remaining_bandwidth_when_queue_added_then_ok() {
+        let s = CreditBasedShaper::<2>::create(
+            DataRate::b(128_000),
+            [DataRate::b(64_000), DataRate::b(50_000)],
+        );
+        assert!(s.is_ok())
+    }
+
+    #[test]
+    fn given_exactly_enough_remaining_bandwidth_when_queue_added_then_ok() {
+        let s = CreditBasedShaper::<2>::create(
+            DataRate::b(128_000),
+            [DataRate::b(64_000), DataRate::b(64_000)],
+        );
+        assert!(s.is_ok())
     }
 
     #[test]
     fn given_two_queues_high_credit_and_backlog_when_both_transmit_then_bandwidth_usage_below_limit(
     ) {
-        const BANDWIDTH_LIMIT: ByteSize = ByteSize::kb(100);
-        let mut s = CreditBasedShaper::<2>::new(BANDWIDTH_LIMIT);
-        let q1 = s.add_queue(ByteSize::kb(60)).unwrap();
-        let q2 = s.add_queue(ByteSize::kb(40)).unwrap();
+        let mut s = CreditBasedShaper::<2>::create(
+            DataRate::b(100_000),
+            [DataRate::b(60_000), DataRate::b(40_000)],
+        )
+        .unwrap();
 
         const MTU_Q1: ByteSize = ByteSize::kb(7);
         const MTU_Q2: ByteSize = ByteSize::kb(4);
 
         let transmissions = [
-            Transmission::new(q1, Duration::ZERO, MTU_Q1),
-            Transmission::new(q2, Duration::ZERO, MTU_Q2),
-            Transmission::new(q2, Duration::ZERO, MTU_Q2),
-            Transmission::new(q1, Duration::ZERO, MTU_Q1),
-            Transmission::new(q1, Duration::ZERO, MTU_Q1),
-            Transmission::new(q2, Duration::ZERO, MTU_Q2),
-            Transmission::new(q1, Duration::ZERO, MTU_Q1),
-            Transmission::new(q2, Duration::ZERO, MTU_Q2),
-            Transmission::new(q2, Duration::ZERO, MTU_Q2),
-            Transmission::new(q1, Duration::ZERO, MTU_Q1),
-            Transmission::new(q1, Duration::ZERO, MTU_Q1),
-            Transmission::new(q2, Duration::ZERO, MTU_Q2),
+            Transmission::new(QueueId(0), Duration::ZERO, MTU_Q1),
+            Transmission::new(QueueId(1), Duration::ZERO, MTU_Q2),
+            Transmission::new(QueueId(1), Duration::ZERO, MTU_Q2),
+            Transmission::new(QueueId(0), Duration::ZERO, MTU_Q1),
+            Transmission::new(QueueId(0), Duration::ZERO, MTU_Q1),
+            Transmission::new(QueueId(1), Duration::ZERO, MTU_Q2),
+            Transmission::new(QueueId(0), Duration::ZERO, MTU_Q1),
+            Transmission::new(QueueId(1), Duration::ZERO, MTU_Q2),
+            Transmission::new(QueueId(1), Duration::ZERO, MTU_Q2),
+            Transmission::new(QueueId(0), Duration::ZERO, MTU_Q1),
+            Transmission::new(QueueId(0), Duration::ZERO, MTU_Q1),
+            Transmission::new(QueueId(1), Duration::ZERO, MTU_Q2),
         ];
 
         for t in transmissions.iter() {
@@ -397,13 +399,13 @@ mod tests {
         // TODO should probably be an iterator
         while let Some(next_q) = s.next_queue() {
             // ... transmit
-            if next_q == q1 {
-                let t = Transmission::new(q1, DURATION_Q1, MTU_Q1);
+            if next_q == QueueId(0) {
+                let t = Transmission::new(next_q, DURATION_Q1, MTU_Q1);
                 s.record_transmission(&t).unwrap();
                 total_byte += MTU_Q1.as_u64();
                 total_time += DURATION_Q1;
             } else {
-                let t = Transmission::new(q2, DURATION_Q2, MTU_Q2);
+                let t = Transmission::new(next_q, DURATION_Q2, MTU_Q2);
                 s.record_transmission(&t).unwrap();
                 total_byte += MTU_Q2.as_u64();
                 total_time += DURATION_Q2;
@@ -412,7 +414,7 @@ mod tests {
 
         let total_time = total_time.as_millis();
         let byte_per_second = ((total_byte as u128) * 1000) / total_time;
-        let limit = BANDWIDTH_LIMIT.as_u64() as u128;
+        let limit = 100_000;
         assert!(
                 byte_per_second <= limit,
                 "Recorded rate: {byte_per_second}, Limit: {limit}, Recorded bytes: {total_byte}, Recorded time: {total_time}"
@@ -421,11 +423,11 @@ mod tests {
 
     #[test]
     fn given_empty_queue_with_credit_when_next_queue_then_none() {
-        let mut shaper: CreditBasedShaper<1> = CreditBasedShaper::new(ByteSize::mb(10));
-        let q: u32 = shaper.add_queue(ByteSize::mb(1)).unwrap().into();
-        let mut status = shaper.queues.get_mut(q as usize).unwrap();
+        let mut shaper =
+            CreditBasedShaper::<1>::create(DataRate::b(10_000_000), [DataRate::b(1_000_000)])
+                .unwrap();
+        let mut status = shaper.queues.get_mut(0).unwrap();
         status.backlog = 0;
         assert!(shaper.next_queue().is_none());
     }
-    // TODO testcase for bandwidth limits of individual queues
 }

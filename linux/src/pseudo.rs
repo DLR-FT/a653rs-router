@@ -1,7 +1,7 @@
 use bytesize::ByteSize;
 use core::time::Duration;
 use log::trace;
-use network_partition::prelude::{Error, Interface, VirtualLinkId};
+use network_partition::prelude::{DataRate, Error, Interface, VirtualLinkId};
 
 /// Pseudo network interface.
 ///
@@ -12,13 +12,13 @@ use network_partition::prelude::{Error, Interface, VirtualLinkId};
 pub struct PseudoInterface<'a> {
     vl: VirtualLinkId,
     buf: &'a [u8],
-    rate: ByteSize,
+    rate: DataRate,
     mtu: ByteSize,
 }
 
 impl<'a> PseudoInterface<'a> {
     /// Creates a new `PseudoInterface` that can receive `frame` and simulates transmission of frames with rate `rate`.
-    pub fn new(vl: VirtualLinkId, buf: &'a [u8], rate: ByteSize) -> Self {
+    pub fn new(vl: VirtualLinkId, buf: &'a [u8], rate: DataRate) -> Self {
         Self {
             vl,
             buf,

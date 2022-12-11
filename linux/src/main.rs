@@ -8,9 +8,8 @@ extern crate log;
 use apex_rs::prelude::*;
 use apex_rs_linux::partition::{ApexLinuxPartition, ApexLogger};
 use bytesize::ByteSize;
-use log::{error, trace, warn, LevelFilter};
+use log::{error, trace, LevelFilter};
 use network_partition::prelude::*;
-use once_cell::sync::OnceCell;
 use pseudo::PseudoInterface;
 use std::time::Duration;
 
@@ -19,14 +18,8 @@ const PORT_MTU: MessageSize = 10000;
 const PORTS: usize = 2;
 const INTERFACES: usize = 1;
 const LINKS: usize = 1;
-const MAX_QUEUE_LEN: usize = 1;
 
 type Hypervisor = ApexLinuxPartition;
-
-// static LINKS: OnceCell<SamplingVirtualLink<PORT_MTU, 1, 2, ApexLinuxPartition>> = OnceCell::new();
-// TODO static PORTS, ...
-// TODO VirtualLinks zusammenbasteln anhand von config.
-static INTERFACE: OnceCell<PseudoInterface> = OnceCell::new();
 
 fn main() {
     ApexLogger::install_panic_hook();
@@ -35,8 +28,8 @@ fn main() {
     let config = serde_yaml::from_str::<Config<PORTS, LINKS, INTERFACES>>(config)
         .ok()
         .unwrap();
-    let partition = NetworkPartition::<PORT_MTU, PORTS, INTERFACES, MAX_QUEUE_LEN, LINKS>::new(
-        config,
+    let partition = NetworkPartition::new(
+        config.stack_size.periodic_process.as_u64() as u32,
         entry_point,
     );
     PartitionExt::<Hypervisor>::run(partition);
@@ -44,7 +37,9 @@ fn main() {
 
 extern "C" fn entry_point() {
     let mut time = Duration::ZERO;
-    let mut shaper = CreditBasedShaper::<1>::new(ByteSize::mb(10));
+    // TODO generate shaper share config and number of queues
+    let mut shaper =
+        CreditBasedShaper::<1>::create(DataRate::b(10_000_000), [DataRate::b(10_000)]).unwrap();
     let if_buffer = [1u8; PORT_MTU as usize];
     let mut interface = PseudoInterface::new(VirtualLinkId::from(1), &if_buffer, ByteSize::mb(100));
     let mut links: heapless::Vec<VirtualLink, 2> = heapless::Vec::default();
@@ -97,6 +92,7 @@ extern "C" fn entry_point() {
                     }
                     VirtualLink::LocalToNetAndLocal(vl) => {
                         if vl.queue_id() == q_id {
+                            // TODO log errors
                             vl.send_network(&mut interface, &mut shaper)
                         } else {
                             Ok(())

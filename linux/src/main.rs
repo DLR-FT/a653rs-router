@@ -134,7 +134,7 @@ mod tests {
     fn parse_code_section_config() {
         // TODO should be configured from config using proc-macro
         let config = include_str!("../../config/network_partition_config.yml");
-        let parsed = serde_yaml::from_str::<Config<4, 2, 1>>(config);
+        let parsed = serde_yaml::from_str::<Config<4, 2, 2>>(config);
         println!("{parsed:?}");
         assert!(parsed.is_ok());
     }

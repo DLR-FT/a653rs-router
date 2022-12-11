@@ -15,9 +15,6 @@ type VirtualLinkId = u16;
 /// The name of a channel.
 type ChannelName = String<MAX_CHANNEL_NAME>;
 
-/// The id of an interface.
-type InterfaceId = u16;
-
 /// Configuration of the network partition
 ///
 /// # Examples
@@ -46,19 +43,21 @@ type InterfaceId = u16;
 ///     virtual_links: heapless::Vec::from_slice(&[
 ///         VirtualLinkConfig {
 ///             id: 0,
-///             rate: ByteSize::kb(100),
+///             rate: DataRate::b(1000),
 ///             msg_size: ByteSize::kb(1),
+///             interfaces: heapless::Vec::from_slice(&[InterfaceName::from("veth0"), InterfaceName::from("veth1")]).unwrap()
 ///         },
 ///         VirtualLinkConfig {
 ///             id: 1,
-///             rate: ByteSize::kb(1),
+///             rate: DataRate::b(1000),
 ///             msg_size: ByteSize::kb(1),
-///         },
+///             interfaces: heapless::Vec::from_slice(&[]).unwrap(),
+///         }
 ///     ]).unwrap(),
 ///     interfaces: heapless::Vec::from_slice(&[
 ///        InterfaceConfig {
-///            id: 0,
-///            rate: ByteSize::kb(100),
+///            name: InterfaceName::from("veth0"),
+///            rate: DataRate::b(10000000),
 ///            mtu: ByteSize::kb(1),
 ///        },
 ///     ]).unwrap()
@@ -73,7 +72,7 @@ pub struct Config<const PORTS: usize, const LINKS: usize, const INTERFACES: usiz
     pub ports: Vec<Port, PORTS>,
 
     /// The virtual links the partition is attached to.
-    pub virtual_links: Vec<VirtualLinkConfig, LINKS>,
+    pub virtual_links: Vec<VirtualLinkConfig<INTERFACES>, LINKS>,
 
     /// The interfaces that will be attached to the partition.
     pub interfaces: Vec<InterfaceConfig, INTERFACES>,
@@ -87,22 +86,52 @@ pub struct StackSizeConfig {
     pub periodic_process: ByteSize,
 }
 
+/// A data-rate in bit/s.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DataRate(u64);
+
+impl DataRate {
+    /// Constructs a data rate from a `u64` in bits/s.
+    pub const fn b(bits: u64) -> Self {
+        Self(bits)
+    }
+
+    /// Gets the bits/s as a `u64`.
+    pub const fn as_u64(self) -> u64 {
+        self.0
+    }
+}
+
 /// Configuration for a virtual link.
 ///
 /// Virtual links are used to connect multiple network partitions.
 /// Each virtual link can have exactly one source and one or more destinations.
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct VirtualLinkConfig {
+pub struct VirtualLinkConfig<const INTERFACES: usize> {
     /// The unique ID of the virtual link
     pub id: VirtualLinkId,
 
     /// The maximum rate the link may transmit at.
-    #[serde(deserialize_with = "de_size_str")]
-    pub rate: ByteSize,
+    pub rate: DataRate,
 
     /// The maximum size of a message that will be transmited using this virtual link.
     #[serde(deserialize_with = "de_size_str")]
     pub msg_size: ByteSize,
+
+    /// The interfaces that are attached
+    pub interfaces: Vec<InterfaceName, INTERFACES>,
+}
+
+const MAX_INTERFACE_NAME: usize = 10;
+
+/// The name of an interface. The name is platform-dependent.
+#[derive(Debug, Serialize, Clone, Deserialize)]
+pub struct InterfaceName(String<MAX_INTERFACE_NAME>);
+
+impl From<&str> for InterfaceName {
+    fn from(val: &str) -> Self {
+        Self(String::from(val))
+    }
 }
 
 /// Configuration for an interface.
@@ -111,11 +140,10 @@ pub struct VirtualLinkConfig {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct InterfaceConfig {
     /// The unique ID of the virtual link
-    pub id: InterfaceId,
+    pub name: InterfaceName,
 
     /// The maximum rate the interface can transmit at.
-    #[serde(deserialize_with = "de_size_str")]
-    pub rate: ByteSize,
+    pub rate: DataRate,
 
     /// The maximum size of a message that will be transmited using this virtual link.
     #[serde(deserialize_with = "de_size_str")]

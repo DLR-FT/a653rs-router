@@ -1,12 +1,13 @@
 //! Virtual links.
 
-use crate::error::{Error, RouteError};
-use crate::network::{Frame, PayloadSize, QueueLookup};
-use crate::ports::SamplingPortLookup;
-use crate::prelude::{Message, Shaper, Transmission};
-use crate::routing::{PortIdIterator, RouteLookup};
+use crate::error::Error;
+use crate::network::{Frame, PayloadSize};
+use crate::prelude::{FrameQueue, Interface, Shaper, Transmission};
 use crate::shaper::QueueId;
-use apex_rs::prelude::ApexSamplingPortP4;
+use apex_rs::prelude::{ApexSamplingPortP4, SamplingPortDestination, SamplingPortSource, Validity};
+use bytesize::ByteSize;
+use core::time::Duration;
+use heapless::spsc::Queue;
 use serde::{Deserialize, Serialize};
 
 /// An ID of a virtual link.
@@ -46,142 +47,313 @@ impl From<VirtualLinkId> for QueueId {
     }
 }
 
-/// Looks up the destinations of a virtual link from the router.
-pub trait LookupVirtualLink<const PORTS: usize> {
-    /// Gets the virtual link associated with the frame.
-    fn get_virtual_link(
-        &self,
-        router: &dyn RouteLookup<PORTS>,
-    ) -> Result<VirtualLinkDestinations<PORTS>, Error>;
+//pub trait VirtualLink {
+// TODO id field in enum
+/// Receives a transmission from the hypervisor, if the virtual link is attached to a port destination.
+pub trait ReceiveHypervisor {
+    fn forward_hypervisor(&mut self, shaper: &mut dyn Shaper) -> Result<(), Error>;
 }
 
-// Router: Port -> VirtualLink
-// VirtualLink: Frame -> ()
+pub trait ReceiveNetwork {
+    /// Receives a message from the network and forwards it to the local ports.
+    /// The contents of `buf` must already have been determined to belong to this virtual link (e.g. by comparing with the ID of this link).
+    fn receive_network(&mut self, buf: &[u8]) -> Result<(), Error>;
+}
 
-/// A bridge between the hypervisor ports and interfaces associated with a virtual link.
-/// Stores information about a virtual link and
+pub trait SendNetwork {
+    /// Sends frames from the queue of this virtual link to the network.
+    /// The shaper is used for shaping the traffic emitted by the virtual link to the network.
+    fn send_network(
+        &mut self,
+        interface: &mut dyn Interface,
+        shaper: &mut dyn Shaper,
+    ) -> Result<(), Error>;
+}
+
+pub trait QueueIdable {
+    fn queue_id(&self) -> QueueId;
+}
+
+pub trait VirtualLinkIdable {
+    fn vl_id(&self) -> VirtualLinkId;
+}
+pub trait LocalToNet: ReceiveHypervisor + SendNetwork + QueueIdable {}
+pub trait LocalToNetAndLocal: ReceiveHypervisor + SendNetwork + QueueIdable {}
+pub trait NetToLocal: ReceiveNetwork + VirtualLinkIdable {}
+
+/// Different types of virtual links.
+pub enum VirtualLink {
+    LocalToLocal(&'static mut dyn ReceiveHypervisor),
+    LocalToNet(&'static mut dyn LocalToNet),
+    LocalToNetAndLocal(&'static mut dyn LocalToNetAndLocal),
+    NetToLocal(&'static mut dyn NetToLocal),
+}
+
 #[derive(Debug)]
-pub struct VirtualLinkDestinations<const PORTS: usize> {
-    link: VirtualLinkId,
-    queue: QueueId,
-    ports: PortIdIterator<PORTS>,
-}
-
-impl<const PORTS: usize, const PL_SIZE: PayloadSize> LookupVirtualLink<PORTS> for Frame<PL_SIZE>
-where
-    [(); PL_SIZE as usize]:,
+pub struct LocalToLocalVirtualLink<
+    const MTU: PayloadSize,
+    const PORTS: usize,
+    H: ApexSamplingPortP4,
+> where
+    [(); MTU as usize]:,
 {
-    fn get_virtual_link(
-        &self,
-        router: &dyn RouteLookup<PORTS>,
-    ) -> Result<VirtualLinkDestinations<PORTS>, Error> {
-        let ports = router.route_remote_input(&self.link)?;
-        let vl = VirtualLinkDestinations::<PORTS> {
-            link: self.link,
-            queue: QueueId::from(self.link),
-            ports,
-        };
-        Ok(vl)
+    port_dst: SamplingPortDestination<MTU, H>,
+    port_srcs: [SamplingPortSource<MTU, H>; PORTS],
+}
+
+fn receive_sampling_port_valid<'a, const MTU: PayloadSize, H: ApexSamplingPortP4>(
+    dst: &SamplingPortDestination<MTU, H>,
+    buf: &'a mut [u8],
+) -> Result<&'a [u8], Error> {
+    // TODO extract function
+    let (valid, _) = dst.receive(buf)?;
+    if valid == Validity::Invalid {
+        return Err(Error::InvalidData);
     }
+    Ok(buf)
 }
 
-impl<const PORTS: usize, const PL_SIZE: PayloadSize> LookupVirtualLink<PORTS> for Message<PL_SIZE>
-where
-    [(); PL_SIZE as usize]:,
-{
-    fn get_virtual_link(
-        &self,
-        router: &dyn RouteLookup<PORTS>,
-    ) -> Result<VirtualLinkDestinations<PORTS>, Error> {
-        let vl_id = router.route_local_output(&self.port)?;
-        let ports = router.route_remote_input(&vl_id)?;
-        let vl = VirtualLinkDestinations::<PORTS> {
-            link: vl_id,
-            queue: QueueId::from(vl_id),
-            ports,
-        };
-        Ok(vl)
-    }
-}
-
-/// Forwards a frame to a set of port sources and network queues.
-pub trait ForwardFrame {
-    /// Forwards a frame to its destinations, which can be port sources or network queues.
-    fn forward_frame<const PL_SIZE: PayloadSize, H: ApexSamplingPortP4>(
-        self,
-        frame: &Frame<PL_SIZE>,
-        src_ports: &dyn SamplingPortLookup<PL_SIZE, H>,
-    ) -> Result<(), Error>
-    where
-        [(); PL_SIZE as usize]:;
-}
-
-impl<const PORTS: usize> ForwardFrame for VirtualLinkDestinations<PORTS> {
-    fn forward_frame<const PL_SIZE: PayloadSize, H: ApexSamplingPortP4>(
-        self,
-        frame: &Frame<PL_SIZE>,
-        src_ports: &dyn SamplingPortLookup<PL_SIZE, H>,
-    ) -> Result<(), Error>
-    where
-        [(); PL_SIZE as usize]:,
-    {
-        for src_port_id in self.ports {
-            let port = src_ports
-                .get_sampling_port_source(&src_port_id)
-                .ok_or(Error::InvalidRoute(RouteError::from(src_port_id)))?;
-
-            port.send(&frame.payload)?
-        }
+fn forward_to_sources<const MTU: PayloadSize, const PORTS: usize, H: ApexSamplingPortP4>(
+    srcs: &[SamplingPortSource<MTU, H>; PORTS],
+    buf: &[u8],
+) -> Result<(), Error> {
+    if srcs.iter().map(|p| p.send(buf)).any(|e| e.is_err()) {
+        Err(Error::SendFail)
+    } else {
         Ok(())
     }
 }
 
-/// Forwards a message to a set of port sources and network queues.
-pub trait ForwardMessage {
-    /// Forwards a message to its destinations, which can be port sources or network queues.
-    fn forward_message<const PL_SIZE: PayloadSize, H: ApexSamplingPortP4>(
-        self,
-        message: &Message<PL_SIZE>,
-        src_ports: &dyn SamplingPortLookup<PL_SIZE, H>,
-        queue: &mut dyn QueueLookup<PL_SIZE>,
-        shaper: &mut dyn Shaper,
-    ) -> Result<(), Error>
-    where
-        [(); PL_SIZE as usize]:;
+impl<const MTU: PayloadSize, const PORTS: usize, H: ApexSamplingPortP4> ReceiveHypervisor
+    for LocalToLocalVirtualLink<MTU, PORTS, H>
+where
+    [(); MTU as usize]:,
+{
+    fn forward_hypervisor(&mut self, _shaper: &mut dyn Shaper) -> Result<(), Error> {
+        let mut buf = [0u8; MTU as usize];
+        let buf = receive_sampling_port_valid(&self.port_dst, &mut buf)?;
+        forward_to_sources(&self.port_srcs, buf)
+    }
 }
 
-impl<const PORTS: usize> ForwardMessage for VirtualLinkDestinations<PORTS> {
-    fn forward_message<const PL_SIZE: PayloadSize, H: ApexSamplingPortP4>(
-        self,
-        message: &Message<PL_SIZE>,
-        src_ports: &dyn SamplingPortLookup<PL_SIZE, H>,
-        queues: &mut dyn QueueLookup<PL_SIZE>,
+#[derive(Debug)]
+pub struct LocalToNetVirtualLink<
+    const MTU: PayloadSize,
+    const PORTS: usize,
+    const MAX_QUEUE_LEN: usize,
+    H: ApexSamplingPortP4,
+> where
+    [(); MTU as usize]:,
+{
+    id: VirtualLinkId,
+    queue_id: QueueId,
+    port_dst: SamplingPortDestination<MTU, H>,
+    queue: Queue<Frame<MTU>, MAX_QUEUE_LEN>,
+}
+
+fn forward_to_network_queue<const MTU: PayloadSize, const MAX_QUEUE_LEN: usize>(
+    queue_id: &QueueId,
+    queue: &mut Queue<Frame<MTU>, MAX_QUEUE_LEN>,
+    frame: Frame<MTU>,
+    shaper: &mut dyn Shaper,
+) -> Result<(), Error>
+where
+    [(); MTU as usize]:,
+{
+    let curr = queue.len() as u64;
+    let next = queue.enqueue_frame(frame)?;
+
+    let transmission = Transmission::new(*queue_id, Duration::ZERO, ByteSize::b(MTU as u64));
+    if curr < next {
+        shaper.request_transmission(&transmission)?;
+    }
+    Ok(())
+}
+
+impl<
+        const MTU: PayloadSize,
+        const PORTS: usize,
+        const MAX_QUEUE_LEN: usize,
+        H: ApexSamplingPortP4,
+    > ReceiveHypervisor for LocalToNetVirtualLink<MTU, PORTS, MAX_QUEUE_LEN, H>
+where
+    [(); MTU as usize]:,
+{
+    fn forward_hypervisor(&mut self, shaper: &mut dyn Shaper) -> Result<(), Error> {
+        let mut buf = [0u8; MTU as usize];
+        _ = receive_sampling_port_valid(&self.port_dst, &mut buf)?;
+        forward_to_network_queue(&self.queue_id, &mut self.queue, Frame::from(buf), shaper)
+    }
+}
+
+impl<
+        const MTU: PayloadSize,
+        const PORTS: usize,
+        const MAX_QUEUE_LEN: usize,
+        H: ApexSamplingPortP4,
+    > SendNetwork for LocalToNetVirtualLink<MTU, PORTS, MAX_QUEUE_LEN, H>
+where
+    [(); MTU as usize]:,
+{
+    fn send_network(
+        &mut self,
+        interface: &mut dyn Interface,
         shaper: &mut dyn Shaper,
-    ) -> Result<(), Error>
-    where
-        [(); PL_SIZE as usize]:,
-    {
-        let ports = self.ports;
-        for p in ports {
-            let port = src_ports
-                .get_sampling_port_source(&p)
-                .ok_or(Error::InvalidRoute(RouteError::from(p)))?;
+    ) -> Result<(), Error> {
+        _ = send_network(&self.id, &self.queue_id, &mut self.queue, interface, shaper)?;
+        Ok(())
+    }
+}
 
-            port.send(&message.payload)?; // TODO maybe collect errors and try every port?
-        }
-
-        if let Some(q) = queues.get_queue(&self.queue) {
-            let frame = Frame {
-                link: self.link,
-                payload: message.payload,
+fn send_network<const MTU: PayloadSize, const MAX_QUEUE_LEN: usize>(
+    vl: &VirtualLinkId,
+    queue_id: &QueueId,
+    queue: &mut Queue<Frame<MTU>, MAX_QUEUE_LEN>,
+    interface: &mut dyn Interface,
+    shaper: &mut dyn Shaper,
+) -> Result<Transmission, Error>
+where
+    [(); MTU as usize]:,
+{
+    let frame = queue.dequeue_frame();
+    match frame {
+        Some(frame) => {
+            let buf = frame.as_slice();
+            // Always remove credit from a queue. It is using its credit regardless of if the transmission was successful.
+            let duration = match interface.send(vl, &buf) {
+                Ok(dur) => dur,
+                Err(dur) => dur,
             };
-            let q_len = q.enqueue_frame(frame)?;
-            if shaper.get_backlog(&self.queue).ok_or(Error::Unknown)? < q_len {
-                // TODO better error handling
-                shaper.request_transmission(&Transmission::for_frame(self.queue, &frame))?;
-            }
+            let trans = Transmission::new(*queue_id, duration, ByteSize::b(buf.len() as u64));
+            shaper.record_transmission(&trans)?;
+            Ok(trans)
         }
+        None => Err(Error::QueueEmpty),
+    }
+}
 
+#[derive(Debug)]
+pub struct LocalToLocalAndNetVirtualLink<
+    const MTU: PayloadSize,
+    const PORTS: usize,
+    const MAX_QUEUE_LEN: usize,
+    H: ApexSamplingPortP4,
+> where
+    [(); MTU as usize]:,
+{
+    id: VirtualLinkId,
+    queue_id: QueueId,
+    port_dst: SamplingPortDestination<MTU, H>,
+    port_srcs: [SamplingPortSource<MTU, H>; PORTS],
+    queue: Queue<Frame<MTU>, MAX_QUEUE_LEN>,
+}
+
+impl<
+        const MTU: PayloadSize,
+        const PORTS: usize,
+        const MAX_QUEUE_LEN: usize,
+        H: ApexSamplingPortP4,
+    > ReceiveHypervisor for LocalToLocalAndNetVirtualLink<MTU, PORTS, MAX_QUEUE_LEN, H>
+where
+    [(); MTU as usize]:,
+{
+    fn forward_hypervisor(&mut self, shaper: &mut dyn Shaper) -> Result<(), Error> {
+        let mut buf = [0u8; MTU as usize];
+        _ = receive_sampling_port_valid(&self.port_dst, &mut buf)?;
+        forward_to_sources(&self.port_srcs, &buf)?;
+        forward_to_network_queue(&self.queue_id, &mut self.queue, Frame::from(buf), shaper)?;
         Ok(())
+    }
+}
+
+impl<
+        const MTU: PayloadSize,
+        const PORTS: usize,
+        const MAX_QUEUE_LEN: usize,
+        H: ApexSamplingPortP4,
+    > SendNetwork for LocalToLocalAndNetVirtualLink<MTU, PORTS, MAX_QUEUE_LEN, H>
+where
+    [(); MTU as usize]:,
+{
+    fn send_network(
+        &mut self,
+        interface: &mut dyn Interface,
+        shaper: &mut dyn Shaper,
+    ) -> Result<(), Error> {
+        _ = send_network(&self.id, &self.queue_id, &mut self.queue, interface, shaper)?;
+        Ok(())
+    }
+}
+
+#[derive(Debug)]
+pub struct NetToLocalVirtualLink<
+    const MTU: PayloadSize,
+    const PORTS: usize,
+    const MAX_QUEUE_LEN: usize,
+    H: ApexSamplingPortP4,
+> where
+    [(); MTU as usize]:,
+{
+    id: VirtualLinkId,
+    port_srcs: [SamplingPortSource<MTU, H>; PORTS],
+}
+
+impl<
+        const MTU: PayloadSize,
+        const PORTS: usize,
+        const MAX_QUEUE_LEN: usize,
+        H: ApexSamplingPortP4,
+    > ReceiveNetwork for NetToLocalVirtualLink<MTU, PORTS, MAX_QUEUE_LEN, H>
+where
+    [(); MTU as usize]:,
+{
+    fn receive_network(&mut self, buf: &[u8]) -> Result<(), Error> {
+        if buf.len() > MTU as usize {
+            return Err(Error::ReceiveFail);
+        }
+        forward_to_sources(&self.port_srcs, buf)?;
+        Ok(())
+    }
+}
+
+impl<
+        const MTU: PayloadSize,
+        const PORTS: usize,
+        const MAX_QUEUE_LEN: usize,
+        H: ApexSamplingPortP4,
+    > QueueIdable for LocalToNetVirtualLink<MTU, PORTS, MAX_QUEUE_LEN, H>
+where
+    [(); MTU as usize]:,
+{
+    fn queue_id(&self) -> QueueId {
+        self.queue_id
+    }
+}
+
+impl<
+        const MTU: PayloadSize,
+        const PORTS: usize,
+        const MAX_QUEUE_LEN: usize,
+        H: ApexSamplingPortP4,
+    > QueueIdable for LocalToLocalAndNetVirtualLink<MTU, PORTS, MAX_QUEUE_LEN, H>
+where
+    [(); MTU as usize]:,
+{
+    fn queue_id(&self) -> QueueId {
+        self.queue_id
+    }
+}
+
+impl<
+        const MTU: PayloadSize,
+        const PORTS: usize,
+        const MAX_QUEUE_LEN: usize,
+        H: ApexSamplingPortP4,
+    > VirtualLinkIdable for NetToLocalVirtualLink<MTU, PORTS, MAX_QUEUE_LEN, H>
+where
+    [(); MTU as usize]:,
+{
+    fn vl_id(&self) -> VirtualLinkId {
+        self.id
     }
 }

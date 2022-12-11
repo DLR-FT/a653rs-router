@@ -1,9 +1,4 @@
-use crate::error::Error;
 use crate::prelude::PayloadSize;
-use apex_rs::prelude::{
-    ApexSamplingPortP4, MessageSize, SamplingPortDestination, SamplingPortSource, Validity,
-};
-use heapless::LinearMap;
 use serde::{Deserialize, Serialize};
 
 // TODO
@@ -37,24 +32,17 @@ impl From<PortId> for u32 {
 
 /// A message from the hypervisor, but annotated with the originating channel's id.
 #[derive(Debug, Copy, Clone)]
-pub struct Message<const PL_SIZE: PayloadSize>
+pub struct Message<const PL_SIZE: PayloadSize>([u8; PL_SIZE as usize])
 where
-    [(); PL_SIZE as usize]:,
-{
-    /// ID of the port the message was received on.
-    pub port: PortId,
-
-    /// Payload of the message.
-    pub payload: [u8; PL_SIZE as usize],
-}
+    [(); PL_SIZE as usize]:;
 
 impl<const PL_SIZE: PayloadSize> Message<PL_SIZE>
 where
     [(); PL_SIZE as usize]:,
 {
     /// Gets the payload the message originated from.
-    pub const fn into_inner(self) -> (PortId, [u8; PL_SIZE as usize]) {
-        (self.port, self.payload)
+    pub const fn into_inner(self) -> [u8; PL_SIZE as usize] {
+        self.0
     }
 }
 
@@ -63,66 +51,15 @@ where
     [(); PL_SIZE as usize]:,
 {
     fn default() -> Self {
-        Message {
-            port: PortId::from(0),
-            payload: [0u8; PL_SIZE as usize],
-        }
+        Self([0u8; PL_SIZE as usize])
     }
 }
 
-/// Receives a message from a port.
-pub trait ReceiveMessage {
-    /// Receives a message from the hypervisor.
-    fn receive_message<'a, const PL_SIZE: PayloadSize>(
-        &self,
-        message: &'a mut Message<PL_SIZE>,
-    ) -> Result<&'a Message<PL_SIZE>, Error>
-    where
-        [(); PL_SIZE as usize]:;
-}
-
-impl<const MSG_SIZE: MessageSize, H: ApexSamplingPortP4> ReceiveMessage
-    for (&PortId, &SamplingPortDestination<MSG_SIZE, H>)
+impl<const PL_SIZE: PayloadSize> From<[u8; PL_SIZE as usize]> for Message<PL_SIZE>
+where
+    [u8; PL_SIZE as usize]:,
 {
-    fn receive_message<'a, const PL_SIZE: PayloadSize>(
-        &self,
-        message: &'a mut Message<PL_SIZE>,
-    ) -> Result<&'a Message<PL_SIZE>, Error>
-    where
-        [(); PL_SIZE as usize]:,
-    {
-        // TODO has to set link id.
-        let (valid, _) = self.1.receive(&mut message.payload)?;
-        if valid == Validity::Valid {
-            message.port = *self.0;
-            Ok(message)
-        } else {
-            Err(Error::InvalidData)
-        }
-    }
-}
-
-/// Looks up a sampling port source by its internal ID.
-pub trait SamplingPortLookup<const MSG_SIZE: MessageSize, H: ApexSamplingPortP4> {
-    /// Gets the sampling port source by the internal `id`.
-    fn get_sampling_port_source<'a>(
-        &'a self,
-        id: &PortId,
-    ) -> Option<&'a SamplingPortSource<MSG_SIZE, H>>
-    where
-        H: ApexSamplingPortP4;
-}
-
-impl<const MSG_SIZE: MessageSize, H: ApexSamplingPortP4, const PORTS: usize>
-    SamplingPortLookup<MSG_SIZE, H> for LinearMap<PortId, SamplingPortSource<MSG_SIZE, H>, PORTS>
-{
-    fn get_sampling_port_source<'a>(
-        &'a self,
-        id: &PortId,
-    ) -> Option<&'a SamplingPortSource<MSG_SIZE, H>>
-    where
-        H: ApexSamplingPortP4,
-    {
-        self.get(id)
+    fn from(val: [u8; PL_SIZE as usize]) -> Self {
+        Self(val)
     }
 }

@@ -1,8 +1,6 @@
 //! Traffic shapers
 
 use crate::error::Error;
-use crate::network::Frame;
-use crate::network::PayloadSize;
 use bytesize::ByteSize;
 use core::time::Duration;
 use heapless::Vec;
@@ -55,8 +53,8 @@ impl From<u32> for QueueId {
 /// The transmission occurs for a frame from a queue designated by `queue_id`, lasts for `duration` and transmits `bits`.
 #[derive(Debug, Default)]
 pub struct Transmission {
-    /// ID of the queue from which bits have been transmitted.
-    queue_id: QueueId,
+    /// The queue that performed or requested the transmission.
+    queue: QueueId,
 
     /// The time it took to transmit the bits.
     duration: Duration,
@@ -69,21 +67,9 @@ impl Transmission {
     /// Creates a new transmission.
     pub fn new(queue: QueueId, duration: Duration, length: ByteSize) -> Self {
         Self {
-            queue_id: queue,
+            queue,
             duration,
             bits: length.as_u64() * 8,
-        }
-    }
-
-    /// Creates a new transmission for a frame.
-    pub fn for_frame<const PL_SIZE: PayloadSize>(queue: QueueId, frame: &Frame<PL_SIZE>) -> Self
-    where
-        [(); PL_SIZE as usize]:,
-    {
-        Self {
-            queue_id: queue,
-            duration: Duration::ZERO,
-            bits: 8 * (frame.len() as u64), // TODO should be actual size of frame (depends on N.I.L)
         }
     }
 
@@ -111,10 +97,10 @@ impl Transmission {
 pub trait Shaper {
     /// Requests that the shaper allows the queue to perform a transmission.
     fn request_transmission(&mut self, transmission: &Transmission) -> Result<(), Error>;
-    // TODO fn cance_transmission
+
     /// Notifies the shaper, that a transmission took place.
     /// Returns the number of consumed bits.
-    fn record_transmission(&mut self, transmission: Transmission) -> Result<(), Error>;
+    fn record_transmission(&mut self, transmission: &Transmission) -> Result<(), Error>;
 
     /// Restores credit to all queues.
     /// Should be called if no transmissions were recorded during a timeframe of length restore.
@@ -166,16 +152,16 @@ impl<const NUM_QUEUES: usize> CreditBasedShaper<NUM_QUEUES> {
 
 impl<const NUM_QUEUES: usize> Shaper for CreditBasedShaper<NUM_QUEUES> {
     fn request_transmission(&mut self, transmission: &Transmission) -> Result<(), Error> {
-        let q_id: usize = transmission.queue_id.0 as usize;
+        let q_id: usize = transmission.queue.0 as usize;
         let q = self.queues.get_mut(q_id).ok_or(Error::InvalidData)?; // TODO better error
         _ = q.submit(transmission.bits);
         Ok(())
     }
 
-    fn record_transmission(&mut self, transmission: Transmission) -> Result<(), Error> {
+    fn record_transmission(&mut self, transmission: &Transmission) -> Result<(), Error> {
         let mut consumed = false;
         for q in self.queues.iter_mut() {
-            if q.id == transmission.queue_id {
+            if q.id == transmission.queue {
                 q.transmit = false;
                 _ = q.consume(&transmission.bits, &transmission.duration)?;
                 consumed = true;
@@ -413,12 +399,12 @@ mod tests {
             // ... transmit
             if next_q == q1 {
                 let t = Transmission::new(q1, DURATION_Q1, MTU_Q1);
-                s.record_transmission(t).unwrap();
+                s.record_transmission(&t).unwrap();
                 total_byte += MTU_Q1.as_u64();
                 total_time += DURATION_Q1;
             } else {
                 let t = Transmission::new(q2, DURATION_Q2, MTU_Q2);
-                s.record_transmission(t).unwrap();
+                s.record_transmission(&t).unwrap();
                 total_byte += MTU_Q2.as_u64();
                 total_time += DURATION_Q2;
             }

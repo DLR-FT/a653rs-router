@@ -5,144 +5,109 @@ mod pseudo;
 
 extern crate log;
 
-use std::time::Duration;
-
 use apex_rs::prelude::*;
 use apex_rs_linux::partition::{ApexLinuxPartition, ApexLogger};
 use bytesize::ByteSize;
-use heapless::{spsc::Queue, LinearMap};
 use log::{error, trace, warn, LevelFilter};
 use network_partition::prelude::*;
 use once_cell::sync::OnceCell;
 use pseudo::PseudoInterface;
-
-type Hypervisor = ApexLinuxPartition;
+use std::time::Duration;
 
 // TODO should be configured from config using proc-macro
 const PORT_MTU: MessageSize = 10000;
-const TABLE_SIZE: usize = 10;
-const QUEUE_CAPACITY: usize = 2;
+const PORTS: usize = 2;
 const INTERFACES: usize = 1;
+const LINKS: usize = 1;
+const MAX_QUEUE_LEN: usize = 1;
 
-// TODO use once big OnceCell<struct>
-static CONFIG: OnceCell<Config<TABLE_SIZE, TABLE_SIZE, INTERFACES>> = OnceCell::new();
-static ROUTER: OnceCell<Router<TABLE_SIZE>> = OnceCell::new();
-static SOURCE_PORTS: OnceCell<
-    LinearMap<PortId, SamplingPortSource<PORT_MTU, Hypervisor>, TABLE_SIZE>,
-> = OnceCell::new();
-static DESTINATION_PORTS: OnceCell<
-    LinearMap<PortId, SamplingPortDestination<PORT_MTU, Hypervisor>, TABLE_SIZE>,
-> = OnceCell::new();
+type Hypervisor = ApexLinuxPartition;
+
+// static LINKS: OnceCell<SamplingVirtualLink<PORT_MTU, 1, 2, ApexLinuxPartition>> = OnceCell::new();
+// TODO static PORTS, ...
+// TODO VirtualLinks zusammenbasteln anhand von config.
+static INTERFACE: OnceCell<PseudoInterface> = OnceCell::new();
 
 fn main() {
     ApexLogger::install_panic_hook();
     ApexLogger::install_logger(LevelFilter::Trace).unwrap();
     let config = include_str!("../../config/network_partition_config.yml");
-    let parsed_config = serde_yaml::from_str::<Config<TABLE_SIZE, TABLE_SIZE, INTERFACES>>(config);
-    if let Err(error) = parsed_config {
-        error!("{error:?}");
-        panic!();
-    }
-    CONFIG.set(parsed_config.ok().unwrap()).unwrap();
-    trace!("Have config: {CONFIG:?}");
-    let partition = NetworkPartition::<PORT_MTU, TABLE_SIZE, INTERFACES, Hypervisor>::new(
-        CONFIG.get().unwrap().clone(),
-        &ROUTER,
-        &SOURCE_PORTS,
-        &DESTINATION_PORTS,
+    let config = serde_yaml::from_str::<Config<PORTS, LINKS, INTERFACES>>(config)
+        .ok()
+        .unwrap();
+    let partition = NetworkPartition::<PORT_MTU, PORTS, INTERFACES, MAX_QUEUE_LEN, LINKS>::new(
+        config,
         entry_point,
     );
-    partition.run();
-}
-
-fn process_destination_port<const MTU: PayloadSize, const TABLE: usize, H: ApexSamplingPortP4>(
-    port_id: &PortId,
-    port: &SamplingPortDestination<MTU, H>,
-    router: &dyn RouteLookup<TABLE>,
-    ports: &dyn SamplingPortLookup<MTU, H>,
-    queues: &mut dyn QueueLookup<MTU>,
-    shaper: &mut dyn Shaper,
-) -> Result<(), network_partition::prelude::Error>
-where
-    [(); MTU as usize]:,
-{
-    let mut message = Message::<MTU>::default();
-    (port_id, port)
-        .receive_message(&mut message)
-        .and_then(|m| m.get_virtual_link(router))
-        .and_then(|link| link.forward_message(&message, ports, queues, shaper))
+    PartitionExt::<Hypervisor>::run(partition);
 }
 
 extern "C" fn entry_point() {
     let mut time = Duration::ZERO;
-    // TODO move to partition module
-    // Interface without route.
-    let interface = PseudoInterface::<PORT_MTU>::new(
-        Frame::new(VirtualLinkId::from(1), [1u8; PORT_MTU as usize]),
-        ByteSize::mb(100),
-    );
-    let echo_allowed_rate = ByteSize::kb(100);
-    //let interface = UdpSender::new(socket, echo_allowed_rate);
-    let router = ROUTER.get().unwrap();
-    let port_dsts = DESTINATION_PORTS.get().unwrap();
-    let port_srcs = SOURCE_PORTS.get().unwrap();
     let mut shaper = CreditBasedShaper::<1>::new(ByteSize::mb(10));
-    let echo_queue = shaper.add_queue(echo_allowed_rate).unwrap();
-    let mut queues: LinearMap<QueueId, Queue<Frame<PORT_MTU>, QUEUE_CAPACITY>, TABLE_SIZE> =
-        LinearMap::default();
-    queues.insert(echo_queue, Queue::default()).unwrap();
-
-    // TODO init ports
+    let if_buffer = [1u8; PORT_MTU as usize];
+    let mut interface = PseudoInterface::new(VirtualLinkId::from(1), &if_buffer, ByteSize::mb(100));
+    let mut links: heapless::Vec<VirtualLink, 2> = heapless::Vec::default();
+    // TODO add VLs here
 
     loop {
         let time_diff = Hypervisor::get_time().unwrap_duration() - time;
         shaper.restore_all(time_diff).unwrap();
         time = Hypervisor::get_time().unwrap_duration();
 
-        for dst in port_dsts {
-            if let Err(res) =
-                process_destination_port(dst.0, dst.1, router, port_srcs, &mut queues, &mut shaper)
-            {
-                error!("Failed to deliver frame to all destinations: {res:?}");
+        let mut frame_buf = [0u8; PORT_MTU as usize];
+        let next_frame = interface.receive(&mut frame_buf).ok();
+
+        for vl in links.iter_mut() {
+            let res = match vl {
+                VirtualLink::LocalToLocal(vl) => vl.forward_hypervisor(&mut shaper),
+                VirtualLink::LocalToNet(vl) => vl.forward_hypervisor(&mut shaper),
+                VirtualLink::LocalToNetAndLocal(vl) => vl.forward_hypervisor(&mut shaper),
+                VirtualLink::NetToLocal(vl) => match next_frame {
+                    Some((vl_id, buf)) => {
+                        if vl_id == vl.vl_id() {
+                            vl.receive_network(buf)
+                        } else {
+                            Ok(())
+                        }
+                    }
+                    None => Ok(()),
+                },
+            };
+            if let Err(err) = res {
+                error!("Failed to receive a frame: {err:?}");
             }
         }
-        // for i in interfaces
-        // TODO there is no port configured as a destination for VL 1
-        let mut frame = Frame::<PORT_MTU>::default();
-        let res = interface
-            .receive_frame(&mut frame)
-            .and_then(|f| f.get_virtual_link(router))
-            .and_then(|f| f.forward_frame(&frame, port_srcs));
 
-        if let Err(err) = res {
-            warn!("Failed to forward frame: {err:?}");
-        }
-
-        let mut frames_transmitted = 0;
-
+        // TODO vl.send_network()
         let mut transmitted = false;
+
         while let Some(q_id) = shaper.next_queue() {
             transmitted = true;
             trace!("Attempting transmission from queue {q_id:?}");
-            // transmit
-            let q = queues.get_mut(&q_id).unwrap();
-            let frame = FrameQueue::dequeue_frame(q).unwrap();
-            let transmission = interface.send_frame(q_id, &frame);
-            let pl_size = frame.len();
-            let transmission = match transmission {
-                Ok(transmission) => transmission,
-                Err(transmission) => {
-                    error!("Transmission failed: {frame:?}");
-                    transmission
+            for vl in links.iter_mut() {
+                let res = match vl {
+                    VirtualLink::LocalToNet(vl) => {
+                        if vl.queue_id() == q_id {
+                            // TODO log errors
+                            vl.send_network(&mut interface, &mut shaper)
+                        } else {
+                            Ok(())
+                        }
+                    }
+                    VirtualLink::LocalToNetAndLocal(vl) => {
+                        if vl.queue_id() == q_id {
+                            vl.send_network(&mut interface, &mut shaper)
+                        } else {
+                            Ok(())
+                        }
+                    }
+                    _ => Ok(()),
+                };
+                if let Err(err) = res {
+                    error!("Failed to send frame to network: {err:?}");
                 }
-            };
-            // Act like we transmitted the complete frame. It does not need to be registered to the shaper
-            // because it was already dequeued and retransmissions are not yet supported.
-            let transmission = transmission.with_size(ByteSize::b(frame.len() as u64));
-            trace!("Transmition: {transmission:?}, Payload size: {pl_size:?}");
-            shaper.record_transmission(transmission).unwrap();
-            frames_transmitted += 1;
-            trace!("Frames transmitted: {frames_transmitted:?}");
+            }
         }
 
         if !transmitted {

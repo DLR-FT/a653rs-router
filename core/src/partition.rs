@@ -1,13 +1,8 @@
 use crate::config::*;
-use crate::ports::PortId;
-use crate::routing::Router;
-use crate::virtual_link::VirtualLinkId;
 use apex_rs::prelude::*;
 use core::fmt::Debug;
 use core::str::FromStr;
 use core::time::Duration;
-use heapless::LinearMap;
-use once_cell::sync::OnceCell;
 
 type SystemAddress = extern "C" fn();
 
@@ -20,57 +15,56 @@ type SystemAddress = extern "C" fn();
 /// TODO must be able to iterate over all destinations
 #[derive(Debug)]
 pub struct NetworkPartition<
-    const PORT_MTU: MessageSize,
-    const TABLE_SIZE: usize,
+    const MTU: MessageSize,
+    const PORTS: usize,
     const INTERFACES: usize,
-    H: ApexSamplingPortP4 + 'static,
-> {
-    config: Config<TABLE_SIZE, TABLE_SIZE, INTERFACES>,
-    router: &'static OnceCell<Router<TABLE_SIZE>>,
-    // TODO make into struct
-    source_ports: &'static OnceCell<LinearMap<PortId, SamplingPortSource<PORT_MTU, H>, TABLE_SIZE>>,
-    // TODO make into struct
-    destination_ports:
-        &'static OnceCell<LinearMap<PortId, SamplingPortDestination<PORT_MTU, H>, TABLE_SIZE>>,
+    const MAX_QUEUE_LEN: usize,
+    const LINKS: usize,
+> where
+    [(); MTU as usize]:,
+{
+    config: Config<PORTS, LINKS, INTERFACES>,
+    //links: &'static OnceCell<Vec<VirtualLink, LINKS>>,
     entry_point: SystemAddress,
 }
 
-impl<const ECHO_SIZE: MessageSize, const TABLE_SIZE: usize, const INTERFACES: usize, H>
-    NetworkPartition<ECHO_SIZE, TABLE_SIZE, INTERFACES, H>
+impl<
+        const MTU: MessageSize,
+        const PORTS: usize,
+        const INTERFACES: usize,
+        const MAX_QUEUE_LEN: usize,
+        const LINKS: usize,
+    > NetworkPartition<MTU, PORTS, INTERFACES, MAX_QUEUE_LEN, LINKS>
 where
-    H: ApexSamplingPortP4,
+    [(); MTU as usize]:,
 {
     /// Create a new instance of the network partition
     pub fn new(
-        config: Config<TABLE_SIZE, TABLE_SIZE, INTERFACES>,
-        router: &'static OnceCell<Router<TABLE_SIZE>>,
-        source_ports: &'static OnceCell<
-            LinearMap<PortId, SamplingPortSource<ECHO_SIZE, H>, TABLE_SIZE>,
-        >,
-        destination_ports: &'static OnceCell<
-            LinearMap<PortId, SamplingPortDestination<ECHO_SIZE, H>, TABLE_SIZE>,
-        >,
+        config: Config<PORTS, LINKS, INTERFACES>,
+        //links: &'static OnceCell<Vec<VirtualLink<MTU, PORTS, MAX_QUEUE_LEN, H>, LINKS>>,
         entry_point: SystemAddress,
     ) -> Self {
-        NetworkPartition::<ECHO_SIZE, TABLE_SIZE, INTERFACES, H> {
+        NetworkPartition::<MTU, PORTS, INTERFACES, MAX_QUEUE_LEN, LINKS> {
             config,
-            router,
-            source_ports,
-            destination_ports,
             entry_point,
         }
     }
 }
 
 // TODO create all ports and processes from config
-impl<const MSG_SIZE: MessageSize, const TABLE_SIZE: usize, const INTERFACES: usize, H> Partition<H>
-    for NetworkPartition<MSG_SIZE, TABLE_SIZE, INTERFACES, H>
+impl<
+        const MTU: MessageSize,
+        const PORTS: usize,
+        const INTERFACES: usize,
+        const MAX_QUEUE_LEN: usize,
+        H,
+        const LINKS: usize,
+    > Partition<H> for NetworkPartition<MTU, PORTS, INTERFACES, MAX_QUEUE_LEN, LINKS>
 where
     H: ApexSamplingPortP4 + ApexProcessP4 + ApexPartitionP4 + Debug,
+    [(); MTU as usize]:,
 {
     fn cold_start(&self, ctx: &mut StartContext<H>) {
-        let mut router = Router::<TABLE_SIZE>::default();
-
         // Cannot dynamically init ports with values from config because message sizes are not known at compile time
         // Maybe code generation could be used to translate the config into code -> const values -> can be used in generics
         let echo_request_port_config = self
@@ -88,21 +82,12 @@ where
             })
             .last();
 
-        let mut destination_ports: LinearMap<
-            PortId,
-            SamplingPortDestination<MSG_SIZE, H>,
-            TABLE_SIZE,
-        > = LinearMap::default();
-
         if let Some(config) = echo_request_port_config {
             let name = Name::from_str("EchoRequest").unwrap();
-            let port = ctx
-                .create_sampling_port_destination::<MSG_SIZE>(name, config.validity)
+            let _port = ctx
+                .create_sampling_port_destination::<MTU>(name, config.validity)
                 .unwrap();
-            _ = destination_ports.insert(PortId::from(0), port).unwrap();
         }
-
-        self.destination_ports.set(destination_ports).unwrap();
 
         let echo_reply_port_config = self
             .config
@@ -119,26 +104,13 @@ where
             })
             .last();
 
-        let mut source_ports: LinearMap<PortId, SamplingPortSource<MSG_SIZE, H>, TABLE_SIZE> =
-            LinearMap::default();
-
         if echo_reply_port_config.is_some() {
-            let port = ctx
-                .create_sampling_port_source::<MSG_SIZE>(Name::from_str("EchoReply").unwrap())
-                .unwrap();
-
-            _ = source_ports.insert(PortId::from(1), port).unwrap();
-            // TODO Loopback table
-            router
-                .add_output_route(PortId::from(0), VirtualLinkId::from(0))
-                .unwrap(); // TODO add virtual link with ID 0
-            router
-                .add_input_route(VirtualLinkId::from(0), PortId::from(1))
+            _ = ctx
+                .create_sampling_port_source::<MTU>(Name::from_str("EchoReply").unwrap())
                 .unwrap();
         }
 
-        self.source_ports.set(source_ports).unwrap();
-        self.router.set(router).unwrap();
+        // TODO init links
 
         // Periodic
         ctx.create_process(ProcessAttribute {

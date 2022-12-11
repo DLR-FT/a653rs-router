@@ -1,11 +1,7 @@
+use bytesize::ByteSize;
 use core::time::Duration;
 use log::trace;
-
-use bytesize::ByteSize;
-
-use network_partition::prelude::{
-    Error, Frame, PayloadSize, QueueId, ReceiveFrame, SendFrame, Transmission,
-};
+use network_partition::prelude::{Error, Interface, VirtualLinkId};
 
 /// Pseudo network interface.
 ///
@@ -13,73 +9,41 @@ use network_partition::prelude::{
 /// The pseudo network interface will always assert that any frame was transmitted successfully
 /// at the configured rate, but it discard the frame.
 #[derive(Debug)]
-pub struct PseudoInterface<const MTU: PayloadSize>
-where
-    [(); MTU as usize]:,
-{
-    frame: Frame<MTU>,
+pub struct PseudoInterface<'a> {
+    vl: VirtualLinkId,
+    buf: &'a [u8],
     rate: ByteSize,
     mtu: ByteSize,
 }
 
-impl<const PL_SIZE: PayloadSize> PseudoInterface<PL_SIZE>
-where
-    [(); PL_SIZE as usize]:,
-{
+impl<'a> PseudoInterface<'a> {
     /// Creates a new `PseudoInterface` that can receive `frame` and simulates transmission of frames with rate `rate`.
-    pub fn new(frame: Frame<PL_SIZE>, rate: ByteSize) -> Self {
+    pub fn new(vl: VirtualLinkId, buf: &'a [u8], rate: ByteSize) -> Self {
         Self {
-            frame,
+            vl,
+            buf,
             rate,
-            mtu: ByteSize::b(PL_SIZE as u64),
+            mtu: ByteSize::b(buf.len() as u64),
         }
     }
 }
 
-impl<const MTU: PayloadSize> SendFrame for PseudoInterface<MTU>
-where
-    [(); MTU as usize]:,
-{
-    fn send_frame<const PL_SIZE: PayloadSize>(
-        &self,
-        queue: QueueId,
-        frame: &Frame<PL_SIZE>,
-    ) -> Result<Transmission, Transmission>
-    where
-        [(); PL_SIZE as usize]:,
-    {
+impl<'a> Interface for PseudoInterface<'a> {
+    fn send(&self, _vl: &VirtualLinkId, _buf: &[u8]) -> Result<Duration, Duration> {
         let mtu = self.mtu.as_u64() as f64;
         let rate = self.rate.as_u64() as f64;
         let duration = mtu * 1_000_000_000.0 / rate;
         let duration = Duration::from_nanos(duration as u64);
-        Ok(Transmission::new(
-            queue,
-            duration,
-            ByteSize::b(frame.len() as u64),
-        ))
+        Ok(duration)
     }
-}
 
-impl<const MTU: PayloadSize> ReceiveFrame for PseudoInterface<MTU>
-where
-    [(); MTU as usize]:,
-{
-    fn receive_frame<'a, const PL_SIZE: PayloadSize>(
-        &self,
-        frame: &'a mut Frame<PL_SIZE>,
-    ) -> Result<&'a Frame<PL_SIZE>, Error>
-    where
-        [(); PL_SIZE as usize]:,
-    {
-        if PL_SIZE == MTU {
-            frame.link = self.frame.link;
-            frame
-                .payload
-                .clone_from_slice(&self.frame.payload[0..(PL_SIZE as usize)]);
-            trace!("Frame received: {frame:?}");
-            Ok(frame)
-        } else {
-            Err(Error::InvalidData)
+    fn receive<'b>(&self, buf: &'b mut [u8]) -> Result<(VirtualLinkId, &'b [u8]), Error> {
+        if buf.len() < self.buf.len() {
+            return Err(Error::InvalidData);
         }
+
+        buf.clone_from_slice(&self.buf[0..buf.len()]);
+        trace!("Frame received: {buf:?}");
+        Ok((self.vl, buf))
     }
 }

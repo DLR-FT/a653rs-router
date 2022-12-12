@@ -3,6 +3,7 @@
 use crate::{config::DataRate, error::Error};
 use bytesize::ByteSize;
 use core::time::Duration;
+use heapless::Vec;
 
 // TODO TrafficClass -> bandwidth_fraction = idle_slope / port_transmit_rate
 // Make sure total port_transmit_rate is not exceeded
@@ -103,35 +104,48 @@ pub trait Shaper {
 
     /// Gets the length of the backlog of a queue.
     fn get_backlog(&self, queue: &QueueId) -> Option<u64>;
+
+    /// Adds a queue with a bandwidth share.
+    fn add_queue(&mut self, share: DataRate) -> Option<QueueId>;
 }
 
 /// A credit-based shaper similar to 802.1Qav.
 #[derive(Debug)]
 pub struct CreditBasedShaper<const QUEUES: usize> {
-    queues: [QueueStatus; QUEUES],
+    port_bandwidth: DataRate,
+    free_bandwidth: DataRate,
+    queues: Vec<QueueStatus, QUEUES>,
 }
 
 impl<const QUEUES: usize> CreditBasedShaper<QUEUES> {
     /// Creates a new credit-based shaper.
-    pub fn create(port_transmit_rate: DataRate, shares: [DataRate; QUEUES]) -> Result<Self, Error> {
-        let port_transmit_rate = port_transmit_rate.as_u64();
-        let mut free = port_transmit_rate;
-        let mut queues = [QueueStatus::default(); QUEUES];
-        for (id, share) in shares.iter().enumerate() {
-            let rate = share.as_u64();
-            if free >= rate {
-                free -= rate;
-                queues[id] = QueueStatus::new(QueueId(id as u32), rate, port_transmit_rate);
-            } else {
-                return Err(Error::Unknown); // TODO "Link is underprovisioned. Check bandwidth allocations of virtual links.");
-            }
+    pub fn new(port_bandwidth: DataRate) -> Self {
+        Self {
+            port_bandwidth,
+            free_bandwidth: port_bandwidth,
+            queues: Vec::default(),
         }
-
-        Ok(Self { queues })
     }
 }
 
 impl<const NUM_QUEUES: usize> Shaper for CreditBasedShaper<NUM_QUEUES> {
+    fn add_queue(&mut self, share: DataRate) -> Option<QueueId> {
+        let free = self.free_bandwidth.as_u64();
+        let share = share.as_u64();
+        if free >= share {
+            self.free_bandwidth = DataRate::b(free - share);
+            let id = QueueId::from(self.queues.len() as u32);
+            if self
+                .queues
+                .push(QueueStatus::new(id, share, self.port_bandwidth.as_u64()))
+                .is_err()
+            {
+                return None;
+            }
+            return Some(id);
+        }
+        None
+    }
     fn request_transmission(&mut self, transmission: &Transmission) -> Result<(), Error> {
         let q_id: usize = transmission.queue.0 as usize;
         let q = self.queues.get_mut(q_id).ok_or(Error::InvalidData)?; // TODO better error
@@ -333,56 +347,51 @@ mod tests {
 
     #[test]
     fn given_not_enough_remaining_bandwidth_when_queue_added_then_error() {
-        let s = CreditBasedShaper::<2>::create(
-            DataRate::b(128_000),
-            [DataRate::b(90_000), DataRate::b(90_000)],
-        );
-        assert!(s.is_err())
+        let mut s = CreditBasedShaper::<2>::new(DataRate::b(128_000));
+        _ = s.add_queue(DataRate::b(90_000)).unwrap();
+        let id = s.add_queue(DataRate::b(90_000));
+        assert!(id.is_none())
     }
 
     #[test]
     fn given_enough_remaining_bandwidth_when_queue_added_then_ok() {
-        let s = CreditBasedShaper::<2>::create(
-            DataRate::b(128_000),
-            [DataRate::b(64_000), DataRate::b(50_000)],
-        );
-        assert!(s.is_ok())
+        let mut s = CreditBasedShaper::<2>::new(DataRate::b(128_000));
+        _ = s.add_queue(DataRate::b(64_000)).unwrap();
+        let id = s.add_queue(DataRate::b(50_000));
+        assert!(id.is_some())
     }
 
     #[test]
     fn given_exactly_enough_remaining_bandwidth_when_queue_added_then_ok() {
-        let s = CreditBasedShaper::<2>::create(
-            DataRate::b(128_000),
-            [DataRate::b(64_000), DataRate::b(64_000)],
-        );
-        assert!(s.is_ok())
+        let mut s = CreditBasedShaper::<2>::new(DataRate::b(128_000));
+        _ = s.add_queue(DataRate::b(64_000)).unwrap();
+        let id = s.add_queue(DataRate::b(64_000));
+        assert!(id.is_some())
     }
 
     #[test]
     fn given_two_queues_high_credit_and_backlog_when_both_transmit_then_bandwidth_usage_below_limit(
     ) {
-        let mut s = CreditBasedShaper::<2>::create(
-            DataRate::b(100_000),
-            [DataRate::b(60_000), DataRate::b(40_000)],
-        )
-        .unwrap();
+        let mut s = CreditBasedShaper::<2>::new(DataRate::b(100_000));
+        let q0_id = s.add_queue(DataRate::b(60_000)).unwrap();
+        let q1_id = s.add_queue(DataRate::b(40_000)).unwrap();
 
         const MTU_Q1: ByteSize = ByteSize::kb(7);
         const MTU_Q2: ByteSize = ByteSize::kb(4);
 
         let transmissions = [
-            Transmission::new(QueueId(0), Duration::ZERO, MTU_Q1),
-            Transmission::new(QueueId(1), Duration::ZERO, MTU_Q2),
-            Transmission::new(QueueId(1), Duration::ZERO, MTU_Q2),
-            Transmission::new(QueueId(0), Duration::ZERO, MTU_Q1),
-            Transmission::new(QueueId(0), Duration::ZERO, MTU_Q1),
-            Transmission::new(QueueId(1), Duration::ZERO, MTU_Q2),
-            Transmission::new(QueueId(0), Duration::ZERO, MTU_Q1),
-            Transmission::new(QueueId(1), Duration::ZERO, MTU_Q2),
-            Transmission::new(QueueId(1), Duration::ZERO, MTU_Q2),
-            Transmission::new(QueueId(0), Duration::ZERO, MTU_Q1),
-            Transmission::new(QueueId(0), Duration::ZERO, MTU_Q1),
-            Transmission::new(QueueId(1), Duration::ZERO, MTU_Q2),
+            Transmission::new(q0_id, Duration::ZERO, MTU_Q1),
+            Transmission::new(q1_id, Duration::ZERO, MTU_Q2),
+            Transmission::new(q1_id, Duration::ZERO, MTU_Q2),
+            Transmission::new(q0_id, Duration::ZERO, MTU_Q1),
+            Transmission::new(q0_id, Duration::ZERO, MTU_Q1),
+            Transmission::new(q1_id, Duration::ZERO, MTU_Q2),
+            Transmission::new(q0_id, Duration::ZERO, MTU_Q1),
+            Transmission::new(q1_id, Duration::ZERO, MTU_Q2),
+            Transmission::new(q1_id, Duration::ZERO, MTU_Q2),
+            Transmission::new(q0_id, Duration::ZERO, MTU_Q1),
+            Transmission::new(q0_id, Duration::ZERO, MTU_Q1),
+            Transmission::new(q1_id, Duration::ZERO, MTU_Q2),
         ];
 
         for t in transmissions.iter() {
@@ -423,9 +432,8 @@ mod tests {
 
     #[test]
     fn given_empty_queue_with_credit_when_next_queue_then_none() {
-        let mut shaper =
-            CreditBasedShaper::<1>::create(DataRate::b(10_000_000), [DataRate::b(1_000_000)])
-                .unwrap();
+        let mut shaper = CreditBasedShaper::<1>::new(DataRate::b(10_000_000));
+        _ = shaper.add_queue(DataRate::b(1_000_000)).unwrap();
         let mut status = shaper.queues.get_mut(0).unwrap();
         status.backlog = 0;
         assert!(shaper.next_queue().is_none());

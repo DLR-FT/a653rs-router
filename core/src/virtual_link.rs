@@ -1,5 +1,6 @@
 //! Virtual links.
 
+use crate::config::DataRate;
 use crate::error::Error;
 use crate::network::{Frame, PayloadSize};
 use crate::prelude::{FrameQueue, Interface, Shaper, Transmission};
@@ -8,6 +9,7 @@ use apex_rs::prelude::{ApexSamplingPortP4, SamplingPortDestination, SamplingPort
 use bytesize::ByteSize;
 use core::time::Duration;
 use heapless::spsc::Queue;
+use heapless::Vec;
 use serde::{Deserialize, Serialize};
 
 /// An ID of a virtual link.
@@ -53,7 +55,7 @@ pub trait VirtualLink {
     fn vl_id(&self) -> VirtualLinkId;
 
     /// Gets the queue id.
-    fn queue_id(&self) -> QueueId;
+    fn queue_id(&self) -> Option<QueueId>;
 
     /// Receives frames from the hypervisor.
     fn receive_hypervisor(&mut self, shaper: &mut dyn Shaper) -> Result<(), Error>;
@@ -82,10 +84,53 @@ pub struct VirtualLinkData<
     [(); MTU as usize]:,
 {
     id: VirtualLinkId,
-    queue_id: QueueId,
+    queue_id: Option<QueueId>,
     port_dst: Option<SamplingPortDestination<MTU, H>>,
-    port_srcs: [SamplingPortSource<MTU, H>; PORTS],
+    port_srcs: Vec<SamplingPortSource<MTU, H>, PORTS>,
     queue: Option<Queue<Frame<MTU>, MAX_QUEUE_LEN>>,
+}
+
+impl<
+        const MTU: PayloadSize,
+        const PORTS: usize,
+        const MAX_QUEUE_LEN: usize,
+        H: ApexSamplingPortP4 + core::fmt::Debug,
+    > VirtualLinkData<MTU, PORTS, MAX_QUEUE_LEN, H>
+where
+    [(); MTU as usize]:,
+{
+    /// Creates a new virtual link.
+    pub fn new(id: VirtualLinkId) -> Self {
+        Self {
+            id,
+            queue_id: None,
+            port_dst: None,
+            port_srcs: Vec::default(),
+            queue: None,
+        }
+    }
+
+    /// Add a queue.
+    pub fn queue(mut self, shaper: &mut dyn Shaper, share: DataRate) -> Self {
+        let queue_id = shaper.add_queue(share);
+        self.queue_id = queue_id;
+        self.queue = Some(Queue::default());
+        self
+    }
+
+    /// Add a port destination.
+    pub fn port_dst(mut self, port_dst: SamplingPortDestination<MTU, H>) -> Self {
+        self.port_dst = Some(port_dst);
+        self
+    }
+
+    /// Adds a sampling port.
+    pub fn port_src(mut self, port_src: SamplingPortSource<MTU, H>) -> Self {
+        self.port_srcs
+            .push(port_src)
+            .expect("Not enough free source port slots.");
+        self
+    }
 }
 
 fn forward_to_network_queue<const MTU: PayloadSize, const MAX_QUEUE_LEN: usize>(
@@ -146,7 +191,7 @@ fn receive_sampling_port_valid<'a, const MTU: PayloadSize, H: ApexSamplingPortP4
 }
 
 fn forward_to_sources<const MTU: PayloadSize, const PORTS: usize, H: ApexSamplingPortP4>(
-    srcs: &[SamplingPortSource<MTU, H>; PORTS],
+    srcs: &Vec<SamplingPortSource<MTU, H>, PORTS>,
     buf: &[u8],
 ) -> Result<(), Error> {
     if srcs.iter().map(|p| p.send(buf)).any(|e| e.is_err()) {
@@ -171,13 +216,12 @@ where
             _ = receive_sampling_port_valid(dst, &mut buf)?;
             forward_to_sources(&self.port_srcs, &buf)?;
             if let Some(queue) = &mut self.queue {
-                forward_to_network_queue(&self.queue_id, queue, Frame::from(buf), shaper)
-            } else {
-                Ok(())
+                if let Some(id) = &mut self.queue_id {
+                    return forward_to_network_queue(id, queue, Frame::from(buf), shaper);
+                }
             }
-        } else {
-            Ok(())
         }
+        Ok(())
     }
 
     fn send_network(
@@ -186,7 +230,10 @@ where
         shaper: &mut dyn Shaper,
     ) -> Result<(), Error> {
         if let Some(queue) = &mut self.queue {
-            _ = send_network(&self.id, &self.queue_id, queue, interface, shaper)?;
+            if let Some(id) = &mut self.queue_id {
+                _ = send_network(&self.id, id, queue, interface, shaper)?;
+                return Ok(());
+            }
         }
         Ok(())
     }
@@ -199,7 +246,7 @@ where
         Ok(())
     }
 
-    fn queue_id(&self) -> QueueId {
+    fn queue_id(&self) -> Option<QueueId> {
         self.queue_id
     }
 

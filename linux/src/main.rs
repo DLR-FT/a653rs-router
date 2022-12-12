@@ -80,15 +80,22 @@ extern "C" fn entry_point() {
     let if_buffer = [1u8; 1500];
     //config().interfaces.get(0).mtu as usize];
 
-    // TODO create interfaces from config
+    // TODO generate interfaces from config
     let mut interface = PseudoInterface::new(
         VirtualLinkId::from(1),
         &if_buffer,
         config.interfaces[0].rate,
     );
+    let mut interfaces: heapless::Vec<&mut dyn Interface, 1> = heapless::Vec::default();
+    if interfaces.push(&mut interface).is_err() {
+        panic!("Failed to add interface");
+    }
 
+    // TODO convert back to builder pattern for init'ing queues
+    let mut shaper = CreditBasedShaper::<1>::new(config.interfaces[0].rate);
     // TODO create VLs from config with generated interfaces, ports, and queues
     let mut links: heapless::Vec<&mut dyn VirtualLink, 2> = heapless::Vec::default();
+    //links.push(&VirtualLinkData)
     // for vl in config.virtual_links.iter() {
     //     let is_net = !vl.interfaces.is_empty();
     //     let is_local = config.ports.iter().any(|p| {
@@ -102,39 +109,33 @@ extern "C" fn entry_point() {
     //         VirtualLink::LocalToNet()
     //     }
     // }
-
-    //let vl1 =
+    // let vl0 = VirtualLinkData::new(VirtualLinkId::from(0))
+    // .queue(&mut shaper, DataRate::b(10), QueueId::from(0))
     // links.push(LocalToLocalAndNetVirtualLink::)
 
     // TODO generate shaper share config and number of queues
-    let mut shaper =
-        CreditBasedShaper::<1>::create(config.interfaces[0].rate, [config.virtual_links[0].rate])
-            .unwrap();
 
     loop {
         let time_diff = Hypervisor::get_time().unwrap_duration() - time;
         shaper.restore_all(time_diff).unwrap();
         time = Hypervisor::get_time().unwrap_duration();
 
-        let mut frame_buf = [0u8; 1500];
-        let next_frame = interface.receive(&mut frame_buf).ok();
-
         for vl in links.iter_mut() {
             if let Err(err) = vl.receive_hypervisor(&mut shaper) {
                 error!("Failed to receive a frame: {err:?}");
             }
+        }
 
-            let res = if let Some((vl_id, buf)) = next_frame {
-                if vl_id == vl.vl_id() {
-                    vl.receive_network(buf)
-                } else {
-                    Ok(())
+        let mut frame_buf = [0u8; 1500];
+        for interface in interfaces.iter_mut() {
+            if let Ok((vl_id, buf)) = interface.receive(&mut frame_buf) {
+                for vl in links.iter_mut() {
+                    if vl_id == vl.vl_id() {
+                        if let Err(err) = vl.receive_network(buf) {
+                            error!("Failed to receive a frame: {err:?}");
+                        }
+                    }
                 }
-            } else {
-                Ok(())
-            };
-            if let Err(err) = res {
-                error!("Failed to receive a frame: {err:?}");
             }
         }
 
@@ -144,14 +145,12 @@ extern "C" fn entry_point() {
             transmitted = true;
             trace!("Attempting transmission from queue {q_id:?}");
             for vl in links.iter_mut() {
-                let res = if vl.queue_id() == q_id {
-                    // TODO log errors
-                    vl.send_network(&mut interface, &mut shaper)
-                } else {
-                    Ok(())
-                };
-                if let Err(err) = res {
-                    error!("Failed to send frame to network: {err:?}");
+                if vl.queue_id() == Some(q_id) {
+                    for intf in interfaces.iter_mut() {
+                        if let Err(err) = vl.send_network(*intf, &mut shaper) {
+                            error!("Failed to send frame to network: {err:?}");
+                        }
+                    }
                 }
             }
         }

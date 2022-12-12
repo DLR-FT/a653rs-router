@@ -13,21 +13,60 @@ use network_partition::prelude::*;
 use pseudo::PseudoInterface;
 use std::time::Duration;
 
-// TODO should be configured from config using proc-macro
-const PORT_MTU: MessageSize = 10000;
-const PORTS: usize = 2;
-const INTERFACES: usize = 1;
-const LINKS: usize = 1;
-
 type Hypervisor = ApexLinuxPartition;
+
+// TODO generate with decl macro
+fn config() -> Config<10, 10, 10> {
+    Config::<10, 10, 10> {
+        stack_size: StackSizeConfig {
+            periodic_process: ByteSize::kb(100),
+        },
+        ports: heapless::Vec::from_slice(&[
+            Port::SamplingPortDestination(SamplingPortDestinationConfig {
+                channel: heapless::String::from("EchoRequest"),
+                msg_size: ByteSize::kb(2),
+                validity: Duration::from_secs(1),
+                virtual_link: 0,
+            }),
+            Port::SamplingPortSource(SamplingPortSourceConfig {
+                channel: heapless::String::from("EchoReply"),
+                msg_size: ByteSize::kb(2),
+                virtual_link: 1,
+            }),
+        ])
+        .unwrap(),
+        virtual_links: heapless::Vec::from_slice(&[
+            VirtualLinkConfig {
+                id: 0,
+                rate: DataRate::b(1000),
+                msg_size: ByteSize::kb(1),
+                interfaces: heapless::Vec::from_slice(&[
+                    InterfaceName::from("veth0"),
+                    InterfaceName::from("veth1"),
+                ])
+                .unwrap(),
+            },
+            VirtualLinkConfig {
+                id: 1,
+                rate: DataRate::b(1000),
+                msg_size: ByteSize::kb(1),
+                interfaces: heapless::Vec::from_slice(&[]).unwrap(),
+            },
+        ])
+        .unwrap(),
+        interfaces: heapless::Vec::from_slice(&[InterfaceConfig {
+            name: InterfaceName::from("veth0"),
+            rate: DataRate::b(10000000),
+            mtu: ByteSize::kb(1),
+        }])
+        .unwrap(),
+    }
+}
 
 fn main() {
     ApexLogger::install_panic_hook();
     ApexLogger::install_logger(LevelFilter::Trace).unwrap();
-    let config = include_str!("../../config/network_partition_config.yml");
-    let config = serde_yaml::from_str::<Config<PORTS, LINKS, INTERFACES>>(config)
-        .ok()
-        .unwrap();
+    let config = config();
     let partition = NetworkPartition::new(
         config.stack_size.periodic_process.as_u64() as u32,
         entry_point,
@@ -36,21 +75,48 @@ fn main() {
 }
 
 extern "C" fn entry_point() {
+    let config = config();
     let mut time = Duration::ZERO;
+    let if_buffer = [1u8; 1500];
+    //config().interfaces.get(0).mtu as usize];
+
+    // TODO create interfaces from config
+    let mut interface = PseudoInterface::new(
+        VirtualLinkId::from(1),
+        &if_buffer,
+        config.interfaces[0].rate,
+    );
+
+    // TODO create VLs from config with generated interfaces, ports, and queues
+    let mut links: heapless::Vec<VirtualLink, 2> = heapless::Vec::default();
+    // for vl in config.virtual_links.iter() {
+    //     let is_net = !vl.interfaces.is_empty();
+    //     let is_local = config.ports.iter().any(|p| {
+    //         if let Some(source) = p.sampling_port_source() {
+    //             source.virtual_link == vl.id
+    //         } else {
+    //             false
+    //         }
+    //     });
+    //     let link = if is_net {
+    //         VirtualLink::LocalToNet()
+    //     }
+    // }
+
+    //let vl1 =
+    // links.push(LocalToLocalAndNetVirtualLink::)
+
     // TODO generate shaper share config and number of queues
     let mut shaper =
-        CreditBasedShaper::<1>::create(DataRate::b(10_000_000), [DataRate::b(10_000)]).unwrap();
-    let if_buffer = [1u8; PORT_MTU as usize];
-    let mut interface = PseudoInterface::new(VirtualLinkId::from(1), &if_buffer, ByteSize::mb(100));
-    let mut links: heapless::Vec<VirtualLink, 2> = heapless::Vec::default();
-    // TODO add VLs here
+        CreditBasedShaper::<1>::create(config.interfaces[0].rate, [config.virtual_links[0].rate])
+            .unwrap();
 
     loop {
         let time_diff = Hypervisor::get_time().unwrap_duration() - time;
         shaper.restore_all(time_diff).unwrap();
         time = Hypervisor::get_time().unwrap_duration();
 
-        let mut frame_buf = [0u8; PORT_MTU as usize];
+        let mut frame_buf = [0u8; 1500];
         let next_frame = interface.receive(&mut frame_buf).ok();
 
         for vl in links.iter_mut() {
@@ -58,23 +124,23 @@ extern "C" fn entry_point() {
                 VirtualLink::LocalToLocal(vl) => vl.forward_hypervisor(&mut shaper),
                 VirtualLink::LocalToNet(vl) => vl.forward_hypervisor(&mut shaper),
                 VirtualLink::LocalToNetAndLocal(vl) => vl.forward_hypervisor(&mut shaper),
-                VirtualLink::NetToLocal(vl) => match next_frame {
-                    Some((vl_id, buf)) => {
+                VirtualLink::NetToLocal(vl) => {
+                    if let Some((vl_id, buf)) = next_frame {
                         if vl_id == vl.vl_id() {
                             vl.receive_network(buf)
                         } else {
                             Ok(())
                         }
+                    } else {
+                        Ok(())
                     }
-                    None => Ok(()),
-                },
+                }
             };
             if let Err(err) = res {
                 error!("Failed to receive a frame: {err:?}");
             }
         }
 
-        // TODO vl.send_network()
         let mut transmitted = false;
 
         while let Some(q_id) = shaper.next_queue() {

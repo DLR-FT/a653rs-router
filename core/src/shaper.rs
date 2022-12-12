@@ -118,7 +118,7 @@ impl<const QUEUES: usize> CreditBasedShaper<QUEUES> {
         let mut free = port_transmit_rate;
         let mut queues = [QueueStatus::default(); QUEUES];
         for (id, share) in shares.iter().enumerate() {
-            let rate = share.clone().as_u64();
+            let rate = share.as_u64();
             if free >= rate {
                 free -= rate;
                 queues[id] = QueueStatus::new(QueueId(id as u32), rate, port_transmit_rate);

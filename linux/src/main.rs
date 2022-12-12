@@ -88,7 +88,7 @@ extern "C" fn entry_point() {
     );
 
     // TODO create VLs from config with generated interfaces, ports, and queues
-    let mut links: heapless::Vec<VirtualLink, 2> = heapless::Vec::default();
+    let mut links: heapless::Vec<&mut dyn VirtualLink, 2> = heapless::Vec::default();
     // for vl in config.virtual_links.iter() {
     //     let is_net = !vl.interfaces.is_empty();
     //     let is_local = config.ports.iter().any(|p| {
@@ -120,21 +120,18 @@ extern "C" fn entry_point() {
         let next_frame = interface.receive(&mut frame_buf).ok();
 
         for vl in links.iter_mut() {
-            let res = match vl {
-                VirtualLink::LocalToLocal(vl) => vl.forward_hypervisor(&mut shaper),
-                VirtualLink::LocalToNet(vl) => vl.forward_hypervisor(&mut shaper),
-                VirtualLink::LocalToNetAndLocal(vl) => vl.forward_hypervisor(&mut shaper),
-                VirtualLink::NetToLocal(vl) => {
-                    if let Some((vl_id, buf)) = next_frame {
-                        if vl_id == vl.vl_id() {
-                            vl.receive_network(buf)
-                        } else {
-                            Ok(())
-                        }
-                    } else {
-                        Ok(())
-                    }
+            if let Err(err) = vl.receive_hypervisor(&mut shaper) {
+                error!("Failed to receive a frame: {err:?}");
+            }
+
+            let res = if let Some((vl_id, buf)) = next_frame {
+                if vl_id == vl.vl_id() {
+                    vl.receive_network(buf)
+                } else {
+                    Ok(())
                 }
+            } else {
+                Ok(())
             };
             if let Err(err) = res {
                 error!("Failed to receive a frame: {err:?}");
@@ -147,24 +144,11 @@ extern "C" fn entry_point() {
             transmitted = true;
             trace!("Attempting transmission from queue {q_id:?}");
             for vl in links.iter_mut() {
-                let res = match vl {
-                    VirtualLink::LocalToNet(vl) => {
-                        if vl.queue_id() == q_id {
-                            // TODO log errors
-                            vl.send_network(&mut interface, &mut shaper)
-                        } else {
-                            Ok(())
-                        }
-                    }
-                    VirtualLink::LocalToNetAndLocal(vl) => {
-                        if vl.queue_id() == q_id {
-                            // TODO log errors
-                            vl.send_network(&mut interface, &mut shaper)
-                        } else {
-                            Ok(())
-                        }
-                    }
-                    _ => Ok(()),
+                let res = if vl.queue_id() == q_id {
+                    // TODO log errors
+                    vl.send_network(&mut interface, &mut shaper)
+                } else {
+                    Ok(())
                 };
                 if let Err(err) = res {
                     error!("Failed to send frame to network: {err:?}");

@@ -13,6 +13,7 @@ pub struct NetworkPartition {
 }
 
 impl NetworkPartition {
+    /// Create new instance.
     pub fn new(stack_size: StackSize, entry_point: SystemAddress) -> Self {
         Self {
             stack_size,

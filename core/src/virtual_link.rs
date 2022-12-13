@@ -7,6 +7,7 @@ use crate::prelude::{FrameQueue, Interface, Shaper, Transmission};
 use crate::shaper::QueueId;
 use apex_rs::prelude::{ApexSamplingPortP4, SamplingPortDestination, SamplingPortSource, Validity};
 use bytesize::ByteSize;
+use core::fmt::Debug;
 use core::time::Duration;
 use heapless::spsc::Queue;
 use heapless::Vec;
@@ -25,8 +26,13 @@ use serde::{Deserialize, Serialize};
 pub struct VirtualLinkId(u32);
 
 impl VirtualLinkId {
+    /// Creates a virtual link id from an u32.
+    pub const fn from_u32(val: u32) -> Self {
+        Self(val)
+    }
+
     /// The value of the VirtualLinkId.
-    pub fn into_inner(self) -> u32 {
+    pub const fn into_inner(self) -> u32 {
         self.0
     }
 }
@@ -50,7 +56,7 @@ impl From<VirtualLinkId> for QueueId {
 }
 
 /// A virtual link.
-pub trait VirtualLink {
+pub trait VirtualLink: Debug {
     /// Gets the VirtualLinkId.
     fn vl_id(&self) -> VirtualLinkId;
 
@@ -68,7 +74,7 @@ pub trait VirtualLink {
     /// The shaper is used for shaping the traffic emitted by the virtual link to the network.
     fn send_network(
         &mut self,
-        interface: &mut dyn Interface,
+        interface: &dyn Interface,
         shaper: &mut dyn Shaper,
     ) -> Result<(), Error>;
 }
@@ -94,7 +100,7 @@ impl<
         const MTU: PayloadSize,
         const PORTS: usize,
         const MAX_QUEUE_LEN: usize,
-        H: ApexSamplingPortP4 + core::fmt::Debug,
+        H: ApexSamplingPortP4 + Debug,
     > VirtualLinkData<MTU, PORTS, MAX_QUEUE_LEN, H>
 where
     [(); MTU as usize]:,
@@ -159,7 +165,7 @@ fn send_network<const MTU: PayloadSize, const MAX_QUEUE_LEN: usize>(
     vl: &VirtualLinkId,
     queue_id: &QueueId,
     queue: &mut Queue<Frame<MTU>, MAX_QUEUE_LEN>,
-    interface: &mut dyn Interface,
+    interface: &dyn Interface,
     shaper: &mut dyn Shaper,
 ) -> Result<Transmission, Error>
 where
@@ -209,7 +215,7 @@ impl<
         const MTU: PayloadSize,
         const PORTS: usize,
         const MAX_QUEUE_LEN: usize,
-        H: ApexSamplingPortP4,
+        H: ApexSamplingPortP4 + Debug,
     > VirtualLink for VirtualLinkData<MTU, PORTS, MAX_QUEUE_LEN, H>
 where
     [(); MTU as usize]:,
@@ -230,7 +236,7 @@ where
 
     fn send_network(
         &mut self,
-        interface: &mut dyn Interface,
+        interface: &dyn Interface,
         shaper: &mut dyn Shaper,
     ) -> Result<(), Error> {
         if let Some(queue) = &mut self.queue {

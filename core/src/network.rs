@@ -1,3 +1,4 @@
+use core::fmt::Debug;
 use core::time::Duration;
 
 use crate::error::Error;
@@ -33,7 +34,7 @@ where
 
 /// TODO inspect header to see for which virtual link a frame is
 /// A network interface.
-pub trait Interface {
+pub trait Interface: Debug {
     /// Sends data to the interface.
     fn send(&self, vl: &VirtualLinkId, buf: &[u8]) -> Result<Duration, Duration>;
 

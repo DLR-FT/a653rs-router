@@ -2,7 +2,7 @@
 
 use crate::{config::DataRate, error::Error};
 use bytesize::ByteSize;
-use core::time::Duration;
+use core::{fmt::Debug, time::Duration};
 use heapless::Vec;
 
 // TODO TrafficClass -> bandwidth_fraction = idle_slope / port_transmit_rate
@@ -87,7 +87,7 @@ impl Transmission {
 }
 
 /// A traffic shaper.
-pub trait Shaper {
+pub trait Shaper: Debug {
     /// Requests that the shaper allows the queue to perform a transmission.
     fn request_transmission(&mut self, transmission: &Transmission) -> Result<(), Error>;
 

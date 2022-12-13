@@ -16,8 +16,8 @@
 
 mod config;
 mod error;
+mod forward;
 mod network;
-mod partition;
 mod ports;
 mod shaper;
 mod virtual_link;
@@ -26,8 +26,8 @@ mod virtual_link;
 pub mod prelude {
     pub use crate::config::*;
     pub use crate::error::Error;
+    pub use crate::forward::*;
     pub use crate::network::*;
-    pub use crate::partition::*;
     pub use crate::ports::*;
     pub use crate::shaper::*;
     pub use crate::virtual_link::*;

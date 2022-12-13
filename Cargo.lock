@@ -510,6 +510,7 @@ dependencies = [
  "bytesize",
  "heapless",
  "humantime-serde",
+ "log",
  "once_cell",
  "serde",
 ]

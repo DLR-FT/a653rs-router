@@ -1,17 +1,16 @@
 //! Virtual links.
 
-use crate::config::DataRate;
 use crate::error::Error;
 use crate::network::{Frame, PayloadSize};
 use crate::prelude::{FrameQueue, Interface, Shaper, Transmission};
 use crate::shaper::QueueId;
+use crate::types::DataRate;
 use apex_rs::prelude::{ApexSamplingPortP4, SamplingPortDestination, SamplingPortSource, Validity};
 use bytesize::ByteSize;
 use core::fmt::Debug;
 use core::time::Duration;
 use heapless::spsc::Queue;
 use heapless::Vec;
-use serde::{Deserialize, Serialize};
 
 /// An ID of a virtual link.
 ///
@@ -22,8 +21,8 @@ use serde::{Deserialize, Serialize};
 /// smaller than the 32 Bit, care must be taken by the system integrator that no IDs larger than the maximum size
 /// are assigned. Implementations of the network interface layer should therefore cast this value to the desired
 /// size that // is required by the underlying network protocol.
-#[derive(Default, Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
-pub struct VirtualLinkId(u32);
+#[derive(Default, Debug, Clone, Copy, Eq, PartialEq)]
+pub struct VirtualLinkId(pub u32);
 
 impl VirtualLinkId {
     /// Creates a virtual link id from an u32.

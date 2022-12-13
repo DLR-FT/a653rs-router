@@ -509,9 +509,17 @@ dependencies = [
  "apex-rs",
  "bytesize",
  "heapless",
- "humantime-serde",
  "log",
- "once_cell",
+]
+
+[[package]]
+name = "network-partition-config"
+version = "0.1.0"
+dependencies = [
+ "bytesize",
+ "heapless",
+ "humantime-serde",
+ "network-partition",
  "serde",
 ]
 
@@ -525,8 +533,10 @@ dependencies = [
  "heapless",
  "log",
  "network-partition",
+ "network-partition-config",
  "once_cell",
- "serde",
+ "proc-macro2",
+ "quote",
  "serde_yaml",
 ]
 

@@ -80,14 +80,14 @@
               command = ''
                 cargo build -p network-partition-linux --release --target x86_64-unknown-linux-musl
                 cargo build -p echo --release --target x86_64-unknown-linux-musl
-                RUST_LOG=''${RUST_LOG:=trace} linux-apex-hypervisor --duration 10s config/hypervisor_config.yml
+                RUST_LOG=''${RUST_LOG:=trace} linux-apex-hypervisor --duration 10s examples/echo/config/hypervisor_config.yml
               '';
               help = "Run echo example using systemd scope and exit after 10 seconds";
             }
             {
               name = "run-echo-scoped";
               command = ''
-                RUST_LOG=''${RUST_LOG:=trace} systemd-run --user --scope -- linux-apex-hypervisor config/hypervisor_config.yml
+                RUST_LOG=''${RUST_LOG:=trace} systemd-run --user --scope -- linux-apex-hypervisor examples/echo/config/hypervisor_config.yml
               '';
               help = "Run echo example using systemd scope";
             }

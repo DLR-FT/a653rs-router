@@ -2,14 +2,21 @@ use bytesize::ByteSize;
 use core::time::Duration;
 use heapless::String;
 use heapless::Vec;
+use network_partition::prelude::{DataRate, VirtualLinkId};
 use serde::{Deserialize, Deserializer, Serialize};
-
-use crate::prelude::VirtualLinkId;
 
 const MAX_CHANNEL_NAME: usize = 32;
 
 /// The name of a channel.
 type ChannelName = String<MAX_CHANNEL_NAME>;
+
+#[derive(Serialize, Deserialize)]
+#[serde(remote = "DataRate")]
+struct DataRateDef(u64);
+
+#[derive(Serialize, Deserialize)]
+#[serde(remote = "VirtualLinkId")]
+struct VirtualLinkIdDef(u32);
 
 /// Configuration of the network partition
 ///
@@ -76,22 +83,6 @@ pub struct StackSizeConfig {
     pub periodic_process: ByteSize,
 }
 
-/// A data-rate in bit/s.
-#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
-pub struct DataRate(u64);
-
-impl DataRate {
-    /// Constructs a data rate from a `u64` in bits/s.
-    pub const fn b(bits: u64) -> Self {
-        Self(bits)
-    }
-
-    /// Gets the bits/s as a `u64`.
-    pub const fn as_u64(self) -> u64 {
-        self.0
-    }
-}
-
 /// Configuration for a virtual link.
 ///
 /// Virtual links are used to connect multiple network partitions.
@@ -99,9 +90,11 @@ impl DataRate {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct VirtualLinkConfig<const INTERFACES: usize, const PORTS: usize> {
     /// The unique ID of the virtual link
+    #[serde(with = "VirtualLinkIdDef")]
     pub id: VirtualLinkId,
 
     /// The maximum rate the link may transmit at.
+    #[serde(with = "DataRateDef")]
     pub rate: DataRate,
 
     /// The maximum size of a message that will be transmited using this virtual link.
@@ -136,6 +129,7 @@ pub struct InterfaceConfig {
     pub name: InterfaceName,
 
     /// The maximum rate the interface can transmit at.
+    #[serde(with = "DataRateDef")]
     pub rate: DataRate,
 
     /// The maximum size of a message that will be transmited using this virtual link.

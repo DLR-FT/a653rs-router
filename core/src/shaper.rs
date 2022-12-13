@@ -1,6 +1,7 @@
 //! Traffic shapers
 
-use crate::{config::DataRate, error::Error};
+use crate::error::Error;
+use crate::types::DataRate;
 use bytesize::ByteSize;
 use core::{fmt::Debug, time::Duration};
 use heapless::Vec;

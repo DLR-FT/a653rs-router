@@ -1,5 +1,4 @@
 use crate::prelude::PayloadSize;
-use serde::{Deserialize, Serialize};
 
 // TODO
 // - iterate over self.ports
@@ -8,7 +7,7 @@ use serde::{Deserialize, Serialize};
 // - return iterator over new frames<'a>
 
 /// An ID of a hypervisor port.
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
 pub struct PortId(u32);
 
 impl PortId {

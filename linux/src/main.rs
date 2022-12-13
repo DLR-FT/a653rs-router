@@ -18,7 +18,6 @@ type Hypervisor = ApexLinuxPartition;
 
 // TODO generate in build.rs with config
 // TODO get MTU, PORTS, ... in build.rs
-// TODO how to init sampling ports?
 const MTU: PayloadSize = 10_000;
 const PORTS: usize = 2;
 const LINKS: usize = 2;
@@ -44,6 +43,7 @@ const VL1_MTU: PayloadSize = 10_000;
 
 const VL2_ID: VirtualLinkId = VirtualLinkId::from_u32(2);
 const VL2_MTU: PayloadSize = 10_000;
+const VL2_RATE: DataRate = DataRate::b(10_000);
 
 struct NetworkPartition;
 
@@ -96,10 +96,6 @@ impl Partition<Hypervisor> for NetworkPartition {
     }
 }
 extern "C" fn entry_point() {
-    // TODO remove, only required in build.rs
-    let config: Config<PORTS, LINKS, INTERFACES> =
-        serde_yaml::from_str(include_str!("../../config/network_partition_config.yml")).unwrap();
-
     // TODO generate this all in build.rs
     // Only one shaper is supported at the moment. This should be fine as long as:
     // - all virtual links are emitted on all interfaces
@@ -113,26 +109,26 @@ extern "C" fn entry_point() {
     let mut vl1 = VirtualLinkData::<VL1_MTU, PORTS, MAX_QUEUE_LEN, Hypervisor>::new(VL1_ID);
 
     // TODO assert this in build.rs
-    let vl1_config = &config.virtual_links[0];
-    if !vl1_config
-        .ports
-        .iter()
-        .any(|p| p.sampling_port_destination().is_some())
-    {
-        vl1.add_port_dst(PORT0.get().unwrap().clone());
-        vl1.add_port_src(PORT1.get().unwrap().clone());
-    }
+    // let vl1_config = &config.virtual_links[0];
+    // if !vl1_config
+    //     .ports
+    //     .iter()
+    //     .any(|p| p.sampling_port_destination().is_some())
+    // {
+    vl1.add_port_dst(PORT0.get().unwrap().clone());
+    vl1.add_port_src(PORT1.get().unwrap().clone());
+    // }
 
     // TODO assert this in build.rs
     let mut vl2 = VirtualLinkData::<VL2_MTU, PORTS, MAX_QUEUE_LEN, Hypervisor>::new(VL2_ID);
-    let vl2_config = &config.virtual_links[0];
-    if vl2_config
-        .ports
-        .iter()
-        .any(|p| p.sampling_port_destination().is_some())
-    {
-        vl1 = vl1.queue(&mut shaper, vl1_config.rate);
-    }
+    // let vl2_config = &config.virtual_links[0];
+    // if vl2_config
+    //     .ports
+    //     .iter()
+    //     .any(|p| p.sampling_port_destination().is_some())
+    // {
+    vl2 = vl2.queue(&mut shaper, VL2_RATE);
+    // }
 
     let mut links: [&mut dyn VirtualLink; LINKS] = [&mut vl1, &mut vl2];
 
@@ -152,24 +148,4 @@ fn main() {
     ApexLogger::install_logger(LevelFilter::Trace).unwrap();
 
     NetworkPartition.run();
-}
-
-#[cfg(test)]
-mod tests {
-    use network_partition::prelude::*;
-
-    #[test]
-    fn it_works() {
-        let result = 2 + 2;
-        assert_eq!(result, 4);
-    }
-
-    #[test]
-    fn parse_code_section_config() {
-        // TODO should be configured from config using proc-macro
-        let config = include_str!("../../config/network_partition_config.yml");
-        let parsed = serde_yaml::from_str::<Config<4, 2, 2>>(config);
-        println!("{parsed:?}");
-        assert!(parsed.is_ok());
-    }
 }

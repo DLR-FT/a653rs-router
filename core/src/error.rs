@@ -1,12 +1,10 @@
 ///! Error types
-use serde::{Deserialize, Serialize};
-
 use crate::prelude::{Frame, PayloadSize, PortId, VirtualLinkId};
 
 // TODO more precise errors
 
 /// General error type for this crate.
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Clone, Debug)]
 pub enum Error {
     /// Failed to send data to a port.
     SendFail,
@@ -64,7 +62,7 @@ where
 }
 
 /// A routing error.
-#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone)]
 pub enum RouteError {
     Local(PortId),
     Remote(VirtualLinkId),

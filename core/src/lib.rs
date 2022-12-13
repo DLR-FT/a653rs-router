@@ -14,21 +14,21 @@
     unused_results
 )]
 
-mod config;
 mod error;
 mod forward;
 mod network;
 mod ports;
 mod shaper;
+mod types;
 mod virtual_link;
 
 /// Standard Prelude to be used by network partition implementations (e.g. network_partition_linux)
 pub mod prelude {
-    pub use crate::config::*;
     pub use crate::error::Error;
     pub use crate::forward::*;
     pub use crate::network::*;
     pub use crate::ports::*;
     pub use crate::shaper::*;
+    pub use crate::types::*;
     pub use crate::virtual_link::*;
 }

@@ -4,13 +4,9 @@ use heapless::String;
 use heapless::Vec;
 use serde::{Deserialize, Deserializer, Serialize};
 
-const MAX_CHANNEL_NAME: usize = 32;
+use crate::prelude::VirtualLinkId;
 
-/// The ID of a virtual link.
-///
-/// TODO Actual size might depend on network layer.
-/// Might be size of VLAN tag or virtual link id or something else.
-type VirtualLinkId = u16;
+const MAX_CHANNEL_NAME: usize = 32;
 
 /// The name of a channel.
 type ChannelName = String<MAX_CHANNEL_NAME>;
@@ -27,31 +23,28 @@ type ChannelName = String<MAX_CHANNEL_NAME>;
 ///     stack_size: StackSizeConfig {
 ///       periodic_process: ByteSize::kb(100),
 ///     },
-///     ports: heapless::Vec::from_slice(&[
-///         Port::SamplingPortDestination(SamplingPortDestinationConfig {
-///             channel: heapless::String::from("EchoRequest"),
-///             msg_size: ByteSize::kb(2),
-///             validity: Duration::from_secs(1),
-///             virtual_link: 0,
-///         }),
-///         Port::SamplingPortSource(SamplingPortSourceConfig {
-///             channel: heapless::String::from("EchoReply"),
-///             msg_size: ByteSize::kb(2),
-///             virtual_link: 1,
-///         }),
-///     ]).unwrap(),
 ///     virtual_links: heapless::Vec::from_slice(&[
 ///         VirtualLinkConfig {
-///             id: 0,
+///             id: VirtualLinkId::from(0),
 ///             rate: DataRate::b(1000),
 ///             msg_size: ByteSize::kb(1),
-///             interfaces: heapless::Vec::from_slice(&[InterfaceName::from("veth0"), InterfaceName::from("veth1")]).unwrap()
+///             interfaces: heapless::Vec::from_slice(&[InterfaceName::from("veth0"), InterfaceName::from("veth1")]).unwrap(),
+///             ports: heapless::Vec::from_slice(&[
+///                 Port::SamplingPortDestination(SamplingPortDestinationConfig {
+///                     channel: heapless::String::from("EchoRequest"),
+///                     validity: Duration::from_secs(1),
+///                 }),
+///                 Port::SamplingPortSource(SamplingPortSourceConfig {
+///                     channel: heapless::String::from("EchoReply"),
+///                 }),
+///             ]).unwrap(),
 ///         },
 ///         VirtualLinkConfig {
-///             id: 1,
-///             rate: DataRate::b(1000),
+///             id: VirtualLinkId::from(1),
 ///             msg_size: ByteSize::kb(1),
+///             rate: DataRate::b(10000),
 ///             interfaces: heapless::Vec::from_slice(&[]).unwrap(),
+///             ports:  heapless::Vec::from_slice(&[]).unwrap()
 ///         }
 ///     ]).unwrap(),
 ///     interfaces: heapless::Vec::from_slice(&[
@@ -68,11 +61,8 @@ pub struct Config<const PORTS: usize, const LINKS: usize, const INTERFACES: usiz
     /// The amount of memory to reserve on the stack for the processes of the partition.
     pub stack_size: StackSizeConfig,
 
-    /// The ports the partition should create to connect to channels.
-    pub ports: Vec<Port, PORTS>,
-
     /// The virtual links the partition is attached to.
-    pub virtual_links: Vec<VirtualLinkConfig<INTERFACES>, LINKS>,
+    pub virtual_links: Vec<VirtualLinkConfig<INTERFACES, PORTS>, LINKS>,
 
     /// The interfaces that will be attached to the partition.
     pub interfaces: Vec<InterfaceConfig, INTERFACES>,
@@ -107,7 +97,7 @@ impl DataRate {
 /// Virtual links are used to connect multiple network partitions.
 /// Each virtual link can have exactly one source and one or more destinations.
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct VirtualLinkConfig<const INTERFACES: usize> {
+pub struct VirtualLinkConfig<const INTERFACES: usize, const PORTS: usize> {
     /// The unique ID of the virtual link
     pub id: VirtualLinkId,
 
@@ -117,6 +107,9 @@ pub struct VirtualLinkConfig<const INTERFACES: usize> {
     /// The maximum size of a message that will be transmited using this virtual link.
     #[serde(deserialize_with = "de_size_str")]
     pub msg_size: ByteSize,
+
+    /// The ports the virtual link should create to connect to channels.
+    pub ports: Vec<Port, PORTS>,
 
     /// The interfaces that are attached
     pub interfaces: Vec<InterfaceName, INTERFACES>,
@@ -170,20 +163,11 @@ pub struct SamplingPortDestinationConfig {
     /// The name of the channel the port should be attached to.
     pub channel: ChannelName,
 
-    /// The maximum size of a single message that can be transmitted using the port.
-    #[serde(deserialize_with = "de_size_str")]
-    pub msg_size: ByteSize,
-
     /// The amount of time a message that is stored inside the channel is considered valid.
     ///
     /// The hypervisor will tell us, if the message is still valid, when we read it.
     #[serde(with = "humantime_serde")]
     pub validity: Duration,
-
-    /// The virtual links to forward messages from this port to.
-    ///
-    /// A single port may send messages only to a single virtual link. This is neccessary to identify which sender created the data.
-    pub virtual_link: VirtualLinkId,
 }
 
 /// Configuration for a sampling port source.
@@ -191,15 +175,6 @@ pub struct SamplingPortDestinationConfig {
 pub struct SamplingPortSourceConfig {
     /// The name of the channel the port should be attached to.
     pub channel: ChannelName,
-
-    /// The maximum size of a single message that can be transmitted using the port.
-    #[serde(deserialize_with = "de_size_str")]
-    pub msg_size: ByteSize,
-
-    /// The virtual link from which to forward messages to this port.
-    ///
-    /// A single port may receive messages only from a single virtual link. This is neccessary to identify which sender created the data.
-    pub virtual_link: VirtualLinkId,
 }
 
 fn de_size_str<'de, D>(de: D) -> Result<ByteSize, D::Error>

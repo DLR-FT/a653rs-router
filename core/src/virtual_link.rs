@@ -119,17 +119,15 @@ where
     }
 
     /// Add a port destination.
-    pub fn port_dst(mut self, port_dst: SamplingPortDestination<MTU, H>) -> Self {
+    pub fn add_port_dst(&mut self, port_dst: SamplingPortDestination<MTU, H>) {
         self.port_dst = Some(port_dst);
-        self
     }
 
     /// Adds a sampling port.
-    pub fn port_src(mut self, port_src: SamplingPortSource<MTU, H>) -> Self {
+    pub fn add_port_src(&mut self, port_src: SamplingPortSource<MTU, H>) {
         self.port_srcs
             .push(port_src)
             .expect("Not enough free source port slots.");
-        self
     }
 }
 

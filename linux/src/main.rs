@@ -7,114 +7,66 @@ extern crate log;
 
 use apex_rs::prelude::*;
 use apex_rs_linux::partition::{ApexLinuxPartition, ApexLogger};
-use bytesize::ByteSize;
 use log::{error, trace, LevelFilter};
 use network_partition::prelude::*;
+use once_cell::sync::OnceCell;
 use pseudo::PseudoInterface;
 use std::time::Duration;
 
 type Hypervisor = ApexLinuxPartition;
 
-// TODO generate with decl macro
-fn config() -> Config<10, 10, 10> {
-    Config::<10, 10, 10> {
-        stack_size: StackSizeConfig {
-            periodic_process: ByteSize::kb(100),
-        },
-        ports: heapless::Vec::from_slice(&[
-            Port::SamplingPortDestination(SamplingPortDestinationConfig {
-                channel: heapless::String::from("EchoRequest"),
-                msg_size: ByteSize::kb(2),
-                validity: Duration::from_secs(1),
-                virtual_link: 0,
-            }),
-            Port::SamplingPortSource(SamplingPortSourceConfig {
-                channel: heapless::String::from("EchoReply"),
-                msg_size: ByteSize::kb(2),
-                virtual_link: 1,
-            }),
-        ])
-        .unwrap(),
-        virtual_links: heapless::Vec::from_slice(&[
-            VirtualLinkConfig {
-                id: 0,
-                rate: DataRate::b(1000),
-                msg_size: ByteSize::kb(1),
-                interfaces: heapless::Vec::from_slice(&[
-                    InterfaceName::from("veth0"),
-                    InterfaceName::from("veth1"),
-                ])
-                .unwrap(),
-            },
-            VirtualLinkConfig {
-                id: 1,
-                rate: DataRate::b(1000),
-                msg_size: ByteSize::kb(1),
-                interfaces: heapless::Vec::from_slice(&[]).unwrap(),
-            },
-        ])
-        .unwrap(),
-        interfaces: heapless::Vec::from_slice(&[InterfaceConfig {
-            name: InterfaceName::from("veth0"),
-            rate: DataRate::b(10000000),
-            mtu: ByteSize::kb(1),
-        }])
-        .unwrap(),
-    }
-}
+static CONFIG: OnceCell<Config<2, 2, 2>> = OnceCell::new();
 
 fn main() {
     ApexLogger::install_panic_hook();
     ApexLogger::install_logger(LevelFilter::Trace).unwrap();
-    let config = config();
+    let config =
+        serde_yaml::from_str(include_str!("../../config/network_partition_config.yml")).unwrap();
+    CONFIG.set(config).unwrap();
     let partition = NetworkPartition::new(
-        config.stack_size.periodic_process.as_u64() as u32,
+        CONFIG.get().unwrap().stack_size.periodic_process.as_u64() as u32,
         entry_point,
     );
     PartitionExt::<Hypervisor>::run(partition);
 }
 
 extern "C" fn entry_point() {
-    let config = config();
-    let mut time = Duration::ZERO;
-    let if_buffer = [1u8; 1500];
-    //config().interfaces.get(0).mtu as usize];
+    let config = CONFIG.get().unwrap();
 
-    // TODO generate interfaces from config
-    let mut interface = PseudoInterface::new(
+    // TODO generate in build.rs with config
+    let mut veth0 = PseudoInterface::new(
         VirtualLinkId::from(1),
-        &if_buffer,
+        // TODO create buffer with const size from config.[interfaces].mtu
+        &[1u8; 1500],
         config.interfaces[0].rate,
     );
-    let mut interfaces: heapless::Vec<&mut dyn Interface, 1> = heapless::Vec::default();
-    if interfaces.push(&mut interface).is_err() {
-        panic!("Failed to add interface");
-    }
+    let mut interfaces: [&mut dyn Interface; 1] = [&mut veth0];
 
-    // TODO convert back to builder pattern for init'ing queues
+    // Only one shaper is supported at the moment. This should be fine as long as:
+    // - all virtual links are emitted on all interfaces
+    // - from this follows that the available data rate of the shaper is
+    //   the mimum data rate of any attached interface.
+    //   Usually, all interfaces have the same data rate.
     let mut shaper = CreditBasedShaper::<1>::new(config.interfaces[0].rate);
-    // TODO create VLs from config with generated interfaces, ports, and queues
-    let mut links: heapless::Vec<&mut dyn VirtualLink, 2> = heapless::Vec::default();
-    //links.push(&VirtualLinkData)
-    // for vl in config.virtual_links.iter() {
-    //     let is_net = !vl.interfaces.is_empty();
-    //     let is_local = config.ports.iter().any(|p| {
-    //         if let Some(source) = p.sampling_port_source() {
-    //             source.virtual_link == vl.id
-    //         } else {
-    //             false
-    //         }
-    //     });
-    //     let link = if is_net {
-    //         VirtualLink::LocalToNet()
-    //     }
-    // }
-    // let vl0 = VirtualLinkData::new(VirtualLinkId::from(0))
-    // .queue(&mut shaper, DataRate::b(10), QueueId::from(0))
-    // links.push(LocalToLocalAndNetVirtualLink::)
 
-    // TODO generate shaper share config and number of queues
+    // TODO get MTU, PORTS, ... in build.rs
+    // TODO how to init sampling ports?
+    const MTU: PayloadSize = 10_000;
+    const PORTS: usize = 2;
+    const MAX_QUEUE_LEN: usize = 2;
 
+    // TODO move onto memory pool?
+
+    let vl1_config = &config.virtual_links[0];
+    let mut vl1 = VirtualLinkData::<MTU, PORTS, MAX_QUEUE_LEN, Hypervisor>::new(vl1_config.id);
+    if !vl1_config.interfaces.is_empty() {
+        vl1 = vl1.queue(&mut shaper, vl1_config.rate);
+    }
+    // TODO add sampling ports into VL during cold_start
+
+    let mut links: [&mut dyn VirtualLink; 1] = [&mut vl1];
+
+    let mut time = Duration::ZERO;
     loop {
         let time_diff = Hypervisor::get_time().unwrap_duration() - time;
         shaper.restore_all(time_diff).unwrap();

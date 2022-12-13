@@ -59,7 +59,11 @@ extern "C" fn entry_point() {
 
     let vl1_config = &config.virtual_links[0];
     let mut vl1 = VirtualLinkData::<MTU, PORTS, MAX_QUEUE_LEN, Hypervisor>::new(vl1_config.id);
-    if !vl1_config.interfaces.is_empty() {
+    if vl1_config
+        .ports
+        .iter()
+        .any(|p| p.sampling_port_destination().is_some())
+    {
         vl1 = vl1.queue(&mut shaper, vl1_config.rate);
     }
     // TODO add sampling ports into VL during cold_start

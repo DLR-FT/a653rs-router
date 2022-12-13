@@ -112,6 +112,9 @@ where
 
     /// Add a queue.
     pub fn queue(mut self, shaper: &mut dyn Shaper, share: DataRate) -> Self {
+        if self.port_dst.is_some() {
+            panic!("A virtual link may not both receive things from the network and receive things from the hypervisor.")
+        }
         let queue_id = shaper.add_queue(share);
         self.queue_id = queue_id;
         self.queue = Some(Queue::default());
@@ -120,6 +123,9 @@ where
 
     /// Add a port destination.
     pub fn add_port_dst(&mut self, port_dst: SamplingPortDestination<MTU, H>) {
+        if self.queue.is_some() {
+            panic!("A virtual link may not both receive things from the network and receive things from the hypervisor.")
+        }
         self.port_dst = Some(port_dst);
     }
 
@@ -237,6 +243,12 @@ where
     }
 
     fn receive_network(&mut self, buf: &[u8]) -> Result<(), Error> {
+        if self.port_dst.is_some() {
+            // A VL may never receive things from both a local port and the network.
+            // This means that another hypervisor is misconfigured to use one of the same
+            // VLs as the local hypervisor.
+            return Err(Error::ReceiveFail); // TODO proper error
+        }
         if buf.len() > MTU as usize {
             return Err(Error::ReceiveFail);
         }

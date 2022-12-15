@@ -1,5 +1,5 @@
 /// A data-rate in bit/s.
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Ord, Eq, PartialEq, PartialOrd)]
 pub struct DataRate(pub u64);
 
 impl DataRate {

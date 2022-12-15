@@ -95,6 +95,7 @@ impl Partition<Hypervisor> for NetworkPartition {
         self.cold_start(ctx)
     }
 }
+
 extern "C" fn entry_point() {
     // TODO generate this all in build.rs
     // Only one shaper is supported at the moment. This should be fine as long as:

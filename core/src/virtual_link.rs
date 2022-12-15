@@ -7,7 +7,7 @@ use crate::shaper::QueueId;
 use crate::types::DataRate;
 use apex_rs::prelude::{ApexSamplingPortP4, SamplingPortDestination, SamplingPortSource, Validity};
 use bytesize::ByteSize;
-use core::fmt::Debug;
+use core::fmt::{Debug, Display};
 use core::time::Duration;
 use heapless::spsc::Queue;
 use heapless::Vec;
@@ -23,6 +23,12 @@ use heapless::Vec;
 /// size that // is required by the underlying network protocol.
 #[derive(Default, Debug, Clone, Copy, Eq, PartialEq)]
 pub struct VirtualLinkId(pub u32);
+
+impl Display for VirtualLinkId {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
 impl VirtualLinkId {
     /// Creates a virtual link id from an u32.

@@ -16,7 +16,7 @@ fn main() {
 
     let config: Config = serde_yaml::from_str(&config).unwrap();
 
-    let process_stack_size = config.stack_size.periodic_process.as_u64();
+    let process_stack_size = config.stack_size.periodic_process.as_u64() as u32;
     let max_mtu = get_max_mtu(&config);
     let num_links = get_num_links(&config);
     let min_interface_data_rate = get_min_interface_data_rate(&config);
@@ -27,7 +27,7 @@ fn main() {
     let vl_sampling_port_sources: Vec<TokenStream> = set_sampling_port_sources(&config);
 
     let set_interfaces: Vec<TokenStream> = set_interfaces(&config);
-    let define_virtual_links: Vec<TokenStream> = set_virtual_links(&config);
+    let define_virtual_links: Vec<TokenStream> = define_virtual_links(&config);
     let num_interfaces = get_num_interfaces(&config);
 
     let interface_names = interface_names(&config);
@@ -59,7 +59,7 @@ fn main() {
         #( static #interface_names : OnceCell<PseudoInterface> = OnceCell::new(); )*
 
         extern "C" fn entry_point() {
-            let mut shaper = CreditBasedShaper::<#num_links>::new(DataRate::from(#min_interface_data_rate));
+            let mut shaper = CreditBasedShaper::<#num_links>::new(DataRate::b(#min_interface_data_rate));
             let mut frame_buf = [0u8; #max_mtu as usize];
             let mut interfaces: [&dyn Interface; #num_interfaces] = [ #( #interface_names . get().unwrap() ),* ];
 
@@ -97,7 +97,7 @@ fn main() {
                     period: SystemTime::Normal(Duration::ZERO),
                     time_capacity: SystemTime::Infinite,
                     entry_point,
-                    stack_size: StackSize::from(#process_stack_size),
+                    stack_size: #process_stack_size,
                     base_priority: 1,
                     deadline: Deadline::Soft,
                     name: Name::from_str("network_partition").unwrap(),
@@ -140,25 +140,21 @@ fn interface_names(config: &Config) -> Vec<Ident> {
         .interfaces
         .iter()
         .map(|i| {
-            let i = i.name.clone();
+            let i = i.name.clone().0.to_uppercase();
             format_ident!("IF_{i}")
         })
         .collect()
 }
 
-fn set_sampling_port_destination(
-    vl_id: u32,
-    channel: &str,
-    name: &str,
-    mtu: u64,
-    refresh: u128,
-) -> TokenStream {
-    let var = format_ident!("VL_{vl_id}_{channel}");
+fn set_sampling_port_destination(channel: &str, name: &str, mtu: u32, refresh: u64) -> TokenStream {
+    let channel = channel.to_uppercase();
+    let var = format_ident!("PORT_{channel}");
     quote! { #var.set(ctx.create_sampling_port_destination::<#mtu>(Name::from_str(#name).unwrap(), Duration::from_nanos(#refresh)).unwrap()).unwrap(); }
 }
 
-fn set_sampling_port_source(vl_id: u32, channel: &str, name: &str, mtu: u64) -> TokenStream {
-    let var = format_ident!("VL_{vl_id}_{channel}");
+fn set_sampling_port_source(channel: &str, name: &str, mtu: u32) -> TokenStream {
+    let channel = channel.to_uppercase();
+    let var = format_ident!("PORT_{channel}");
     quote! { #var.set(ctx.create_sampling_port_source::<#mtu>(Name::from_str(#name).unwrap()).unwrap()).unwrap(); }
 }
 /// Generates TokenStreams that each initialize a sampling port.
@@ -173,11 +169,10 @@ fn set_sampling_port_destinations(config: &Config) -> Vec<TokenStream> {
             vl.ports.iter().filter_map(|p| {
                 if let Some(p) = p.sampling_port_destination() {
                     Some(set_sampling_port_destination(
-                        vl.id.into_inner(),
                         &p.channel,
                         &p.channel,
-                        vl.msg_size.as_u64(),
-                        p.validity.as_nanos(),
+                        vl.msg_size.as_u64() as u32,
+                        p.validity.as_nanos() as u64,
                     ))
                 } else {
                     None
@@ -199,10 +194,9 @@ fn set_sampling_port_sources(config: &Config) -> Vec<TokenStream> {
             vl.ports.iter().filter_map(|p| {
                 if let Some(p) = p.sampling_port_source() {
                     Some(set_sampling_port_source(
-                        vl.id.into_inner(),
                         &p.channel,
                         &p.channel,
-                        vl.msg_size.as_u64(),
+                        vl.msg_size.as_u64() as u32,
                     ))
                 } else {
                     None
@@ -219,28 +213,29 @@ fn set_interfaces(config: &Config) -> Vec<TokenStream> {
         .interfaces
         .iter()
         .map(|i| {
-            let name = i.name.clone();
+            let name = i.name.clone().0.to_uppercase();
             let name = format_ident!("IF_{name}");
             // TODO make easily exchangeable for other interface types.
             quote!(#name.set(PseudoInterface::new(
-                VirtualLinkId::from(2),
-                &[1u8; #max_mtu],
-                #min_interface_data_rate,
-            ));)
+                VirtualLinkId::from(3),
+                &[1u8; #max_mtu as usize],
+                DataRate::b(#min_interface_data_rate),
+            )).unwrap();)
         })
         .collect()
 }
 
-fn set_virtual_links(config: &Config) -> Vec<TokenStream> {
+fn define_virtual_links(config: &Config) -> Vec<TokenStream> {
     config.virtual_links.iter().map(|vl| {
-        let mtu = vl.msg_size.as_u64();
+        let mtu = vl.msg_size.as_u64() as u32;
         let id = vl.id.into_inner();
-        let name = format_ident!("VL_{id}");
+        let ports = vl.ports.iter().filter(|p| p.sampling_port_source().is_some()).count();
+        let name = format_ident!("vl_{id}");
         // TODO make dynamic based on config?
-        let max_queue_len = 2;
+        let max_queue_len = 2usize;
         // TODO does this work or do we need ConstParam for this?
         quote! {
-            let mut #name = VirtualLinkData::<#mtu, #max_queue_len, Hypervisor>::new(VirtualLinkId::from(#id));
+            let mut #name = VirtualLinkData::<#mtu, #ports, #max_queue_len, Hypervisor>::new(VirtualLinkId::from(#id));
         }
     }).collect()
 }
@@ -252,9 +247,9 @@ fn add_sampling_port_sources_to_links(config: &Config) -> Vec<TokenStream> {
         .flat_map(|vl| {
             vl.ports.iter().filter_map(|port| {
                 let id = vl.id;
-                let vl_ident = format_ident!("VL_{id}");
+                let vl_ident = format_ident!("vl_{id}");
                 if let Some(port) = port.sampling_port_source() {
-                    let port_id = port.channel;
+                    let port_id = port.channel.to_uppercase();
                     let port_ident = format_ident!("PORT_{port_id}");
                     Some(quote!(#vl_ident.add_port_src(#port_ident.get().unwrap().clone());))
                 } else {
@@ -270,10 +265,14 @@ fn add_queues_to_links(config: &Config) -> Vec<TokenStream> {
         .virtual_links
         .iter()
         .filter_map(|vl| {
-            if vl.ports.iter().any(|p| p.sampling_port_source().is_some()) {
+            if !vl
+                .ports
+                .iter()
+                .any(|p| p.sampling_port_destination().is_some())
+            {
                 let vl_id = vl.id.to_string();
                 let vl_rate = vl.rate.as_u64();
-                let vl_id = format_ident!("VL_{vl_id}");
+                let vl_id = format_ident!("vl_{vl_id}");
                 Some(quote!(#vl_id = #vl_id.queue(&mut shaper, DataRate::b(#vl_rate));))
             } else {
                 None
@@ -289,9 +288,9 @@ fn add_sampling_port_destinations_to_links(config: &Config) -> Vec<TokenStream> 
         .flat_map(|vl| {
             vl.ports.iter().filter_map(|port| {
                 let id = vl.id;
-                let vl_ident = format_ident!("VL_{id}");
+                let vl_ident = format_ident!("vl_{id}");
                 if let Some(port) = port.sampling_port_destination() {
-                    let port_id = port.channel;
+                    let port_id = port.channel.to_uppercase();
                     let port_ident = format_ident!("PORT_{port_id}");
                     Some(quote!(#vl_ident.add_port_dst(#port_ident.get().unwrap().clone());))
                 } else {
@@ -306,7 +305,7 @@ fn define_port_sources(config: &Config) -> Vec<TokenStream> {
     config.virtual_links.iter().flat_map(|vl| {
         vl.ports.iter().filter_map(|p| {
         if let Some(port) = p.sampling_port_source() {
-            let channel = port.channel;
+            let channel = port.channel.to_uppercase();
             let msg_size = vl.msg_size.as_u64() as u32;
             let port_ident = format_ident!("PORT_{channel}");
             // TODO pass in Hypervisor as parameter
@@ -324,12 +323,12 @@ fn define_port_destinations(config: &Config) -> Vec<TokenStream> {
     config.virtual_links.iter().flat_map(|vl| {
         vl.ports.iter().filter_map(|p| {
         if let Some(port) = p.sampling_port_destination() {
-            let channel = port.channel;
+            let channel = port.channel.to_uppercase();
             let msg_size = vl.msg_size.as_u64() as u32;
             let port_ident = format_ident!("PORT_{channel}");
             // TODO pass in Hypervisor as parameter
             Some(
-                quote!(static #port_ident : OnceCell<SamplingPortSource<#msg_size, Hypervisor>> = OnceCell::new();)
+                quote!(static #port_ident : OnceCell<SamplingPortDestination<#msg_size, Hypervisor>> = OnceCell::new();)
             )
         } else {
                 None
@@ -373,7 +372,7 @@ fn get_vl_names(config: &Config) -> Vec<Ident> {
         .iter()
         .map(|vl| {
             let id = vl.id;
-            format_ident!("VL_{id}")
+            format_ident!("vl_{id}")
         })
         .collect()
 }

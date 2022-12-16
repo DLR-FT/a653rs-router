@@ -14,8 +14,4 @@ once_cell = "1"
 
 [build-dependencies]
 network-partition-config = { path = "../config" }
-proc-macro2 = "1"
-quote = "1"
 serde_yaml = "0.9"
-syn = { version = "0.12", features = ["full"] }
-

@@ -6,7 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-network-partition = { path = "../../core" }
 apex-rs = { git = "https://github.com/aeronautical-informatics/apex-rs.git", branch = "main" }
 apex-rs-linux = { git = "https://github.com/aeronautical-informatics/apex-linux.git", branch = "main" }
 apex-rs-postcard = { git = "https://github.com/aeronautical-informatics/apex-rs-postcard.git", branch = "main" }

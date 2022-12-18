@@ -2,11 +2,7 @@ use crate::config::Config;
 use proc_macro2::{Ident, TokenStream};
 use quote::{format_ident, quote};
 
-pub fn generate_network_partition(
-    config: Config,
-    hypervisor: Ident,
-    partition: Ident,
-) -> TokenStream {
+pub fn generate_network_partition(config: Config, hypervisor: TokenStream) -> TokenStream {
     let process_stack_size = config.stack_size.periodic_process.as_u64() as u32;
     let max_mtu = get_max_mtu(&config);
     let num_links = get_num_links(&config);
@@ -37,7 +33,6 @@ pub fn generate_network_partition(
         use log::{error, LevelFilter};
         use network_partition::prelude::*;
         use once_cell::sync::OnceCell;
-        use pseudo::PseudoInterface;
 
         type Hypervisor = #hypervisor;
 
@@ -71,9 +66,9 @@ pub fn generate_network_partition(
            }
         }
 
-        struct #partition;
+        struct NetworkPartition;
 
-        impl Partition<Hypervisor> for #partition {
+        impl Partition<Hypervisor> for NetworkPartition {
             fn cold_start(&self, ctx: &mut StartContext<Hypervisor>) {
 
                 #( #vl_sampling_port_destinations )*

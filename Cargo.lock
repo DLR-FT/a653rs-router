@@ -534,7 +534,6 @@ dependencies = [
  "network-partition",
  "network-partition-config",
  "once_cell",
- "proc-macro2",
  "quote",
  "serde_yaml",
 ]

@@ -2,7 +2,11 @@ use crate::config::Config;
 use proc_macro2::{Ident, TokenStream};
 use quote::{format_ident, quote};
 
-pub fn generate_main(config: Config) -> TokenStream {
+pub fn generate_network_partition(
+    config: Config,
+    hypervisor: Ident,
+    partition: Ident,
+) -> TokenStream {
     let process_stack_size = config.stack_size.periodic_process.as_u64() as u32;
     let max_mtu = get_max_mtu(&config);
     let num_links = get_num_links(&config);
@@ -26,10 +30,8 @@ pub fn generate_main(config: Config) -> TokenStream {
     let define_port_sources = define_port_sources(&config);
     let define_port_destinations = define_port_destinations(&config);
 
-    // TODO move to network-partition-config and substitute specific Hypervisor into TokenStream in network-partition-linux.
     quote! {
         use apex_rs::prelude::*;
-        use apex_rs_linux::partition::{ApexLinuxPartition, ApexLogger};
         use core::str::FromStr;
         use core::time::Duration;
         use log::{error, LevelFilter};
@@ -37,7 +39,7 @@ pub fn generate_main(config: Config) -> TokenStream {
         use once_cell::sync::OnceCell;
         use pseudo::PseudoInterface;
 
-        type Hypervisor = ApexLinuxPartition;
+        type Hypervisor = #hypervisor;
 
         #( #define_port_sources )*
 
@@ -69,9 +71,9 @@ pub fn generate_main(config: Config) -> TokenStream {
            }
         }
 
-        struct NetworkPartition;
+        struct #partition;
 
-        impl Partition<Hypervisor> for NetworkPartition {
+        impl Partition<Hypervisor> for #partition {
             fn cold_start(&self, ctx: &mut StartContext<Hypervisor>) {
 
                 #( #vl_sampling_port_destinations )*
@@ -97,12 +99,6 @@ pub fn generate_main(config: Config) -> TokenStream {
             fn warm_start(&self, ctx: &mut StartContext<Hypervisor>) {
                 self.cold_start(ctx)
             }
-        }
-
-        fn main() {
-            ApexLogger::install_panic_hook();
-            ApexLogger::install_logger(LevelFilter::Trace).unwrap();
-            NetworkPartition.run();
         }
     }
 }

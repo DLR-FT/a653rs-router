@@ -6,11 +6,11 @@ use core::fmt::Debug;
 use core::time::Duration;
 
 /// Size of a frame payload.
-pub type PayloadSize = u32;
+pub(crate) type PayloadSize = u32;
 
 /// A frame that is managed by the queue.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub struct Frame<const PL_SIZE: PayloadSize>([u8; PL_SIZE as usize])
+pub(crate) struct Frame<const PL_SIZE: PayloadSize>([u8; PL_SIZE as usize])
 where
     [u8; PL_SIZE as usize]:;
 
@@ -44,7 +44,7 @@ pub trait Interface: Debug {
 }
 
 /// A queue for storing frames that are waiting to be transmitted.
-pub trait FrameQueue<const PL_SIZE: PayloadSize>
+pub(crate) trait FrameQueue<const PL_SIZE: PayloadSize>
 where
     [(); PL_SIZE as usize]:,
 {

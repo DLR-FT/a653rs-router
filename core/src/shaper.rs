@@ -66,24 +66,12 @@ pub struct Transmission {
 
 impl Transmission {
     /// Creates a new transmission.
-    pub fn new(queue: QueueId, duration: Duration, length: ByteSize) -> Self {
+    pub(crate) fn new(queue: QueueId, duration: Duration, length: ByteSize) -> Self {
         Self {
             queue,
             duration,
             bits: length.as_u64() * 8,
         }
-    }
-
-    /// Updates the transmission with the actual duration of the transmission.
-    pub fn with_duration(mut self, duration: Duration) -> Self {
-        self.duration = duration;
-        self
-    }
-
-    /// Modifies the transmission to have a different size.
-    pub fn with_size(mut self, size: ByteSize) -> Self {
-        self.bits = size.as_u64() * 8;
-        self
     }
 }
 

@@ -27,7 +27,6 @@ pub mod prelude {
     pub use crate::error::Error;
     pub use crate::forward::*;
     pub use crate::network::*;
-    pub use crate::ports::*;
     pub use crate::shaper::*;
     pub use crate::types::*;
     pub use crate::virtual_link::*;

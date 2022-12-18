@@ -1,5 +1,5 @@
 ///! Error types
-use crate::prelude::{Frame, PayloadSize, PortId, VirtualLinkId};
+use crate::prelude::{Frame, PayloadSize};
 
 // TODO more precise errors
 
@@ -20,9 +20,6 @@ pub enum Error {
 
     /// There is no link to the destination.
     NoLink,
-
-    /// The route is invalid.
-    InvalidRoute(RouteError),
 
     /// An error occured while talking to the hypervisor.
     ApexError(apex_rs::prelude::Error),
@@ -58,24 +55,5 @@ where
 {
     fn from(_: Frame<PL_SIZE>) -> Self {
         Error::SendFail
-    }
-}
-
-/// A routing error.
-#[derive(Debug, Copy, Clone)]
-pub enum RouteError {
-    Local(PortId),
-    Remote(VirtualLinkId),
-}
-
-impl From<PortId> for RouteError {
-    fn from(val: PortId) -> Self {
-        Self::Local(val)
-    }
-}
-
-impl From<VirtualLinkId> for RouteError {
-    fn from(val: VirtualLinkId) -> Self {
-        Self::Remote(val)
     }
 }

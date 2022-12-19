@@ -1,5 +1,6 @@
 ///! Error types
-use crate::prelude::{Frame, PayloadSize};
+use crate::shaper::{QueueId, Transmission};
+use apex_rs::prelude::Error as ApexError;
 
 // TODO more precise errors
 
@@ -7,53 +8,60 @@ use crate::prelude::{Frame, PayloadSize};
 #[derive(Clone, Debug)]
 pub enum Error {
     /// Failed to send data to a port.
-    SendFail,
+    PortSendFail(apex_rs::prelude::Error),
 
     /// Failed to receive data from a port.
-    ReceiveFail,
+    PortReceiveFail(apex_rs::prelude::Error),
+
+    /// Failed to receive something from an interface.
+    InterfaceReceiveFail,
 
     /// Received invalid data.
     InvalidData,
 
-    /// There is no route from the source port or virtual link.
-    NoRoute,
-
-    /// There is no link to the destination.
-    NoLink,
-
-    /// An error occured while talking to the hypervisor.
-    ApexError(apex_rs::prelude::Error),
-
-    /// Insufficient credit
-    InsufficientCredit,
-
     /// It has been tried to dequeue an item from an empty queue.
     QueueEmpty,
-
-    /// A queue has no more free capacity.
-    QueueOverflow,
 
     /// Transmission is not allowed at the time.
     TransmitNotAllowed,
 
-    /// Failed to send a frame to the network.
-    InterfaceSendFail,
+    /// No such queue.
+    NoSuchQueue(QueueId),
+
+    /// Invalid transmission.
+    InvalidTransmission(Transmission),
 
     /// An unspecified error.
     Unknown,
 }
 
-impl From<apex_rs::prelude::Error> for Error {
-    fn from(val: apex_rs::prelude::Error) -> Self {
-        Self::ApexError(val)
+impl core::fmt::Display for Error {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Error::PortSendFail(source) => write!(f, "Failed to send data: {source:?}"),
+            Error::PortReceiveFail(source) => write!(f, "Failed to receive data: {source:?}"),
+            Error::InterfaceReceiveFail => write!(f, "Failed to receive data from an interface"),
+            Error::InvalidData => write!(f, "Received invalid data."),
+            Error::QueueEmpty => write!(f, "Tried to dequeue an element of an empty queue."),
+            Error::TransmitNotAllowed => write!(
+                f,
+                "Transmissions from this queue are not allowed at the moment."
+            ),
+            Error::InvalidTransmission(transmission) => {
+                write!(f, "Invalid transmission: {transmission:?}")
+            }
+            Error::NoSuchQueue(q_id) => write!(f, "No such queue: {q_id}"),
+            Error::Unknown => write!(f, "Unknown error"),
+        }
     }
 }
 
-impl<const PL_SIZE: PayloadSize> From<Frame<PL_SIZE>> for Error
-where
-    [(); PL_SIZE as usize]:,
-{
-    fn from(_: Frame<PL_SIZE>) -> Self {
-        Error::SendFail
+impl From<apex_rs::prelude::Error> for Error {
+    fn from(err: ApexError) -> Self {
+        match err {
+            ApexError::ReadError(_) => Self::PortReceiveFail(err),
+            ApexError::WriteError(_) => Self::PortSendFail(err),
+            _ => Self::Unknown,
+        }
     }
 }

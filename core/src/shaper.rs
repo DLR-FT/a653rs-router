@@ -5,34 +5,7 @@ use crate::types::DataRate;
 use core::{fmt::Debug, time::Duration};
 use heapless::Vec;
 
-// TODO TrafficClass -> bandwidth_fraction = idle_slope / port_transmit_rate
-// Make sure total port_transmit_rate is not exceeded
-// Use up remaining bandwidth of a frame in order of priorities of streams
-// credit must be limited to 0 if no messages are waiting
-// Will probably have to store queues for each Stream (with capacity 0 for sampling ports?)
-// Idea: Read from port to check if it has queued messages / valid message -> queue depth
-
-/// Credit-based shaper roughly after IEEE 802.1Qav Credit-Based Shaper
-///
-/// The shaper decides if a queued message should be transmitted or not.
-/// A queued message will be transmitted, only if the credit of the stream that emitted the message is non-negative (0 is ok).
-///
-/// A stream corresponds to a virtual link.
-/// Individual streams may only transmit if their credit is not negative.
-/// Time is divided into frames of the size of each major frame window.
-/// All links are assumed to compete for the same network resource.
-/// The credit of a stream is replenished during the major frame.
-///     idle_slope = reserved_bytes / major_frame_length
-/// The credit of a stream is consumed for each time the network partition is scheduled and transmits messages from the stream
-///     send_slope = transmitted_bytes / network_partition_frame_length
-/// The maximum total credit of all streams combined can not be larger than the credit that can be replenished during a major
-/// frame (the bytes the network partition may transmit during one major frame) or the network might be overuttilized.
-/// For this the maximum credit of each partition is limited to the configured maximum data rate during a major frame that each
-/// partition may emit and it does not increased boyond that.
-/// It is assumed that the network partition is scheduled once per major frame.
-/// TODO must be able to inspect transmission events on hardware
-/// TODO const params seems very unwieldy. Does not allow for different frame sizes per queue.
-
+/// The id of a queue that is managed by the shaper.
 #[derive(Default, Debug, Clone, Copy, Eq, PartialEq)]
 pub struct QueueId(u32);
 
@@ -48,10 +21,16 @@ impl From<u32> for QueueId {
     }
 }
 
+impl core::fmt::Display for QueueId {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 /// A transmission of the network layer.
 ///
 /// The transmission occurs for a frame from a queue designated by `queue_id`, lasts for `duration` and transmits `bits`.
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct Transmission {
     /// The queue that performed or requested the transmission.
     queue: QueueId,
@@ -135,8 +114,11 @@ impl<const NUM_QUEUES: usize> Shaper for CreditBasedShaper<NUM_QUEUES> {
         None
     }
     fn request_transmission(&mut self, transmission: &Transmission) -> Result<(), Error> {
-        let q_id: usize = transmission.queue.0 as usize;
-        let q = self.queues.get_mut(q_id).ok_or(Error::InvalidData)?; // TODO better error
+        let q_id = transmission.queue;
+        let q = self
+            .queues
+            .get_mut(q_id.0 as usize)
+            .ok_or(Error::NoSuchQueue(q_id))?;
         _ = q.submit(transmission.bits);
         Ok(())
     }
@@ -155,7 +137,7 @@ impl<const NUM_QUEUES: usize> Shaper for CreditBasedShaper<NUM_QUEUES> {
         if consumed {
             Ok(())
         } else {
-            Err(Error::InvalidData)
+            Err(Error::InvalidTransmission(*transmission))
         }
     }
 

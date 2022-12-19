@@ -32,7 +32,6 @@ where
     }
 }
 
-/// TODO inspect header to see for which virtual link a frame is
 /// A network interface.
 pub trait Interface: Debug {
     /// Sends data to the interface.
@@ -51,7 +50,7 @@ where
     /// If the underlying queue has no more free space, the oldest frame is dropped from the front
     /// and the new frame is inserted at the back.
     /// Returns the current size of the queue in bytes.
-    fn enqueue_frame(&mut self, frame: Frame<PL_SIZE>) -> Result<u64, Frame<PL_SIZE>>;
+    fn enqueue_frame(&mut self, frame: Frame<PL_SIZE>) -> Result<u64, Error>;
 
     /// Retrieves a frame from the queue to write it to the network.
     fn dequeue_frame(&mut self) -> Option<Frame<PL_SIZE>>;
@@ -62,11 +61,11 @@ impl<const PL_SIZE: PayloadSize, const QUEUE_CAPACITY: usize> FrameQueue<PL_SIZE
 where
     [(); PL_SIZE as usize]:,
 {
-    fn enqueue_frame(&mut self, frame: Frame<PL_SIZE>) -> Result<u64, Frame<PL_SIZE>> {
+    fn enqueue_frame(&mut self, frame: Frame<PL_SIZE>) -> Result<u64, Error> {
         let res = self.enqueue(frame);
         if res.is_err() {
             _ = self.dequeue();
-            self.enqueue(frame)?;
+            self.enqueue(frame).unwrap();
             Ok(self.len() as u64 * PL_SIZE as u64)
         } else {
             Ok(self.len() as u64 * PL_SIZE as u64)

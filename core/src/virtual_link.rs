@@ -160,9 +160,10 @@ where
     let next = queue.enqueue_frame(frame)?;
     if curr < next {
         let transmission = Transmission::new(*queue_id, Duration::ZERO, MTU);
-        shaper.request_transmission(&transmission)?;
+        shaper.request_transmission(&transmission)
+    } else {
+        Ok(())
     }
-    Ok(())
 }
 
 fn send_network<const MTU: PayloadSize, const MAX_QUEUE_LEN: usize>(
@@ -196,7 +197,6 @@ fn receive_sampling_port_valid<'a, const MTU: PayloadSize, H: ApexSamplingPortP4
     dst: &SamplingPortDestination<MTU, H>,
     buf: &'a mut [u8],
 ) -> Result<&'a [u8], Error> {
-    // TODO extract function
     let (valid, _) = dst.receive(buf)?;
     if valid == Validity::Invalid {
         return Err(Error::InvalidData);
@@ -208,8 +208,8 @@ fn forward_to_sources<const MTU: PayloadSize, const PORTS: usize, H: ApexSamplin
     srcs: &Vec<SamplingPortSource<MTU, H>, PORTS>,
     buf: &[u8],
 ) -> Result<(), Error> {
-    if srcs.iter().map(|p| p.send(buf)).any(|e| e.is_err()) {
-        Err(Error::SendFail)
+    if let Err(err) = srcs.iter().try_for_each(|p| p.send(buf)) {
+        Err(Error::from(err))
     } else {
         Ok(())
     }
@@ -257,10 +257,10 @@ where
             // A VL may never receive things from both a local port and the network.
             // This means that another hypervisor is misconfigured to use one of the same
             // VLs as the local hypervisor.
-            return Err(Error::ReceiveFail); // TODO proper error
+            return Err(Error::InterfaceReceiveFail);
         }
         if buf.len() > MTU as usize {
-            return Err(Error::ReceiveFail);
+            return Err(Error::InterfaceReceiveFail);
         }
         forward_to_sources(&self.port_srcs, buf)?;
         Ok(())

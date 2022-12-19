@@ -505,7 +505,6 @@ name = "network-partition"
 version = "0.1.0"
 dependencies = [
  "apex-rs",
- "bytesize",
  "heapless",
  "log",
 ]

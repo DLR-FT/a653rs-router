@@ -2,7 +2,6 @@
 
 use crate::error::Error;
 use crate::types::DataRate;
-use bytesize::ByteSize;
 use core::{fmt::Debug, time::Duration};
 use heapless::Vec;
 
@@ -66,11 +65,11 @@ pub struct Transmission {
 
 impl Transmission {
     /// Creates a new transmission.
-    pub(crate) fn new(queue: QueueId, duration: Duration, length: ByteSize) -> Self {
+    pub(crate) fn new(queue: QueueId, duration: Duration, length: u32) -> Self {
         Self {
             queue,
             duration,
-            bits: length.as_u64() * 8,
+            bits: length as u64 * 8,
         }
     }
 }
@@ -365,8 +364,8 @@ mod tests {
         let q0_id = s.add_queue(DataRate::b(60_000)).unwrap();
         let q1_id = s.add_queue(DataRate::b(40_000)).unwrap();
 
-        const MTU_Q1: ByteSize = ByteSize::kb(7);
-        const MTU_Q2: ByteSize = ByteSize::kb(4);
+        const MTU_Q1: u32 = 7_000;
+        const MTU_Q2: u32 = 4_000;
 
         let transmissions = [
             Transmission::new(q0_id, Duration::ZERO, MTU_Q1),
@@ -400,12 +399,12 @@ mod tests {
             if next_q == QueueId(0) {
                 let t = Transmission::new(next_q, DURATION_Q1, MTU_Q1);
                 s.record_transmission(&t).unwrap();
-                total_byte += MTU_Q1.as_u64();
+                total_byte += MTU_Q1 as u64;
                 total_time += DURATION_Q1;
             } else {
                 let t = Transmission::new(next_q, DURATION_Q2, MTU_Q2);
                 s.record_transmission(&t).unwrap();
-                total_byte += MTU_Q2.as_u64();
+                total_byte += MTU_Q2 as u64;
                 total_time += DURATION_Q2;
             }
         }

@@ -1,7 +1,6 @@
 use crate::error::Error;
 use crate::types::DataRate;
 use crate::virtual_link::VirtualLinkId;
-use bytesize::ByteSize;
 use core::fmt::Debug;
 use core::time::Duration;
 
@@ -89,7 +88,7 @@ pub struct PseudoInterface<'a> {
     vl: VirtualLinkId,
     buf: &'a [u8],
     rate: DataRate,
-    mtu: ByteSize,
+    mtu: u32,
 }
 
 impl<'a> PseudoInterface<'a> {
@@ -99,14 +98,14 @@ impl<'a> PseudoInterface<'a> {
             vl,
             buf,
             rate,
-            mtu: ByteSize::b(buf.len() as u64),
+            mtu: buf.len() as u32,
         }
     }
 }
 
 impl<'a> Interface for PseudoInterface<'a> {
     fn send(&self, _vl: &VirtualLinkId, _buf: &[u8]) -> Result<Duration, Duration> {
-        let mtu = self.mtu.as_u64() as f64;
+        let mtu = self.mtu as f64;
         let rate = self.rate.as_u64() as f64;
         let duration = mtu * 1_000_000_000.0 / rate;
         let duration = Duration::from_nanos(duration as u64);

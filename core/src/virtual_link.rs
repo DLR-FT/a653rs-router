@@ -6,7 +6,6 @@ use crate::prelude::{FrameQueue, Interface, Shaper, Transmission};
 use crate::shaper::QueueId;
 use crate::types::DataRate;
 use apex_rs::prelude::{ApexSamplingPortP4, SamplingPortDestination, SamplingPortSource, Validity};
-use bytesize::ByteSize;
 use core::fmt::{Debug, Display};
 use core::time::Duration;
 use heapless::spsc::Queue;
@@ -160,7 +159,7 @@ where
     let curr = queue.len() as u64;
     let next = queue.enqueue_frame(frame)?;
     if curr < next {
-        let transmission = Transmission::new(*queue_id, Duration::ZERO, ByteSize::b(MTU as u64));
+        let transmission = Transmission::new(*queue_id, Duration::ZERO, MTU);
         shaper.request_transmission(&transmission)?;
     }
     Ok(())
@@ -185,7 +184,7 @@ where
                 Ok(dur) => dur,
                 Err(dur) => dur,
             };
-            let trans = Transmission::new(*queue_id, duration, ByteSize::b(buf.len() as u64));
+            let trans = Transmission::new(*queue_id, duration, buf.len() as u32);
             shaper.record_transmission(&trans)?;
             Ok(trans)
         }

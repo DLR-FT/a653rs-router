@@ -506,7 +506,6 @@ version = "0.1.0"
 dependencies = [
  "apex-rs",
  "heapless",
- "log",
 ]
 
 [[package]]

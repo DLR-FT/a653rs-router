@@ -6,4 +6,3 @@ edition = "2021"
 [dependencies]
 apex-rs = { git = "https://github.com/aeronautical-informatics/apex-rs.git", branch = "main"}
 heapless = { version = "0.7" }
-log = "0"

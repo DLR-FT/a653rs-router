@@ -2,6 +2,7 @@ use core::time::Duration;
 
 use crate::{error::Error, network::Interface, shaper::Shaper, virtual_link::VirtualLink};
 use apex_rs::prelude::*;
+use log::error;
 
 /// Forwards frames between the hypervisor and the network and between ports on the same hypervisor.
 #[derive(Debug)]
@@ -45,16 +46,15 @@ impl<'a> Forwarder<'a> {
         if let Err(err) = self.receive_network() {
             last_err = Some(err);
         }
-        let (err, transmitted) = match self.send_network() {
+        let (_, transmitted) = match self.send_network() {
             Ok(transmitted) => (None, transmitted),
             Err((transmitted, err)) => (Some(err), transmitted),
         };
         if !transmitted {
             let time_diff = <H as ApexTimeP4Ext>::get_time().unwrap_duration() - time;
-            self.shaper.restore_all(time_diff)?;
-        }
-        if let Some(err) = err {
-            last_err = Some(err);
+            if let Err(err) = self.shaper.restore_all(time_diff) {
+                last_err = Some(err);
+            }
         }
         match last_err {
             Some(err) => Err(err),
@@ -66,7 +66,10 @@ impl<'a> Forwarder<'a> {
         self.links
             .iter_mut()
             .filter_map(|vl| vl.receive_hypervisor(self.shaper).err())
-            .map(Err)
+            .map(|e| {
+                error!("{e}");
+                Err(e)
+            })
             .last()
             .unwrap_or(Ok(()))
     }
@@ -81,7 +84,10 @@ impl<'a> Forwarder<'a> {
                         .iter_mut()
                         .find(|vl| vl.vl_id() == vl_id)
                         .and_then(|vl| vl.receive_network(buf).err())
-                        .map(Err)
+                        .map(|e| {
+                            error!("{e}");
+                            Err(e)
+                        })
                 } else {
                     Some(Err(res.unwrap_err()))
                 }
@@ -104,6 +110,10 @@ impl<'a> Forwarder<'a> {
                     self.interfaces
                         .iter_mut()
                         .filter_map(|intf| vl.send_network(*intf, self.shaper).err())
+                        .map(|e| {
+                            error!("{e}");
+                            e
+                        })
                         .last()
                 });
             if let Some(e) = error {

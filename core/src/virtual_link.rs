@@ -10,6 +10,7 @@ use core::fmt::{Debug, Display};
 use core::time::Duration;
 use heapless::spsc::Queue;
 use heapless::Vec;
+use log::trace;
 
 /// An ID of a virtual link.
 ///
@@ -128,6 +129,7 @@ where
         let queue_id = shaper.add_queue(share);
         self.queue_id = queue_id;
         self.queue = Some(Queue::default());
+        trace!("Added queue to virtual link {}", self.id);
         self
     }
 
@@ -136,6 +138,7 @@ where
         if self.queue.is_some() {
             panic!("A virtual link may not both receive things from the network and receive things from the hypervisor.")
         }
+        trace!("Added port destination to virtual link {}", self.id);
         self.port_dst = Some(port_dst);
     }
 
@@ -144,6 +147,7 @@ where
         self.port_srcs
             .push(port_src)
             .expect("Not enough free source port slots.");
+        trace!("Added port sources to virtual link {}", self.id);
     }
 }
 
@@ -160,8 +164,10 @@ where
     let next = queue.enqueue_frame(frame)?;
     if curr < next {
         let transmission = Transmission::new(*queue_id, Duration::ZERO, MTU);
+        trace!("Requesting new transmission for queue {queue_id}");
         shaper.request_transmission(&transmission)
     } else {
+        trace!("Backlog already sufficient for queue {queue_id}");
         Ok(())
     }
 }

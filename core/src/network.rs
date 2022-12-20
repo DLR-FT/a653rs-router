@@ -3,6 +3,7 @@ use crate::types::DataRate;
 use crate::virtual_link::VirtualLinkId;
 use core::fmt::Debug;
 use core::time::Duration;
+use log::trace;
 
 /// Size of a frame payload.
 pub(crate) type PayloadSize = u32;
@@ -66,13 +67,16 @@ where
         if res.is_err() {
             _ = self.dequeue();
             self.enqueue(frame).unwrap();
+            trace!("Enqueued frame while overflowing a queue.");
             Ok(self.len() as u64 * PL_SIZE as u64)
         } else {
+            trace!("Enqueued frame without overflowing a queue.");
             Ok(self.len() as u64 * PL_SIZE as u64)
         }
     }
 
     fn dequeue_frame(&mut self) -> Option<Frame<PL_SIZE>> {
+        trace!("Dequeueing frame.");
         self.dequeue()
     }
 }
@@ -108,6 +112,7 @@ impl<'a> Interface for PseudoInterface<'a> {
         let rate = self.rate.as_u64() as f64;
         let duration = mtu * 1_000_000_000.0 / rate;
         let duration = Duration::from_nanos(duration as u64);
+        trace!("Sent frame to network, took {duration:#?}");
         Ok(duration)
     }
 
@@ -115,8 +120,11 @@ impl<'a> Interface for PseudoInterface<'a> {
         if buf.len() < self.buf.len() {
             return Err(Error::InvalidData);
         }
-
         buf.clone_from_slice(&self.buf[0..buf.len()]);
+        trace!(
+            "Received frame with length {} bytes from network.",
+            buf.len()
+        );
         Ok((self.vl, buf))
     }
 }

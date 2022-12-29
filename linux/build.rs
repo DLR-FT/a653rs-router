@@ -16,6 +16,7 @@ fn main() {
     let network_partition = generate_network_partition(
         serde_yaml::from_str(&config).unwrap(),
         quote!(apex_rs_linux::partition::ApexLinuxPartition),
+        quote!(crate::UdpInterface),
     );
 
     write(&dest_path, network_partition.to_string()).unwrap();

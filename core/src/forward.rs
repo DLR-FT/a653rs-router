@@ -2,7 +2,7 @@ use core::time::Duration;
 
 use crate::{error::Error, network::Interface, shaper::Shaper, virtual_link::VirtualLink};
 use apex_rs::prelude::*;
-use log::error;
+use log::{error, trace};
 
 /// Forwards frames between the hypervisor and the network and between ports on the same hypervisor.
 #[derive(Debug)]
@@ -37,20 +37,27 @@ impl<'a> Forwarder<'a> {
         let time_diff = time - self.timestamp;
         self.timestamp = time;
         let mut last_err: Option<Error> = None;
+        trace!("Restoring queue credit");
         if let Err(err) = self.shaper.restore_all(time_diff) {
             last_err = Some(err);
         }
+        trace!("Receiving messages from hypervisor");
         if let Err(err) = self.receive_hypervisor() {
             last_err = Some(err);
         }
+        trace!("Receiving messages from the network");
         if let Err(err) = self.receive_network() {
             last_err = Some(err);
         }
+        trace!("Sending messages to the network");
         let (_, transmitted) = match self.send_network() {
             Ok(transmitted) => (None, transmitted),
             Err((transmitted, err)) => (Some(err), transmitted),
         };
         if !transmitted {
+            trace!(
+                "Restoring credit to queues, because there were no transmissions to the network."
+            );
             let time_diff = <H as ApexTimeP4Ext>::get_time().unwrap_duration() - time;
             if let Err(err) = self.shaper.restore_all(time_diff) {
                 last_err = Some(err);
@@ -101,6 +108,7 @@ impl<'a> Forwarder<'a> {
 
         let mut last: Option<Error> = None;
         while let Some(q_id) = self.shaper.next_queue() {
+            trace!("Next queue is {}", q_id);
             transmitted = true;
             let error: Option<Error> = self
                 .links

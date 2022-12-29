@@ -123,9 +123,6 @@ where
 
     /// Add a queue.
     pub fn queue(mut self, shaper: &mut dyn Shaper, share: DataRate) -> Self {
-        if self.port_dst.is_some() {
-            panic!("A virtual link may not both receive things from the network and receive things from the hypervisor.")
-        }
         let queue_id = shaper.add_queue(share);
         self.queue_id = queue_id;
         self.queue = Some(Queue::default());
@@ -164,10 +161,13 @@ where
     let next = queue.enqueue_frame(frame)?;
     if curr < next {
         let transmission = Transmission::new(*queue_id, Duration::ZERO, MTU);
-        trace!("Requesting new transmission for queue {queue_id}");
+        trace!("Requesting transmission of {} bytes from shaper", MTU);
         shaper.request_transmission(&transmission)
     } else {
-        trace!("Backlog already sufficient for queue {queue_id}");
+        trace!(
+            "Not requesting transmission from shaper because queue is already full. Queue size {}",
+            queue.len()
+        );
         Ok(())
     }
 }
@@ -237,8 +237,11 @@ where
             forward_to_sources(&self.port_srcs, &buf)?;
             if let Some(queue) = &mut self.queue {
                 if let Some(id) = &mut self.queue_id {
+                    trace!("VL forwarding to network queue");
                     return forward_to_network_queue(id, queue, Frame::from(buf), shaper);
                 }
+            } else {
+                trace!("Not forwarding to the network, because the virtual link {} does not have a network queue", self.id);
             }
         }
         Ok(())
@@ -253,7 +256,17 @@ where
             if let Some(id) = &mut self.queue_id {
                 _ = send_network(&self.id, id, queue, interface, shaper)?;
                 return Ok(());
+            } else {
+                trace!(
+                    "Not sending anything from VL {}, because it has no queue ID.",
+                    self.id
+                );
             }
+        } else {
+            trace!(
+                "Not sending anything from VL {}, because it has no queue.",
+                self.id
+            );
         }
         Ok(())
     }

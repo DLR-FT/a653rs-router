@@ -2,9 +2,13 @@ use crate::config::Config;
 use proc_macro2::{Ident, TokenStream};
 use quote::{format_ident, quote};
 
-pub fn generate_network_partition(config: Config, hypervisor: TokenStream) -> TokenStream {
+pub fn generate_network_partition(
+    config: Config,
+    hypervisor: TokenStream,
+    interface: TokenStream,
+) -> TokenStream {
     let process_stack_size = config.stack_size.periodic_process.as_u64() as u32;
-    let max_mtu = get_max_mtu(&config);
+    let max_mtu = get_max_mtu(&config) as usize;
     let num_links = get_num_links(&config);
     let min_interface_data_rate = get_min_interface_data_rate(&config);
 
@@ -30,9 +34,10 @@ pub fn generate_network_partition(config: Config, hypervisor: TokenStream) -> To
         use apex_rs::prelude::*;
         use core::str::FromStr;
         use core::time::Duration;
-        use log::{error, LevelFilter};
+        use log::{error, trace, LevelFilter};
         use network_partition::prelude::*;
         use once_cell::sync::OnceCell;
+        use network_partition_linux::UdpInterface;
 
         type Hypervisor = #hypervisor;
 
@@ -40,11 +45,11 @@ pub fn generate_network_partition(config: Config, hypervisor: TokenStream) -> To
 
         #( #define_port_destinations )*
 
-        #( static #interface_names : OnceCell<PseudoInterface> = OnceCell::new(); )*
+        #( static #interface_names : OnceCell<#interface<#max_mtu>> = OnceCell::new(); )*
 
         extern "C" fn entry_point() {
             let mut shaper = CreditBasedShaper::<#num_links>::new(DataRate::b(#min_interface_data_rate));
-            let mut frame_buf = [0u8; #max_mtu as usize];
+            let mut frame_buf = [0u8; #max_mtu];
             let mut interfaces: [&dyn Interface; #num_interfaces] = [ #( #interface_names . get().unwrap() ),* ];
 
             #( #define_virtual_links )*
@@ -59,9 +64,11 @@ pub fn generate_network_partition(config: Config, hypervisor: TokenStream) -> To
             let mut forwarder = Forwarder::new(&mut frame_buf, &mut shaper, &mut links, &mut interfaces);
 
             loop {
+                trace!("Continuing...");
                 if let Err(err) = forwarder.forward::<Hypervisor>() {
                     error!("{err:?}");
                 }
+                trace!("Suspending...");
                 Hypervisor::periodic_wait().unwrap();
            }
         }
@@ -70,6 +77,8 @@ pub fn generate_network_partition(config: Config, hypervisor: TokenStream) -> To
 
         impl Partition<Hypervisor> for NetworkPartition {
             fn cold_start(&self, ctx: &mut StartContext<Hypervisor>) {
+
+                let mut sockets = Hypervisor::get_udp_sockets();
 
                 #( #vl_sampling_port_destinations )*
 
@@ -172,7 +181,7 @@ fn set_sampling_port_sources(config: &Config) -> Vec<TokenStream> {
 }
 
 fn set_interfaces(config: &Config) -> Vec<TokenStream> {
-    let max_mtu = get_max_mtu(config);
+    let max_mtu = get_max_mtu(config) as usize;
     let min_interface_data_rate = get_min_interface_data_rate(config);
     config
         .interfaces
@@ -180,12 +189,14 @@ fn set_interfaces(config: &Config) -> Vec<TokenStream> {
         .map(|i| {
             let name = i.name.clone().0.to_uppercase();
             let name = format_ident!("IF_{name}");
-            // TODO make easily exchangeable for other interface types.
-            quote!(#name.set(PseudoInterface::new(
-                VirtualLinkId::from(3),
-                &[1u8; #max_mtu as usize],
-                DataRate::b(#min_interface_data_rate),
-            )).unwrap();)
+            // TODO make easily exchangeable for other interface types and multiple interfaces
+            quote! {
+                let sock = sockets.remove(0);
+                sock.set_nonblocking(true).unwrap();
+                sock.connect("127.0.0.1:34256").unwrap();
+                let intf = UdpInterface::<#max_mtu>::new(sock, DataRate::b(#min_interface_data_rate));
+                #name.set(intf).unwrap();
+            }
         })
         .collect()
 }
@@ -229,19 +240,11 @@ fn add_queues_to_links(config: &Config) -> Vec<TokenStream> {
     config
         .virtual_links
         .iter()
-        .filter_map(|vl| {
-            if !vl
-                .ports
-                .iter()
-                .any(|p| p.sampling_port_destination().is_some())
-            {
-                let vl_id = vl.id.to_string();
-                let vl_rate = vl.rate.as_u64();
-                let vl_id = format_ident!("vl_{vl_id}");
-                Some(quote!(#vl_id = #vl_id.queue(&mut shaper, DataRate::b(#vl_rate));))
-            } else {
-                None
-            }
+        .map(|vl| {
+            let vl_id = vl.id.to_string();
+            let vl_rate = vl.rate.as_u64();
+            let vl_id = format_ident!("vl_{vl_id}");
+            quote!(#vl_id = #vl_id.queue(&mut shaper, DataRate::b(#vl_rate));)
         })
         .collect()
 }

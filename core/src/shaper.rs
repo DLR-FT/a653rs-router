@@ -4,6 +4,7 @@ use crate::error::Error;
 use crate::types::DataRate;
 use core::{fmt::Debug, time::Duration};
 use heapless::Vec;
+use log::trace;
 
 /// The id of a queue that is managed by the shaper.
 #[derive(Default, Debug, Clone, Copy, Eq, PartialEq)]
@@ -146,6 +147,12 @@ impl<const NUM_QUEUES: usize> Shaper for CreditBasedShaper<NUM_QUEUES> {
     /// It is assumed that each queue services frames of a limited size so there is a lo_credit for each queue.
     fn next_queue(&mut self) -> Option<QueueId> {
         for q in self.queues.iter_mut() {
+            trace!(
+                "Queue {} has backlog {} and credit {}",
+                q.id,
+                q.backlog,
+                q.credit
+            );
             if q.transmit_allowed() && q.backlog > 0 {
                 q.transmit = true;
                 return Some(q.id);

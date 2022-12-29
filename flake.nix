@@ -16,7 +16,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    hypervisor.url = "github:aeronautical-informatics/apex-linux/main";
+    hypervisor.url = "github:dadada/apex-linux/stable-for-master-thesis";
   };
 
   outputs = { self, nixpkgs, utils, devshell, fenix, hypervisor, naersk, ... }@inputs:

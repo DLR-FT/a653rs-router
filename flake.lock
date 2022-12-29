@@ -121,16 +121,16 @@
         "utils": "utils"
       },
       "locked": {
-        "lastModified": 1670588591,
-        "narHash": "sha256-iXK6NCVcMkOjWRQMYv9Wkqf6qSaFxXanuAXfAOSiUlU=",
-        "owner": "aeronautical-informatics",
+        "lastModified": 1672327847,
+        "narHash": "sha256-wLqNdEUIyo9qelIw0OouKjaNZ7CDbUnJgzRwZvU9U54=",
+        "owner": "dadada",
         "repo": "apex-linux",
-        "rev": "d3d68cf05a9016d2f78f318b175b95bbdf469d66",
+        "rev": "dc530dd344a59073e8345b366f3f1a15bd952900",
         "type": "github"
       },
       "original": {
-        "owner": "aeronautical-informatics",
-        "ref": "main",
+        "owner": "dadada",
+        "ref": "stable-for-master-thesis",
         "repo": "apex-linux",
         "type": "github"
       }

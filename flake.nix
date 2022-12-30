@@ -78,16 +78,16 @@
             {
               name = "test-run-echo";
               command = ''
-                cargo build -p network-partition-linux --release --target x86_64-unknown-linux-musl
-                cargo build -p echo --release --target x86_64-unknown-linux-musl
-                RUST_LOG=''${RUST_LOG:=trace} linux-apex-hypervisor --duration 10s examples/echo/config/hypervisor_config.yml
+                cargo build --release --target x86_64-unknown-linux-musl
+                RUST_LOG=''${RUST_LOG:=trace} linux-apex-hypervisor --duration 10s examples/network-partition-echo/config/hv-client.yml & \
+                RUST_LOG=''${RUST_LOG:=trace} linux-apex-hypervisor --duration 10s examples/network-partition-echo/config/hv-server.yml
               '';
               help = "Run echo example using systemd scope and exit after 10 seconds";
             }
             {
               name = "run-echo-scoped";
               command = ''
-                RUST_LOG=''${RUST_LOG:=trace} systemd-run --user --scope -- linux-apex-hypervisor examples/echo/config/hypervisor_config.yml
+                RUST_LOG=''${RUST_LOG:=trace} systemd-run --user --scope -- linux-apex-hypervisor examples/echo/config/hv-client.yml
               '';
               help = "Run echo example using systemd scope";
             }
@@ -107,7 +107,7 @@
             inherit nixpkgs system;
             pkgs = nixpkgs.legacyPackages.${system};
             linux-apex-hypervisor = hypervisorPackage;
-            network-partition-linux = self.packages.${system}.network-partition-linux;
+            network-partition-echo = self.packages.${system}.network-partition-echo;
             echo-partition = self.packages.${system}.echo-partition;
           };
         };
@@ -120,8 +120,8 @@
             doCheck = true;
             doDoc = true;
           };
-          network-partition-linux = naerskLib.buildPackage rec {
-            pname = "network-partition-linux";
+          network-partition-echo = naerskLib.buildPackage rec {
+            pname = "network-partition-echo";
             root = ./.;
             cargoBuildOptions = x: x ++ [ "-p" pname "--target" "x86_64-unknown-linux-musl" ];
             cargoTestOptions = x: x ++ [ "-p" pname "--target" "x86_64-unknown-linux-musl" ];
@@ -130,6 +130,14 @@
           };
           echo-partition = naerskLib.buildPackage rec {
             pname = "echo";
+            root = ./.;
+            cargoBuildOptions = x: x ++ [ "-p" pname "--target" "x86_64-unknown-linux-musl" ];
+            cargoTestOptions = x: x ++ [ "-p" pname "--target" "x86_64-unknown-linux-musl" ];
+            doCheck = true;
+            #doDoc = true;
+          };
+          echo-partition-server = naerskLib.buildPackage rec {
+            pname = "echo-server";
             root = ./.;
             cargoBuildOptions = x: x ++ [ "-p" pname "--target" "x86_64-unknown-linux-musl" ];
             cargoTestOptions = x: x ++ [ "-p" pname "--target" "x86_64-unknown-linux-musl" ];

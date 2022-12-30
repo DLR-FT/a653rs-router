@@ -11,7 +11,7 @@ partitions:
     duration: 100ms
     offset: 100ms
     period: 200ms
-    image: target/x86_64-unknown-linux-musl/release/network-partition-linux
+    image: target/x86_64-unknown-linux-musl/release/np-client
     udp_ports:
       - "127.0.0.1:34254"
 channel:

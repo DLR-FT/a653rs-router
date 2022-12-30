@@ -3,7 +3,7 @@
 
 use apex_rs_linux::partition::ApexLogger;
 
-include!(concat!(env!("OUT_DIR"), "/config.rs"));
+include!(concat!(env!("OUT_DIR"), "/np-client.rs"));
 
 fn main() {
     ApexLogger::install_panic_hook();

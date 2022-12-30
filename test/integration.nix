@@ -2,7 +2,7 @@
 , pkgs ? import <nixpkgs> { inherit system; config = { }; }
 , system ? builtins.currentSystem
 , linux-apex-hypervisor
-, network-partition-linux
+, network-partition-echo
 , echo-partition
 ,
 } @args:
@@ -29,7 +29,7 @@ import "${nixpkgs}/nixos/tests/make-test-python.nix"
                 duration: 50ms
                 offset: 100ms
                 period: 200ms
-                image: ${network-partition-linux}/bin/network-partition-linux
+                image: ${network-partition-echo}/bin/np-client
             channel:
               - !Sampling
                 name: EchoRequest

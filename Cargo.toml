@@ -3,5 +3,6 @@ members = [
   "config",
   "core",
   "linux",
-  "examples/echo"
+  "examples/echo",
+  "examples/network-partition-echo"
 ]

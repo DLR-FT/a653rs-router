@@ -57,6 +57,7 @@ struct VirtualLinkIdDef(u32);
 ///            name: InterfaceName::from("veth0"),
 ///            rate: DataRate::b(10000000),
 ///            mtu: ByteSize::kb(1),
+///            destination: String::from("127.0.0.1:8000"),
 ///        },
 ///     ]
 /// };
@@ -138,6 +139,10 @@ pub struct InterfaceConfig {
     /// The maximum size of a message that will be transmited using this virtual link.
     #[serde(deserialize_with = "de_size_str")]
     pub mtu: ByteSize,
+
+    /// UDP destination peer
+    /// TODO remove
+    pub destination: String,
 }
 
 /// A port of a communication channel with the hypervisor.

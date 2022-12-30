@@ -1,0 +1,23 @@
+stack_size:
+  periodic_process: 1MB
+virtual_links:
+  - id: 1
+    rate: 10000
+    msg_size: 1KB
+    interfaces: [ "veth0" ]
+    ports:      
+      - !SamplingPortSource
+        channel: EchoRequest
+  - id: 2
+    rate: 10000
+    msg_size: 1KB
+    interfaces: [ "veth0" ]
+    ports:
+      - !SamplingPortDestination
+        channel: EchoReply
+        validity: 1s
+interfaces:
+  - name: veth0
+    rate: 10000000
+    mtu: 1.5KB
+    destination: "127.0.0.1:34254"

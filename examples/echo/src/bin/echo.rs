@@ -1,11 +1,55 @@
+#![no_std]
+#![allow(incomplete_features)]
+#![feature(generic_const_exprs)]
+
 use apex_rs::prelude::*;
+use apex_rs_linux::partition::{ApexLinuxPartition, ApexLogger};
 use apex_rs_postcard::sampling::{SamplingPortDestinationExt, SamplingPortSourceExt};
 use core::hint;
 use core::str::FromStr;
 use core::time::Duration;
+use log::LevelFilter;
 use log::{error, info, trace};
-use once_cell::sync::OnceCell;
+use once_cell::sync::{Lazy, OnceCell};
 use serde::{Deserialize, Serialize};
+
+const ECHO_SIZE: MessageSize = 1000;
+
+static PERIOD: Lazy<Duration> = Lazy::new(|| {
+    PeriodicEchoPartition::<ECHO_SIZE, ApexLinuxPartition>::get_partition_status()
+        .period
+        .unwrap_duration()
+});
+
+static SENDER: OnceCell<SamplingPortSource<ECHO_SIZE, ApexLinuxPartition>> = OnceCell::new();
+
+static RECEIVER: OnceCell<SamplingPortDestination<ECHO_SIZE, ApexLinuxPartition>> = OnceCell::new();
+
+fn main() {
+    // Register panic info print on panic
+    ApexLogger::install_panic_hook();
+
+    // Log all events down to trace level
+    ApexLogger::install_logger(LevelFilter::Info).unwrap();
+
+    let echo_validity: Duration = PERIOD.checked_mul(2).unwrap();
+    let partition = PeriodicEchoPartition::<ECHO_SIZE, ApexLinuxPartition>::new(
+        echo_validity,
+        &SENDER,
+        &RECEIVER,
+        entry_point_periodic,
+        entry_point_aperiodic,
+    );
+    partition.run()
+}
+
+extern "C" fn entry_point_periodic() {
+    SENDER.get().unwrap().run_process();
+}
+
+extern "C" fn entry_point_aperiodic() {
+    RECEIVER.get().unwrap().run_process();
+}
 
 #[derive(Serialize, Deserialize, Copy, Clone, Debug)]
 /// Echo message
@@ -61,17 +105,21 @@ where
     [u8; ECHO_SIZE as usize]:,
 {
     fn run_process(&self) -> ! {
+        let mut last = 0;
         loop {
             let now = <H as ApexTimeP4Ext>::get_time().unwrap_duration();
             let result = self.recv_type::<Echo>();
             match result {
                 Ok(data) => {
                     let (valid, received) = data;
-                    info!(
-                        "EchoReply: seqnr = {:?}, time = {:?}, valid = {valid:?}",
-                        received.sequence,
-                        (now.as_millis() as u64) - received.when_ms
-                    );
+                    if received.sequence > last {
+                        last = received.sequence;
+                        info!(
+                            "EchoReply: seqnr = {:?}, time = {:?}, valid = {valid:?}",
+                            received.sequence,
+                            (now.as_millis() as u64) - received.when_ms
+                        );
+                    }
                 }
                 Err(_) => {
                     trace!("Failed to receive anything");

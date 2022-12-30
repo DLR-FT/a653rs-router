@@ -189,11 +189,12 @@ fn set_interfaces(config: &Config) -> Vec<TokenStream> {
         .map(|i| {
             let name = i.name.clone().0.to_uppercase();
             let name = format_ident!("IF_{name}");
+            let destination = i.destination.clone();
             // TODO make easily exchangeable for other interface types and multiple interfaces
             quote! {
                 let sock = sockets.remove(0);
                 sock.set_nonblocking(true).unwrap();
-                sock.connect("127.0.0.1:34256").unwrap();
+                sock.connect(#destination).unwrap();
                 let intf = UdpInterface::<#max_mtu>::new(sock, DataRate::b(#min_interface_data_rate));
                 #name.set(intf).unwrap();
             }

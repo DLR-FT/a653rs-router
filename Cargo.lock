@@ -522,7 +522,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "network-partition-linux"
+name = "network-partition-echo"
 version = "0.1.0"
 dependencies = [
  "apex-rs",
@@ -532,9 +532,18 @@ dependencies = [
  "log",
  "network-partition",
  "network-partition-config",
+ "network-partition-linux",
  "once_cell",
  "quote",
  "serde_yaml",
+]
+
+[[package]]
+name = "network-partition-linux"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "network-partition",
 ]
 
 [[package]]

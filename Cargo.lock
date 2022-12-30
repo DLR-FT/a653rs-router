@@ -35,7 +35,7 @@ dependencies = [
 [[package]]
 name = "apex-rs-linux"
 version = "0.1.0"
-source = "git+https://github.com/dadada/apex-linux.git?branch=stable-for-master-thesis#dc530dd344a59073e8345b366f3f1a15bd952900"
+source = "git+https://github.com/dadada/apex-linux.git?branch=stable-for-master-thesis#7c32b547855d53fc145c040f3c7de7c2b249f454"
 dependencies = [
  "anyhow",
  "apex-rs",
@@ -421,7 +421,7 @@ dependencies = [
 [[package]]
 name = "linux-apex-core"
 version = "0.1.0"
-source = "git+https://github.com/dadada/apex-linux.git?branch=stable-for-master-thesis#dc530dd344a59073e8345b366f3f1a15bd952900"
+source = "git+https://github.com/dadada/apex-linux.git?branch=stable-for-master-thesis#7c32b547855d53fc145c040f3c7de7c2b249f454"
 dependencies = [
  "anyhow",
  "apex-rs",
@@ -572,9 +572,9 @@ dependencies = [
 
 [[package]]
 name = "once_cell"
-version = "1.16.0"
+version = "1.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "86f0b0d4bf799edbc74508c1e8bf170ff5f41238e5f8225603ca7caaae2b7860"
+checksum = "6f61fba1741ea2b3d6a1e3178721804bb716a68a6aeba1149b5d52e3d464ea66"
 
 [[package]]
 name = "pin-utils"

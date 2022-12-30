@@ -78,7 +78,7 @@ pub fn generate_network_partition(
         impl Partition<Hypervisor> for NetworkPartition {
             fn cold_start(&self, ctx: &mut StartContext<Hypervisor>) {
 
-                let mut sockets = Hypervisor::get_udp_sockets();
+                let mut sockets = Hypervisor::receive_udp_sockets();
 
                 #( #vl_sampling_port_destinations )*
 

@@ -26,8 +26,9 @@ impl<const MTU: usize> Interface for UdpInterface<MTU> {
                 vl_id_buf.copy_from_slice(vl_id);
                 let vl_id = u32::from_be_bytes(vl_id_buf);
                 let vl_id = VirtualLinkId::from_u32(vl_id);
-                trace!("Received message from UDP socket for VL {vl_id}");
-                Ok((vl_id, &buf[vl_id_len..read]))
+                let msg = &buf[vl_id_len..read];
+                trace!("Received message from UDP socket for VL {vl_id}: {:?}", msg);
+                Ok((vl_id, msg))
             }
             Err(err) => {
                 warn!("Failed to receive from UDP socket: {err:?}");

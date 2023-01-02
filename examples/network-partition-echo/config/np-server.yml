@@ -15,7 +15,7 @@ virtual_links:
     ports:
       - !SamplingPortDestination
         channel: EchoReply
-        validity: 1s
+        validity: 2s
 interfaces:
   - name: veth0
     rate: 10000000

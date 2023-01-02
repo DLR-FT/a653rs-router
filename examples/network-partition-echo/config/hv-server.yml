@@ -1,4 +1,4 @@
-major_frame: 10s
+major_frame: 1s
 partitions:
   - id: 0
     name: Echo

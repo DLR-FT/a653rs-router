@@ -10,7 +10,7 @@ use core::fmt::{Debug, Display};
 use core::time::Duration;
 use heapless::spsc::Queue;
 use heapless::Vec;
-use log::trace;
+use log::{error, trace};
 
 /// An ID of a virtual link.
 ///
@@ -277,12 +277,11 @@ where
 
     fn receive_network(&mut self, buf: &[u8]) -> Result<(), Error> {
         if self.port_dst.is_some() {
-            // A VL may never receive things from both a local port and the network.
-            // This means that another hypervisor is misconfigured to use one of the same
-            // VLs as the local hypervisor.
+            trace!("A VL may never receive things from both a local port and the network. This means that another hypervisor is misconfigured to use one of the same VLs as the local hypervisor.");
             return Err(Error::InterfaceReceiveFail);
         }
         if buf.len() > MTU as usize {
+            error!("Discarding the message because it is too large for the virtual link");
             return Err(Error::InterfaceReceiveFail);
         }
         forward_to_sources(&self.port_srcs, buf)?;

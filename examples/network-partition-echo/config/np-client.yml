@@ -8,7 +8,7 @@ virtual_links:
     ports:      
       - !SamplingPortDestination
         channel: EchoRequest
-        validity: 1s
+        validity: 2s
   - id: 2
     rate: 10000
     msg_size: 100B

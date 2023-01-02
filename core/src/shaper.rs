@@ -236,6 +236,7 @@ impl QueueStatus {
         let consumed = (send_slope * duration_ns) as i128;
         self.credit -= consumed;
         self.backlog -= bits;
+        trace!("Consumed {consumed} and removed {bits} from backlog");
         Ok(consumed as u64)
     }
 
@@ -258,6 +259,7 @@ impl QueueStatus {
 
     fn submit(&mut self, bits: u64) -> Result<u64, u64> {
         self.backlog = self.backlog.checked_add(bits).ok_or(bits)?;
+        trace!("Submitted {bits} to queue {}", self.id);
         Ok(self.backlog)
     }
 }

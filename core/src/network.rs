@@ -3,7 +3,7 @@ use crate::types::DataRate;
 use crate::virtual_link::VirtualLinkId;
 use core::fmt::Debug;
 use core::time::Duration;
-use log::trace;
+use log::{trace, warn};
 
 /// Size of a frame payload.
 pub(crate) type PayloadSize = u32;
@@ -50,8 +50,7 @@ where
     /// Saves a frame to the queue to be written to the network later.
     /// If the underlying queue has no more free space, the oldest frame is dropped from the front
     /// and the new frame is inserted at the back.
-    /// Returns the current size of the queue in bytes.
-    fn enqueue_frame(&mut self, frame: Frame<PL_SIZE>) -> Result<u64, Error>;
+    fn enqueue_frame(&mut self, frame: Frame<PL_SIZE>) -> Result<Option<u32>, Error>;
 
     /// Retrieves a frame from the queue to write it to the network.
     fn dequeue_frame(&mut self) -> Option<Frame<PL_SIZE>>;
@@ -62,16 +61,25 @@ impl<const PL_SIZE: PayloadSize, const QUEUE_CAPACITY: usize> FrameQueue<PL_SIZE
 where
     [(); PL_SIZE as usize]:,
 {
-    fn enqueue_frame(&mut self, frame: Frame<PL_SIZE>) -> Result<u64, Error> {
-        let res = self.enqueue(frame);
-        if res.is_err() {
-            _ = self.dequeue();
-            self.enqueue(frame).unwrap();
-            trace!("Enqueued frame while overflowing a queue.");
-            Ok(self.len() as u64 * PL_SIZE as u64)
+    fn enqueue_frame(&mut self, frame: Frame<PL_SIZE>) -> Result<Option<u32>, Error> {
+        if self.len() < self.capacity() {
+            match self.enqueue(frame) {
+                Ok(_) => {
+                    trace!("Enqueued frame without overflowing a queue.");
+                    Ok(Some(PL_SIZE * self.len() as u32))
+                }
+                Err(_) => Err(Error::EnqueueFailed),
+            }
         } else {
-            trace!("Enqueued frame without overflowing a queue.");
-            Ok(self.len() as u64 * PL_SIZE as u64)
+            warn!("Dropping first frame from queue");
+            _ = self.dequeue();
+            match self.enqueue(frame) {
+                Ok(_) => {
+                    trace!("Enqueued frame while overflowing a queue.");
+                    Ok(None)
+                }
+                Err(_) => Err(Error::EnqueueFailed),
+            }
         }
     }
 

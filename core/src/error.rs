@@ -22,6 +22,9 @@ pub enum Error {
     /// It has been tried to dequeue an item from an empty queue.
     QueueEmpty,
 
+    /// Enqueue failed
+    EnqueueFailed,
+
     /// Transmission is not allowed at the time.
     TransmitNotAllowed,
 
@@ -51,6 +54,7 @@ impl core::fmt::Display for Error {
                 write!(f, "Invalid transmission: {transmission:?}")
             }
             Error::NoSuchQueue(q_id) => write!(f, "No such queue: {q_id}"),
+            Error::EnqueueFailed => write!(f, "Failed to enqueue a frame into queue"),
             Error::Unknown => write!(f, "Unknown error"),
         }
     }

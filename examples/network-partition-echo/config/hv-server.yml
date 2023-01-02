@@ -17,13 +17,13 @@ partitions:
 channel:
   - !Sampling
     name: EchoRequest
-    msg_size: 10KB
+    msg_size: 100B
     source: Network
     destination:
       - Echo
   - !Sampling
     name: EchoReply
-    msg_size: 10KB
+    msg_size: 100B
     source: Echo
     destination:
       - Network

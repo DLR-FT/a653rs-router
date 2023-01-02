@@ -157,18 +157,22 @@ fn forward_to_network_queue<const MTU: PayloadSize, const MAX_QUEUE_LEN: usize>(
 where
     [(); MTU as usize]:,
 {
-    let curr = queue.len() as u64;
-    let next = queue.enqueue_frame(frame)?;
-    if curr < next {
-        let transmission = Transmission::new(*queue_id, Duration::ZERO, MTU);
-        trace!("Requesting transmission of {} bytes from shaper", MTU);
-        shaper.request_transmission(&transmission)
-    } else {
-        trace!(
+    match queue.enqueue_frame(frame) {
+        Ok(enqueued) => match enqueued {
+            Some(bytes) => {
+                let transmission = Transmission::new(*queue_id, Duration::ZERO, bytes);
+                trace!("Requesting transmission of {} bytes from shaper", MTU);
+                shaper.request_transmission(&transmission)
+            }
+            None => {
+                trace!(
             "Not requesting transmission from shaper because queue is already full. Queue size {}",
             queue.len()
-        );
-        Ok(())
+                );
+                Ok(())
+            }
+        },
+        Err(err) => Err(err),
     }
 }
 

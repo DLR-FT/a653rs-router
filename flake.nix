@@ -79,8 +79,8 @@
               name = "test-run-echo";
               command = ''
                 cargo build --release --target x86_64-unknown-linux-musl
-                RUST_LOG=''${RUST_LOG:=trace} linux-apex-hypervisor --duration 10s examples/network-partition-echo/config/hv-client.yml & \
-                RUST_LOG=''${RUST_LOG:=trace} linux-apex-hypervisor --duration 10s examples/network-partition-echo/config/hv-server.yml
+                RUST_LOG=''${RUST_LOG:=trace} linux-apex-hypervisor --duration 10s examples/network-partition-echo/config/hv-client.yml 2> hv-client.log & \
+                RUST_LOG=''${RUST_LOG:=trace} linux-apex-hypervisor --duration 10s examples/network-partition-echo/config/hv-server.yml 2> hv-server.log
               '';
               help = "Run echo example using systemd scope and exit after 10 seconds";
             }

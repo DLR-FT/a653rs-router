@@ -243,7 +243,10 @@ impl QueueStatus {
     /// Increases the credit, while the queue was blocked by the port transmitting conflicting
     /// traffic or a higher priority queue has queued frames.
     fn restore(&mut self, time: &Duration) -> Result<u64, Error> {
-        if !self.transmit && self.backlog > 0 {
+        // Another queue is transmitting and this queue is blocked
+        //, otherwise this queue would have been selected.
+        // Or the queue has nothing to transmit, but the credit is still negative.
+        if !self.transmit && (self.backlog > 0 || self.credit < 0) {
             let idle_slope = self.idle_slope as f64;
             let time = time.as_nanos() as f64;
             let credited_bytes = idle_slope * time / 1_000_000_000.0;

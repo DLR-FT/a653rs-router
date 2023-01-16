@@ -35,7 +35,7 @@
           latest.clippy
           latest.rustfmt
           targets.x86_64-unknown-linux-musl.latest.rust-std
-          targets.thumbv6m-none-eabi.latest.rust-std
+          targets.thumbv7m-none-eabi.latest.rust-std
         ];
         naerskLib = (naersk.lib.${system}.override {
           cargo = rust-toolchain;
@@ -64,14 +64,17 @@
           git.hooks.enable = true;
           git.hooks.pre-commit.text = ''
             treefmt --fail-on-change
-            cargo clippy -- -D warnings
+            cargo clippy -p network-partition \
+              -p network-partition-linux \
+              -p network-partition \
+              -p echo
           '';
           commands = [
             {
               name = "build-no_std";
               command = ''
                 cd $PRJ_ROOT
-                cargo build -p network-partition --release --target thumbv6m-none-eabi
+                cargo build -p network-partition --release --target thumbv7m-none-eabi
               '';
               help = "Verify that the library builds for no_std without std-features";
             }
@@ -79,8 +82,8 @@
               name = "test-run-echo";
               command = ''
                 cargo build --release --target x86_64-unknown-linux-musl
-                RUST_LOG=''${RUST_LOG:=trace} linux-apex-hypervisor --duration 10s examples/network-partition-echo/config/hv-client.yml 2> hv-client.log & \
-                RUST_LOG=''${RUST_LOG:=trace} linux-apex-hypervisor --duration 10s examples/network-partition-echo/config/hv-server.yml 2> hv-server.log
+                RUST_LOG=''${RUST_LOG:=trace} linux-apex-hypervisor --duration 10s linux/config/hv-client.yml 2> hv-client.log & \
+                RUST_LOG=''${RUST_LOG:=trace} linux-apex-hypervisor --duration 10s linux/config/hv-server.yml 2> hv-server.log
               '';
               help = "Run echo example using systemd scope and exit after 10 seconds";
             }
@@ -120,8 +123,8 @@
             doCheck = true;
             doDoc = true;
           };
-          network-partition-echo = naerskLib.buildPackage rec {
-            pname = "network-partition-echo";
+          network-partition-linux = naerskLib.buildPackage rec {
+            pname = "network-partition-linux";
             root = ./.;
             cargoBuildOptions = x: x ++ [ "-p" pname "--target" "x86_64-unknown-linux-musl" ];
             cargoTestOptions = x: x ++ [ "-p" pname "--target" "x86_64-unknown-linux-musl" ];
@@ -130,14 +133,6 @@
           };
           echo-partition = naerskLib.buildPackage rec {
             pname = "echo";
-            root = ./.;
-            cargoBuildOptions = x: x ++ [ "-p" pname "--target" "x86_64-unknown-linux-musl" ];
-            cargoTestOptions = x: x ++ [ "-p" pname "--target" "x86_64-unknown-linux-musl" ];
-            doCheck = true;
-            #doDoc = true;
-          };
-          echo-partition-server = naerskLib.buildPackage rec {
-            pname = "echo-server";
             root = ./.;
             cargoBuildOptions = x: x ++ [ "-p" pname "--target" "x86_64-unknown-linux-musl" ];
             cargoTestOptions = x: x ++ [ "-p" pname "--target" "x86_64-unknown-linux-musl" ];

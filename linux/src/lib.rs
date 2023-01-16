@@ -1,3 +1,1 @@
-mod udp;
-
-pub use udp::UdpInterface;
+pub mod network;

@@ -1,3 +1,4 @@
+use network_partition_config::config::Config;
 use network_partition_config::generate::generate_network_partition;
 use quote::quote;
 use std::env;
@@ -27,12 +28,26 @@ fn main() {
 
 fn gen_config(config: &Path, dest: &Path, out_dir: &OsString) {
     let config = read_to_string(config).unwrap();
+    let config: Config = serde_yaml::from_str(&config).unwrap();
 
     let network_partition = generate_network_partition(
-        serde_yaml::from_str(&config).unwrap(),
+        &config,
         quote!(apex_rs_linux::partition::ApexLinuxPartition),
-        quote!(crate::UdpInterface),
+        quote!(network_partition_linux::network::LinuxNetworking),
     );
+
+    let network_partition = quote! {
+        use apex_rs_linux::partition::ApexLogger;
+        use log::LevelFilter;
+
+        #network_partition
+
+        fn main() {
+            ApexLogger::install_panic_hook();
+            ApexLogger::install_logger(LevelFilter::Trace).unwrap();
+            NetworkPartition.run();
+        }
+    };
 
     write(dest, network_partition.to_string()).unwrap();
 

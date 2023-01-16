@@ -1,12 +1,10 @@
-use crate::error::Error;
-use crate::types::DataRate;
-use crate::virtual_link::VirtualLinkId;
-use core::fmt::Debug;
-use core::time::Duration;
+use core::{marker::PhantomData, time::Duration};
+
+use crate::{error::Error, prelude::DataRate, virtual_link::VirtualLinkId};
 use log::{trace, warn};
 
 /// Size of a frame payload.
-pub(crate) type PayloadSize = u32;
+pub type PayloadSize = u32;
 
 /// A frame that is managed by the queue.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -31,15 +29,6 @@ where
     fn from(val: [u8; PL_SIZE as usize]) -> Self {
         Self(val)
     }
-}
-
-/// A network interface.
-pub trait Interface: Debug {
-    /// Sends data to the interface.
-    fn send(&self, vl: &VirtualLinkId, buf: &[u8]) -> Result<Duration, Duration>;
-
-    /// Receives data from the interface.
-    fn receive<'a>(&self, buf: &'a mut [u8]) -> Result<(VirtualLinkId, &'a [u8]), Error>;
 }
 
 /// A queue for storing frames that are waiting to be transmitted.
@@ -89,51 +78,100 @@ where
     }
 }
 
-/// Pseudo network interface.
-///
-/// The pseudo network interface will always emit the same frame when receiving frames from it.
-/// The pseudo network interface will always assert that any frame was transmitted successfully
-/// at the configured rate, but it discard the frame.
-#[derive(Debug)]
-pub struct PseudoInterface<'a> {
-    vl: VirtualLinkId,
-    buf: &'a [u8],
-    rate: DataRate,
-    mtu: u32,
-}
+/// Network interface ID.
+#[derive(Debug, Clone, Copy)]
+pub struct NetworkInterfaceId(u32);
 
-impl<'a> PseudoInterface<'a> {
-    /// Creates a new `PseudoInterface` that can receive `frame` and simulates transmission of frames with rate `rate`.
-    pub fn new(vl: VirtualLinkId, buf: &'a [u8], rate: DataRate) -> Self {
-        Self {
-            vl,
-            buf,
-            rate,
-            mtu: buf.len() as u32,
-        }
+#[allow(clippy::from_over_into)]
+impl Into<usize> for NetworkInterfaceId {
+    fn into(self) -> usize {
+        self.0 as usize
     }
 }
 
-impl<'a> Interface for PseudoInterface<'a> {
-    fn send(&self, _vl: &VirtualLinkId, _buf: &[u8]) -> Result<Duration, Duration> {
-        let mtu = self.mtu as f64;
-        let rate = self.rate.as_u64() as f64;
-        let duration = mtu * 1_000_000_000.0 / rate;
-        let duration = Duration::from_nanos(duration as u64);
-        trace!("Sent frame to network, took {duration:#?}");
-        Ok(duration)
+impl From<usize> for NetworkInterfaceId {
+    fn from(val: usize) -> Self {
+        Self(val as u32)
+    }
+}
+
+/// A network interface.
+#[derive(Debug, Clone)]
+pub struct NetworkInterface<const MTU: PayloadSize, H: PlatformNetworkInterface> {
+    _h: PhantomData<H>,
+    id: NetworkInterfaceId,
+}
+
+impl<const MTU: PayloadSize, H: PlatformNetworkInterface> NetworkInterface<MTU, H> {
+    /// Sends data to the interface.
+    pub fn send(&self, vl: &VirtualLinkId, buf: &[u8]) -> Result<Duration, Duration> {
+        if buf.len() > MTU as usize {
+            return Err(Duration::ZERO);
+        }
+
+        H::platform_interface_send_unchecked(self.id, *vl, buf)
     }
 
-    fn receive<'b>(&self, buf: &'b mut [u8]) -> Result<(VirtualLinkId, &'b [u8]), Error> {
-        if buf.len() < self.buf.len() {
-            return Err(Error::InvalidData);
+    /// Receives data from the interface.
+    pub fn receive<'a>(&self, buf: &'a mut [u8]) -> Result<(VirtualLinkId, &'a [u8]), Error> {
+        if buf.len() < MTU as usize {
+            return Err(Error::InterfaceReceiveFail);
         }
-        buf.clone_from_slice(&self.buf[0..buf.len()]);
-        trace!(
-            "Received frame with length {} bytes from network.",
-            buf.len()
-        );
-        Ok((self.vl, buf))
+
+        H::platform_interface_receive_unchecked(self.id, buf)
+    }
+}
+
+/// Platform-specific network interface type.
+pub trait PlatformNetworkInterface {
+    /// Send something to the network and report how long it took.
+    fn platform_interface_send_unchecked(
+        id: NetworkInterfaceId,
+        vl: VirtualLinkId,
+        buffer: &[u8],
+    ) -> Result<Duration, Duration>;
+
+    /// Receive something from the network and report the virtual link id and the payload.
+    fn platform_interface_receive_unchecked(
+        id: NetworkInterfaceId,
+        buffer: &'_ mut [u8],
+    ) -> Result<(VirtualLinkId, &'_ [u8]), Error>;
+}
+
+/// Creates a network interface id.
+pub trait CreateNetworkInterfaceId<H: PlatformNetworkInterface> {
+    /// Creates a network interface id.
+    fn create_network_interface_id(
+        _name: &str, // TODO use network_partition_config::config::InterfaceName ?
+        destination: &str,
+        rate: DataRate,
+    ) -> Result<NetworkInterfaceId, Error>;
+}
+
+/// Creates a nertwork interface with an MTU.
+pub trait CreateNetworkInterface<H: PlatformNetworkInterface> {
+    /// Creates a network interface id.
+    fn create_network_interface<const MTU: PayloadSize>(
+        _name: &str, // TODO use network_partition_config::config::InterfaceName ?
+        destination: &str,
+        rate: DataRate,
+    ) -> Result<NetworkInterface<MTU, H>, Error>;
+}
+
+impl<H: PlatformNetworkInterface, T> CreateNetworkInterface<H> for T
+where
+    T: CreateNetworkInterfaceId<H>,
+{
+    fn create_network_interface<const MTU: PayloadSize>(
+        name: &str, // TODO use network_partition_config::config::InterfaceName ?
+        destination: &str,
+        rate: DataRate,
+    ) -> Result<NetworkInterface<MTU, H>, Error> {
+        let id = T::create_network_interface_id(name, destination, rate)?;
+        Ok(NetworkInterface {
+            _h: PhantomData::default(),
+            id,
+        })
     }
 }
 

@@ -1,8 +1,35 @@
-use core::time::Duration;
+use core::{fmt::Debug, time::Duration};
 
-use crate::{error::Error, network::Interface, shaper::Shaper, virtual_link::VirtualLink};
+use crate::{
+    error::Error,
+    network::NetworkInterface,
+    prelude::{PayloadSize, PlatformNetworkInterface, VirtualLinkId},
+    shaper::Shaper,
+    virtual_link::VirtualLink,
+};
 use apex_rs::prelude::*;
 use log::{error, trace};
+
+/// Trait that hides hypervisor and MTU.
+pub trait Interface: Debug {
+    /// Send data.
+    fn send(&self, vl: &VirtualLinkId, buf: &[u8]) -> Result<Duration, Duration>;
+
+    /// Receive data.
+    fn receive<'a>(&self, buf: &'a mut [u8]) -> Result<(VirtualLinkId, &'a [u8]), Error>;
+}
+
+impl<const MTU: PayloadSize, H: PlatformNetworkInterface + Debug> Interface
+    for NetworkInterface<MTU, H>
+{
+    fn receive<'a>(&self, buf: &'a mut [u8]) -> Result<(VirtualLinkId, &'a [u8]), Error> {
+        NetworkInterface::receive(self, buf)
+    }
+
+    fn send(&self, vl: &VirtualLinkId, buf: &[u8]) -> Result<Duration, Duration> {
+        NetworkInterface::send(self, vl, buf)
+    }
+}
 
 /// Forwards frames between the hypervisor and the network and between ports on the same hypervisor.
 #[derive(Debug)]

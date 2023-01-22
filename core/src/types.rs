@@ -12,9 +12,4 @@ impl DataRate {
     pub const fn as_u64(self) -> u64 {
         self.0
     }
-
-    /// Gets the data rate in bits/s as `f64`.
-    pub const fn as_f64(self) -> f64 {
-        self.0 as f64
-    }
 }

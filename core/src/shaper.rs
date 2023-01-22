@@ -4,7 +4,7 @@ use crate::error::Error;
 use crate::types::DataRate;
 use core::{fmt::Debug, time::Duration};
 use heapless::Vec;
-use log::trace;
+use log::{error, trace};
 
 /// The id of a queue that is managed by the shaper.
 #[derive(Default, Debug, Clone, Copy, Eq, PartialEq)]
@@ -231,13 +231,20 @@ impl QueueStatus {
         if !self.transmit_allowed() {
             return Err(Error::TransmitNotAllowed);
         }
-        let send_slope = self.send_slope as f64;
-        let duration_ns = (duration.as_nanos() as f64) / 1_000_000_000.0;
-        let consumed = (send_slope * duration_ns) as i128;
-        self.credit -= consumed;
-        self.backlog -= bits;
-        trace!("Consumed {consumed} and removed {bits} from backlog");
-        Ok(consumed as u64)
+        let send_slope = self.send_slope;
+        match duration.checked_mul(send_slope as u32) {
+            Some(consumed) => {
+                let consumed = consumed.as_secs() as i128;
+                self.credit -= consumed;
+                self.backlog -= bits;
+                trace!("Consumed {consumed:?} and removed {bits:?} from backlog");
+                Ok(consumed as u64)
+            }
+            None => {
+                error!("Failed to consume credit for queue {}", self.id);
+                Err(Error::Unknown)
+            }
+        }
     }
 
     /// Increases the credit, while the queue was blocked by the port transmitting conflicting
@@ -247,11 +254,17 @@ impl QueueStatus {
         //, otherwise this queue would have been selected.
         // Or the queue has nothing to transmit, but the credit is still negative.
         if !self.transmit && (self.backlog > 0 || self.credit < 0) {
-            let idle_slope = self.idle_slope as f64;
-            let time = time.as_nanos() as f64;
-            let credited_bytes = idle_slope * time / 1_000_000_000.0;
-            self.credit += credited_bytes as i128;
-            Ok(credited_bytes as u64)
+            match time.checked_mul(self.idle_slope as u32) {
+                Some(credited_bytes) => {
+                    let credited_bytes = credited_bytes.as_secs() as i128;
+                    self.credit += credited_bytes;
+                    Ok(credited_bytes as u64)
+                }
+                None => {
+                    error!("Failed to restore credit to queue, because a calculation step failed");
+                    Err(Error::Unknown) // TODO better error handling
+                }
+            }
         } else {
             if self.backlog == 0 && !self.transmit {
                 self.credit = 0;

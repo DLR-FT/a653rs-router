@@ -78,10 +78,11 @@ struct LimitedUdpSocket {
 }
 
 impl LimitedUdpSocket {
+    /// trans is transmitted bytes
     fn duration(&self, trans: usize) -> Duration {
         // TODO configure data rate from configuration
-        let duration = trans as f64 * 8.0 / self.rate.as_f64() * 1_000_000_000.0;
-        Duration::from_nanos(duration as u64)
+        let duration = ((trans as u64) * 8_000_000_000) / self.rate.as_u64();
+        Duration::from_nanos(duration)
     }
 }
 
@@ -100,5 +101,24 @@ impl CreateNetworkInterfaceId<LinuxNetworking> for LinuxNetworking {
         let id = interfaces.len() - 1;
 
         Ok(NetworkInterfaceId::from(id))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use network_partition::prelude::DataRate;
+    use std::{net::UdpSocket, time::Duration};
+
+    use super::LimitedUdpSocket;
+
+    #[test]
+    fn calc_duration() {
+        let sock = UdpSocket::bind("127.0.0.1:34254").unwrap();
+        let limited_sock = LimitedUdpSocket {
+            sock,
+            rate: DataRate::b(100),
+        };
+        let trans = 100;
+        assert_eq!(limited_sock.duration(trans), Duration::from_secs(8))
     }
 }

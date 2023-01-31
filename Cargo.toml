@@ -1,8 +1,18 @@
 [workspace]
 resolver = "2"
 members = [
-  "config",
+  "gen-config",
   "core",
   "linux",
+  "xng",
   "examples/echo",
+  "examples/zynq7000"
+]
+default-members = [  
+  "gen-config",
+  "core",
+  "linux",
+  "xng",
+  "examples/echo",
+  #"examples/zynq7000"
 ]

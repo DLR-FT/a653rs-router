@@ -9,7 +9,7 @@ use std::process::Command;
 
 fn main() {
     let out_dir = env::var_os("OUT_DIR").unwrap_or_default();
-    let config_dir = env::var_os("CONFIG_DIR").unwrap_or(OsString::from("config"));
+    let config_dir = env::var_os("CONFIG_DIR").unwrap_or(OsString::from("../../config"));
 
     {
         let dest_path = Path::new(&out_dir).join("np-client.rs");

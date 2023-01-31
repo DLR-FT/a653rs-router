@@ -17,9 +17,12 @@
     };
 
     hypervisor.url = "github:dadada/apex-linux/stable-for-master-thesis";
+
+    xng-utils.url = "github:dadada/xng-flake-utils/dev/dadada";
+    xng-utils.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { self, nixpkgs, utils, devshell, fenix, hypervisor, naersk, ... }@inputs:
+  outputs = { self, nixpkgs, utils, devshell, fenix, hypervisor, naersk, xng-utils, ... }@inputs:
     utils.lib.eachSystem [ "x86_64-linux" ] (system:
       let
         pkgs = import nixpkgs {
@@ -36,15 +39,49 @@
           latest.rustfmt
           targets.x86_64-unknown-linux-musl.latest.rust-std
           targets.thumbv7m-none-eabi.latest.rust-std
+          targets.armv7a-none-eabi.latest.rust-std
         ];
         naerskLib = (naersk.lib.${system}.override {
           cargo = rust-toolchain;
           rustc = rust-toolchain;
         });
         hypervisorPackage = hypervisor.packages.${system}.linux-apex-hypervisor;
+
+        xngSrcs = {
+          xng = pkgs.requireFile {
+            name = "14-033.094.ops+armv7a-vmsa-tz+zynq7000.r16736.tbz2";
+            url = "http://fentiss.com";
+            sha256 = "1gb0cq3mmmr2fqj49p4svx07h5ccs8v564awlsc56mfjhm6jg3n4";
+          };
+          lithos = pkgs.requireFile {
+            name = "020.080.ops.r7919+xngsmp.tbz2";
+            url = "https://fentiss.com";
+            sha256 = "1b73d6x3galw3bhj5nac7ifgp15zrsyipn4imwknr24gp1l14sc8";
+          };
+        };
       in
       {
         inherit formatter;
+
+        # TODO merge into default dev shell
+        devShells.xng =
+          let
+            mkShell = pkgs.mkShell.override { stdenv = pkgs.gccMultiStdenv; };
+          in
+          with self.packages."${system}"; mkShell {
+            C_INCLUDE_PATH = "${xng-ops}/include";
+            inputsFrom = [ xng-sys-image ];
+            packages = with pkgs; [
+              formatter
+              treefmt
+              rust-toolchain
+              rust-analyzer
+              cargo-outdated
+              cargo-udeps
+              cargo-audit
+              cargo-watch
+            ];
+          };
 
         devShells.default = pkgs.devshell.mkShell {
           imports = [ "${devshell}/extra/git/hooks.nix" ];
@@ -82,17 +119,29 @@
               name = "test-run-echo";
               command = ''
                 cargo build --release --target x86_64-unknown-linux-musl
-                RUST_LOG=''${RUST_LOG:=trace} linux-apex-hypervisor --duration 10s linux/config/hv-client.yml 2> hv-client.log & \
-                RUST_LOG=''${RUST_LOG:=trace} linux-apex-hypervisor --duration 10s linux/config/hv-server.yml 2> hv-server.log
+                RUST_LOG=''${RUST_LOG:=trace} linux-apex-hypervisor --duration 10s config/hv-client.yml 2> hv-client.log & \
+                RUST_LOG=''${RUST_LOG:=trace} linux-apex-hypervisor --duration 10s config/hv-server.yml 2> hv-server.log
               '';
               help = "Run echo example using systemd scope and exit after 10 seconds";
             }
             {
               name = "run-echo-scoped";
               command = ''
-                RUST_LOG=''${RUST_LOG:=trace} systemd-run --user --scope -- linux-apex-hypervisor examples/echo/config/hv-client.yml
+                RUST_LOG=''${RUST_LOG:=trace} systemd-run --user --scope -- linux-apex-hypervisor hv-client.yml
               '';
               help = "Run echo example using systemd scope";
+            }
+
+            {
+              name = "jtag-boot";
+              help = "Boot the network partition using JTAG";
+              command = ''
+                xsct $UTILS_ROOT/deployment/scripts/tcl_lib/zynq7000_init.tcl \
+                  ./coraZ7/ps7_init.tcl \
+                  ./coraZ7/CoraZ7_BD_wrapper.bit \
+                  ./coraZ7/CoraZ7_BD_wrapper.xsa \
+                  ${self.packages.${system}.xng-sys-image}/sys_img.elf
+              '';
             }
           ];
         };
@@ -110,34 +159,60 @@
             inherit nixpkgs system;
             pkgs = nixpkgs.legacyPackages.${system};
             linux-apex-hypervisor = hypervisorPackage;
-            network-partition-echo = self.packages.${system}.network-partition-echo;
-            echo-partition = self.packages.${system}.echo-partition;
+            network-partition-echo = self.packages.${system}.echo;
+            echo-partition = self.packages.${system}.echo;
           };
         };
+
         packages = {
-          network-partition = naerskLib.buildPackage rec {
-            pname = "network-partition";
-            root = ./.;
-            cargoBuildOptions = x: x ++ [ "-p" pname "--target" "x86_64-unknown-linux-musl" ];
-            cargoTestOptions = x: x ++ [ "-p" pname "--target" "x86_64-unknown-linux-musl" ];
-            doCheck = true;
-            doDoc = true;
-          };
-          network-partition-linux = naerskLib.buildPackage rec {
-            pname = "network-partition-linux";
-            root = ./.;
-            cargoBuildOptions = x: x ++ [ "-p" pname "--target" "x86_64-unknown-linux-musl" ];
-            cargoTestOptions = x: x ++ [ "-p" pname "--target" "x86_64-unknown-linux-musl" ];
-            doCheck = true;
-            #doDoc = true;
-          };
-          echo-partition = naerskLib.buildPackage rec {
+          echo = naerskLib.buildPackage rec {
             pname = "echo";
+            CONFIG_DIR = ./config;
             root = ./.;
             cargoBuildOptions = x: x ++ [ "-p" pname "--target" "x86_64-unknown-linux-musl" ];
             cargoTestOptions = x: x ++ [ "-p" pname "--target" "x86_64-unknown-linux-musl" ];
             doCheck = true;
             #doDoc = true;
+          };
+          np-zynq7000 = naerskLib.buildPackage rec {
+            pname = "np-zynq7000";
+            CONFIG_DIR = ./config;
+            root = ./.;
+            cargoBuildOptions = x: x ++ [ "-p" pname "--target" "armv7a-none-eabi" ];
+            doCheck = false;
+            copyLibs = true;
+            copyBins = false;
+            #doDoc = true;
+          };
+          xng-ops = xng-utils.lib.buildXngOps {
+            inherit pkgs;
+            src = xngSrcs.xng;
+          };
+          lithos-ops = xng-utils.lib.buildLithOsOps {
+            inherit pkgs;
+            src = xngSrcs.lithos;
+          };
+          xng-sys-image = xng-utils.lib.buildXngSysImage {
+            inherit pkgs;
+            # TODO enable when armv7a-none-eabihf is in rust nightly or define target file
+            hardFp = false;
+            xngOps = self.packages.${system}.xng-ops;
+            lithOsOps = self.packages.${system}.lithos-ops;
+            xcf = pkgs.runCommandNoCC "patch-src" { } ''
+              cp -r ${./. + "/config/xml"} $out/
+              #for file in $(find $out -name hypervisor.xml)
+              #do
+              #  substituteInPlace "$file" --replace 'baseAddr="0xE0001000"' 'baseAddr="0xE0000000"'
+              #done
+            '';
+            name = "network_partition_example";
+            partitions = {
+              NetworkPartition = {
+                src = "${self.packages."${system}".np-zynq7000}/lib/libnp_zynq7000.a";
+                enableLithOs = true;
+                ltcf = ./config/network_partition.ltcf;
+              };
+            };
           };
         };
       });

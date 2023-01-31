@@ -244,7 +244,8 @@
         "hypervisor": "hypervisor",
         "naersk": "naersk_2",
         "nixpkgs": "nixpkgs_4",
-        "utils": "utils_2"
+        "utils": "utils_2",
+        "xng-utils": "xng-utils"
       }
     },
     "rust-analyzer-src": {
@@ -308,6 +309,27 @@
       "original": {
         "owner": "numtide",
         "repo": "flake-utils",
+        "type": "github"
+      }
+    },
+    "xng-utils": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1674490952,
+        "narHash": "sha256-Wz2vO5T9fms/GAankoEo460OZPdyS8Rxlr5PIMVA5AA=",
+        "owner": "dadada",
+        "repo": "xng-flake-utils",
+        "rev": "c439f2072cd2daef4a6a552733c488e4c00ecae9",
+        "type": "github"
+      },
+      "original": {
+        "owner": "dadada",
+        "ref": "dev/dadada",
+        "repo": "xng-flake-utils",
         "type": "github"
       }
     }

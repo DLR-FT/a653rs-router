@@ -1,22 +1,23 @@
 cargo-features = [ "per-package-target" ]
 
 [package]
-name = "echo"
+name = "np-zynq7000"
 version = "0.1.0"
 edition = "2021"
-forced-target = "x86_64-unknown-linux-musl"
+forced-target = "armv7a-none-eabi"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+crate-type = [ "staticlib" ]
 
 [dependencies]
 network-partition = { path = "../../core" }
-network-partition-linux = { path = "../../linux" }
+network-partition-xng = { path = "../../xng" }
 apex-rs = { git = "https://github.com/aeronautical-informatics/apex-rs.git", branch = "main" }
-apex-rs-linux = { git = "https://github.com/dadada/apex-linux.git", branch = "stable-for-master-thesis" }
-apex-rs-postcard = { git = "https://github.com/aeronautical-informatics/apex-rs-postcard.git", branch = "main" }
-serde = { version = "1.0", features = ["derive"] }
+apex-rs-xng = { git = "https://github.com/dadada/apex-rs-xng.git", branch = "xng-hypervisor-debug" }
 log = "0"
-once_cell = "1.17"
+heapless = { version = "0.7.16" }
+once_cell = { version = "1.17", default-features = false }
 
 [build-dependencies]
 network-partition-config = { path = "../../gen-config" }

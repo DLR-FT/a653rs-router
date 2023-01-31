@@ -1,14 +1,12 @@
 <?xml version="1.0"?>
 <Partition xmlns="http://www.fentiss.com/xngPartitionXml" name="NetworkPartition" entryPoint="0x4000000" attributes="system boot fp">
   <MemoryAreas>
-    <Area start = "0x4000000" size="64MB" type="nonSharedNormal" access="readwrite executable" cachePolicy="l1WriteBackWa l2WriteBackWa" />
-    <Area start="0xE000B000" size="4KB" type="nonShareableDevice" access="readwrite" cachePolicy="l1NonCacheable l2NonCacheable" />
-    <Area start="0xE000C000" size="4KB" type="nonShareableDevice" access="readwrite" cachePolicy="l1NonCacheable l2NonCacheable" />
+    <Area start="0x4000000" size="64MB" type="nonSharedNormal" access="readwrite executable" cachePolicy="l1WriteBackWa l2WriteBackWa" />
+    <Area start="0x43C00000" size="64KB" type="nonShareableDevice" access="readwrite" cachePolicy="none" />
   </MemoryAreas>
   <HmTable baseHmTable="defaultHmTab" exceptionToEvent = "prefetchExcp dataExcp" nbHmLogs="64" />
   <Devices>
-    <!-- This are the GEM0 and GEM1 Ethernet devices. They both use the same IRQ for all events (54), except for Wake-on-LAN (55). The actual event is contained in the status register-->
-    <Device name="Gem" irqs="54 55">
+    <Device name="Uart1665" irqs="54 55">
       <Configuration value0="0x10" value1="0x20"/>
     </Device>
   </Devices>

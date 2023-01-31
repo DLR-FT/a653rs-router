@@ -86,6 +86,7 @@
         devShells.default = pkgs.devshell.mkShell {
           imports = [ "${devshell}/extra/git/hooks.nix" ];
           name = "network-partition";
+          env = [{ name = "UTILS_ROOT"; value = "../xilinx-workspace"; }];
           packages = with pkgs; [
             hypervisorPackage
             gcc
@@ -131,16 +132,16 @@
               '';
               help = "Run echo example using systemd scope";
             }
-
             {
               name = "jtag-boot";
               help = "Boot the network partition using JTAG";
               command = ''
-                xsct $UTILS_ROOT/deployment/scripts/tcl_lib/zynq7000_init.tcl \
-                  ./coraZ7/ps7_init.tcl \
-                  ./coraZ7/CoraZ7_BD_wrapper.bit \
-                  ./coraZ7/CoraZ7_BD_wrapper.xsa \
-                  ${self.packages.${system}.xng-sys-image}/sys_img.elf
+                nix shell ../xilinx-flake-utils\#vitis-unified-software-platform-vitis_2019-2_1106_2127 --command xsct \
+                  $UTILS_ROOT/deployment/scripts/tcl_lib/zynq7000_init.tcl \
+                  xsa/ps7_init.tcl \
+                  xsa/uart_wrapper.bit \
+                  xsa/uart_wrapper.xsa \
+                  result/sys_img.elf
               '';
             }
           ];

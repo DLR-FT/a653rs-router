@@ -26,19 +26,6 @@ fn gen_config(config: &Path, dest: &Path, out_dir: &OsString) {
         quote!(network_partition_xng::network::UartSerial),
     );
 
-    let network_partition = quote! {
-        use apex_rs_xng::apex::XngHypervisor;
-        use network_partition_xng::network::UartSerial;
-        #network_partition
-
-        #[allow(non_snake_case)]
-        #[no_mangle]
-        pub extern "C" fn main() {
-            unsafe { XalPrintf(b"XAL: Running\n\0".as_ptr()) };
-            NetworkPartition.run();
-        }
-    };
-
     write(dest, network_partition.to_string()).unwrap();
 
     // format the generated source code

@@ -6,7 +6,9 @@ use network_partition::prelude::{
     CreateNetworkInterfaceId, Error, NetworkInterfaceId, PlatformNetworkInterface, VirtualLinkId,
 };
 use once_cell::unsync::Lazy;
-use uart_xilinx::{uart_16550::InterruptType, MmioUartAxi16550};
+use uart_xilinx::MmioUartAxi16550;
+
+use crate::XalPrintf;
 
 /// Networking on XNG.
 #[derive(Debug)]
@@ -16,7 +18,7 @@ mod config {
     pub const BASE_ADDRESS: usize = 0x43C0_0000; // TODO
     pub const CLOCK_RATE: usize = 100_000_000; // TODO
     pub const BAUD_RATE: usize = 921600; // TODO
-    pub const MTU: usize = 1500;
+    pub const MTU: usize = 100;
     pub const FRAME_BUFFER_LEN: usize = 2 * (2 + 2 + MTU);
 }
 
@@ -95,9 +97,7 @@ impl<'p> UartFrame<'p> {
 struct BufferedUart<const BUFFER_LEN: usize> {
     uart: MmioUartAxi16550<'static>,
     rx_buffer: Queue<u8, BUFFER_LEN>,
-    rx_interrupt_enabled: bool,
     tx_buffer: Queue<u8, BUFFER_LEN>,
-    tx_interrupt_enabled: bool,
 }
 
 impl<const BUFFER_LEN: usize> BufferedUart<BUFFER_LEN> {
@@ -106,10 +106,6 @@ impl<const BUFFER_LEN: usize> BufferedUart<BUFFER_LEN> {
     fn new(base_address: usize) -> Self {
         BufferedUart {
             uart: MmioUartAxi16550::new(base_address),
-            rx_interrupt_enabled: false,
-            rx_buffer: Queue::new(),
-            tx_interrupt_enabled: false,
-            tx_buffer: Queue::new(),
         }
     }
 
@@ -117,14 +113,23 @@ impl<const BUFFER_LEN: usize> BufferedUart<BUFFER_LEN> {
     fn init(&mut self, clock_rate: usize, baud_rate: usize) {
         // Disable interrupts
         self.uart.write_ier(0);
+
+        _ = self.uart.read_ier();
+
         // Change in DCDN after last MSR read.
         _ = self.uart.read_msr();
+
         // Reset line status?
         _ = self.uart.read_lsr();
+
         // Reset modem control register.
         self.uart.write_mcr(0);
+
         // Sets clock divisor and baud rate. Enables interrupts.
         self.uart.init(clock_rate, baud_rate);
+
+        // Disables interrupts. Use polling instead.
+        self.uart.write_ier(0);
 
         // Use one stop bit, no parity bit, 8 bit/character.
         // We have CRC for each frame, so parity is redundant.
@@ -135,54 +140,25 @@ impl<const BUFFER_LEN: usize> BufferedUart<BUFFER_LEN> {
         // FIFO has 16 character (byte?) length
         // Rx FIFO trigger level=14, reset Rx & Tx FIFO, enable FIFO
         self.uart.write_fcr(0b11_000_11_1);
-        self.enable_received_data_available_interrupt();
-    }
-
-    #[inline]
-    fn enable_received_data_available_interrupt(&mut self) {
-        if !self.rx_interrupt_enabled {
-            self.rx_interrupt_enabled = true;
-            self.uart.enable_received_data_available_interrupt();
-        }
-    }
-
-    #[inline]
-    fn enable_transmitter_holding_register_empty_interrupt(&mut self) {
-        if !self.tx_interrupt_enabled {
-            self.tx_interrupt_enabled = true;
-            self.uart
-                .enable_transmitter_holding_register_empty_interrupt();
-        }
     }
 
     fn try_write(&mut self) {
-        for _ in 0..Self::FIFO_DEPTH {
-            if let Some(b) = self.tx_buffer.dequeue() {
-                self.uart.write_byte(b)
-            } else {
-                self.uart
-                    .disable_transmitter_holding_register_empty_interrupt();
+        if self.uart.is_transmitter_holding_register_empty() {
+            for _ in 0..Self::FIFO_DEPTH {
+                if let Some(b) = self.tx_buffer.dequeue() {
+                    self.uart.write_byte(b)
+                }
             }
         }
     }
 
     fn try_read(&mut self) {
         if self.rx_buffer.len() == self.rx_buffer.capacity() {
-            self.uart
-                .disable_transmitter_holding_register_empty_interrupt();
-            self.tx_interrupt_enabled = false;
             return;
         }
         while let Some(b) = self.uart.read_byte() {
             // Check if there is space for 1 more byte
             _ = self.rx_buffer.enqueue(b);
-
-            if self.rx_buffer.len() == self.rx_buffer.capacity() {
-                self.uart
-                    .disable_transmitter_holding_register_empty_interrupt();
-                self.tx_interrupt_enabled = false;
-                break;
-            }
         }
     }
 
@@ -193,16 +169,6 @@ impl<const BUFFER_LEN: usize> BufferedUart<BUFFER_LEN> {
     fn transmission_duration(&self, bytes: usize) -> Duration {
         // TODO Calculate how long the transmission should take...
         Duration::from_micros(bytes as u64)
-    }
-
-    pub fn interrupt_handler(&mut self) {
-        while let Some(ir_type) = self.uart.read_interrupt_type() {
-            match ir_type {
-                InterruptType::ReceivedDataAvailable | InterruptType::Timeout => self.try_read(),
-                InterruptType::TransmitterHoldingRegisterEmpty => self.try_write(),
-                _ => {}
-            }
-        }
     }
 }
 
@@ -229,6 +195,7 @@ impl PlatformNetworkInterface for UartSerial {
         buffer: &'_ mut [u8],
     ) -> Result<(VirtualLinkId, &'_ [u8]), Error> {
         // TODO Get rid of one buffer. Should be possible to decode directly inside RX-Buffer.
+        unsafe { XalPrintf(b"platform_interface_receive_unchecked\n\0".as_ptr()) };
         let mut buf = [0u8; { UartFrame::max_encoded_len() + 1 }];
         if unsafe { !UART.has_frame() } {
             return Err(Error::InterfaceReceiveFail);
@@ -265,6 +232,7 @@ impl PlatformNetworkInterface for UartSerial {
         vl: VirtualLinkId,
         buffer: &[u8],
     ) -> Result<Duration, Duration> {
+        unsafe { XalPrintf(b"platform_interface_send_unchecked\n\0".as_ptr()) };
         // TODO Get rid of one buffer. Should be possible to encode directly inside TX-Buffer.
         let mut buf = [0u8; { UartFrame::max_encoded_len() + 1 }];
         let frame = UartFrame { vl, pl: buffer };
@@ -274,10 +242,8 @@ impl PlatformNetworkInterface for UartSerial {
         if unsafe { UART.tx_buffer.capacity() - UART.tx_buffer.len() < encoded.len() } {
             return Err(Duration::ZERO); // TODO InterfaceSendFail
         }
-        for b in encoded.iter() {
-            unsafe { UART.tx_buffer.enqueue_unchecked(*b) };
-        }
-        unsafe { UART.enable_transmitter_holding_register_empty_interrupt() };
+
+        // TODO measure transmission time, cancel if time limit exceeded
 
         Ok(unsafe { UART.transmission_duration(buffer.len()) })
     }

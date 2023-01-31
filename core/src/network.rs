@@ -80,7 +80,7 @@ where
 
 /// Network interface ID.
 #[derive(Debug, Clone, Copy)]
-pub struct NetworkInterfaceId(u32);
+pub struct NetworkInterfaceId(pub u32);
 
 #[allow(clippy::from_over_into)]
 impl Into<usize> for NetworkInterfaceId {

@@ -15,7 +15,7 @@ network-partition = { path = "../../core" }
 network-partition-xng = { path = "../../xng" }
 apex-rs = { git = "https://github.com/aeronautical-informatics/apex-rs.git", branch = "main" }
 apex-rs-xng = { git = "https://github.com/dadada/apex-rs-xng.git", branch = "xng-hypervisor-debug" }
-log = "0"
+log = { version = "0", default-features = false }
 heapless = { version = "0.7.16" }
 once_cell = { version = "1.17", default-features = false }
 

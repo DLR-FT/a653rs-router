@@ -8,18 +8,17 @@ use network_partition::prelude::{
 use once_cell::unsync::Lazy;
 use uart_xilinx::MmioUartAxi16550;
 
-use crate::XalPrintf;
-
 /// Networking on XNG.
 #[derive(Debug)]
 pub struct UartSerial;
 
 mod config {
-    pub const BASE_ADDRESS: usize = 0x43C0_0000; // TODO
-    pub const CLOCK_RATE: usize = 100_000_000; // TODO
-    pub const BAUD_RATE: usize = 921600; // TODO
+    pub const BASE_ADDRESS: usize = 0x43C0_0000;
+    pub const CLOCK_RATE: usize = 100_000_000;
+    pub const BAUD_RATE: usize = 115200;
     pub const MTU: usize = 100;
-    pub const FRAME_BUFFER_LEN: usize = 2 * (2 + 2 + MTU);
+    pub const FRAME_BUFFER_LEN: usize = 1000;
+    pub const FIFO_DEPTH: usize = 16;
 }
 
 struct UartFrame<'p> {
@@ -97,15 +96,13 @@ impl<'p> UartFrame<'p> {
 struct BufferedUart<const BUFFER_LEN: usize> {
     uart: MmioUartAxi16550<'static>,
     rx_buffer: Queue<u8, BUFFER_LEN>,
-    tx_buffer: Queue<u8, BUFFER_LEN>,
 }
 
 impl<const BUFFER_LEN: usize> BufferedUart<BUFFER_LEN> {
-    const FIFO_DEPTH: usize = 16;
-
     fn new(base_address: usize) -> Self {
         BufferedUart {
             uart: MmioUartAxi16550::new(base_address),
+            rx_buffer: Queue::new(),
         }
     }
 
@@ -136,34 +133,9 @@ impl<const BUFFER_LEN: usize> BufferedUart<BUFFER_LEN> {
         // 7 DLAB, 6 Set Break, 5 Stick Partity, 4 EPS, 3 PEN, 2 STB, 1-0 WLS
         self.uart.write_lcr(0b0_0_0_0_0_0_11);
 
-        // TODO FIFO introduces delay. Is FIFO required for performance?
         // FIFO has 16 character (byte?) length
-        // Rx FIFO trigger level=14, reset Rx & Tx FIFO, enable FIFO
-        self.uart.write_fcr(0b11_000_11_1);
-    }
-
-    fn try_write(&mut self) {
-        if self.uart.is_transmitter_holding_register_empty() {
-            for _ in 0..Self::FIFO_DEPTH {
-                if let Some(b) = self.tx_buffer.dequeue() {
-                    self.uart.write_byte(b)
-                }
-            }
-        }
-    }
-
-    fn try_read(&mut self) {
-        if self.rx_buffer.len() == self.rx_buffer.capacity() {
-            return;
-        }
-        while let Some(b) = self.uart.read_byte() {
-            // Check if there is space for 1 more byte
-            _ = self.rx_buffer.enqueue(b);
-        }
-    }
-
-    fn has_frame(&self) -> bool {
-        self.rx_buffer.iter().any(|b| *b == 0x0)
+        // Rx FIFO trigger level is 1 byte, reset Rx & Tx FIFO, enable FIFO
+        self.uart.write_fcr(0b00_000_11_1);
     }
 
     fn transmission_duration(&self, bytes: usize) -> Duration {
@@ -195,25 +167,37 @@ impl PlatformNetworkInterface for UartSerial {
         buffer: &'_ mut [u8],
     ) -> Result<(VirtualLinkId, &'_ [u8]), Error> {
         // TODO Get rid of one buffer. Should be possible to decode directly inside RX-Buffer.
-        unsafe { XalPrintf(b"platform_interface_receive_unchecked\n\0".as_ptr()) };
-        let mut buf = [0u8; { UartFrame::max_encoded_len() + 1 }];
-        if unsafe { !UART.has_frame() } {
+        let mut eof = false;
+        let mut limit: u32 = 0;
+        while unsafe { UART.uart.is_data_ready() } && limit < u32::MAX {
+            limit += 1;
+            if let Some(b) = unsafe { UART.uart.read_byte() } {
+                unsafe {
+                    if UART.rx_buffer.enqueue(b).is_err() {
+                        _ = UART.rx_buffer.dequeue_unchecked();
+                        UART.rx_buffer.enqueue_unchecked(b);
+                    }
+                    if b == 0x0 {
+                        eof = true;
+                        break;
+                    }
+                }
+            }
+        }
+        if !eof {
             return Err(Error::InterfaceReceiveFail);
         }
+        let mut buf = [0u8; { UartFrame::max_encoded_len() + 1 }];
         let mut end = 0;
-        #[allow(clippy::needless_range_loop)]
-        for i in 0..buf.len() {
-            if let Some(b) = unsafe { UART.rx_buffer.dequeue() } {
-                buf[i] = b;
-                // Check for EOF
-                if b == 0x0 {
-                    end = i;
+        for b in buf.iter_mut() {
+            if let Some(c) = unsafe { UART.rx_buffer.dequeue() } {
+                end += 1;
+                *b = c;
+                if c == 0x0 {
                     break;
                 }
             } else {
-                // The RX-buffer has no more elements, but we checked,
-                // so it should have at least one full frame.
-                return Err(Error::InterfaceReceiveFail);
+                break;
             }
         }
         let buf = &mut buf[..end];
@@ -232,19 +216,27 @@ impl PlatformNetworkInterface for UartSerial {
         vl: VirtualLinkId,
         buffer: &[u8],
     ) -> Result<Duration, Duration> {
-        unsafe { XalPrintf(b"platform_interface_send_unchecked\n\0".as_ptr()) };
-        // TODO Get rid of one buffer. Should be possible to encode directly inside TX-Buffer.
         let mut buf = [0u8; { UartFrame::max_encoded_len() + 1 }];
         let frame = UartFrame { vl, pl: buffer };
-        // Time it takes to do this should be accounted for if line is not used.
-        // TODO encode using iterator for more performance
+
+        // TODO Time it takes to do this should be accounted for if line is not used.
         let encoded = UartFrame::encode(&frame, &mut buf).or(Err(Duration::ZERO))?;
-        if unsafe { UART.tx_buffer.capacity() - UART.tx_buffer.len() < encoded.len() } {
-            return Err(Duration::ZERO); // TODO InterfaceSendFail
+
+        unsafe {
+            let mut index: usize = 0;
+            while index < encoded.len() {
+                while !UART.uart.is_transmitter_holding_register_empty() {}
+                for _ in 0..config::FIFO_DEPTH {
+                    UART.uart.write_byte(encoded[index]);
+                    index += 1;
+                    if index == encoded.len() {
+                        break;
+                    }
+                }
+            }
         }
 
         // TODO measure transmission time, cancel if time limit exceeded
-
         Ok(unsafe { UART.transmission_duration(buffer.len()) })
     }
 }

@@ -1,10 +1,7 @@
-cargo-features = [ "per-package-target" ]
-
 [package]
 name = "np-zynq7000"
 version = "0.1.0"
 edition = "2021"
-forced-target = "armv7a-none-eabi"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]

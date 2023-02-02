@@ -1,7 +1,4 @@
 #![no_std]
-
-extern "C" {
-    pub fn XalPrintf(fmt: *const u8, ...) -> i32;
-}
+#![feature(array_chunks)]
 
 pub mod network;

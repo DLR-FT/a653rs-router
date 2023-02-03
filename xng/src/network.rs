@@ -14,7 +14,7 @@ pub struct UartSerial;
 
 mod config {
     pub const BASE_ADDRESS: usize = 0x43C0_0000;
-    pub const CLOCK_RATE: usize = 100_000_000;
+    pub const CLOCK_RATE: usize = 50_000_000;
     pub const BAUD_RATE: usize = 115200;
     pub const MTU: usize = 100;
     pub const FRAME_BUFFER_LEN: usize = 1000;
@@ -234,6 +234,9 @@ impl PlatformNetworkInterface for UartSerial {
                     }
                 }
             }
+
+            // Wait for transmission to finish
+            while !UART.uart.is_transmitter_holding_register_empty() {}
         }
 
         // TODO measure transmission time, cancel if time limit exceeded

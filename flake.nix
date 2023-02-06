@@ -2,6 +2,8 @@
   description = "network-partition";
 
   inputs = {
+    nixpkgs.url = "github:nixos/nixpkgs/22.11";
+
     utils.url = "github:numtide/flake-utils";
 
     devshell.url = "github:numtide/devshell";

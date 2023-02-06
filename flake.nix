@@ -17,6 +17,7 @@
     };
 
     hypervisor.url = "github:dadada/apex-linux/stable-for-master-thesis";
+    hypervisor.inputs.utils.follows = "utils";
 
     xng-utils.url = "github:dadada/xng-flake-utils/dev/dadada";
     xng-utils.inputs.nixpkgs.follows = "nixpkgs";

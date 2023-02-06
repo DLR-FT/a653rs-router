@@ -118,7 +118,9 @@
         "fenix": "fenix_2",
         "naersk": "naersk",
         "nixpkgs": "nixpkgs_3",
-        "utils": "utils"
+        "utils": [
+          "utils"
+        ]
       },
       "locked": {
         "lastModified": 1672500788,
@@ -244,7 +246,7 @@
         "hypervisor": "hypervisor",
         "naersk": "naersk_2",
         "nixpkgs": "nixpkgs_4",
-        "utils": "utils_2",
+        "utils": "utils",
         "xng-utils": "xng-utils"
       }
     },
@@ -283,21 +285,6 @@
       }
     },
     "utils": {
-      "locked": {
-        "lastModified": 1659877975,
-        "narHash": "sha256-zllb8aq3YO3h8B/U0/J1WBgAL8EX5yWf5pMj3G0NAmc=",
-        "ref": "master",
-        "rev": "c0e246b9b83f637f4681389ecabcb2681b4f3af0",
-        "revCount": 64,
-        "type": "git",
-        "url": "https://github.com/numtide/flake-utils.git"
-      },
-      "original": {
-        "type": "git",
-        "url": "https://github.com/numtide/flake-utils.git"
-      }
-    },
-    "utils_2": {
       "locked": {
         "lastModified": 1667395993,
         "narHash": "sha256-nuEHfE/LcWyuSWnS8t12N1wc105Qtau+/OdUAjtQ0rA=",

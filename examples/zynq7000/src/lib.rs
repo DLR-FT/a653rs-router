@@ -13,15 +13,5 @@ include!(concat!(env!("OUT_DIR"), "/np.rs"));
 #[allow(non_snake_case)]
 #[no_mangle]
 pub extern "C" fn main() {
-    loop {
-        let buf = b"Hello, World!\0";
-        let res = UartSerial::platform_interface_send_unchecked(
-            NetworkInterfaceId(0),
-            VirtualLinkId(1),
-            buf,
-        );
-        XngHypervisor::timed_wait(Duration::from_millis(20));
-    }
-
-    //NetworkPartition.run();
+    NetworkPartition.run();
 }

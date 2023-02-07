@@ -26,25 +26,6 @@
     "devshell_2": {
       "inputs": {
         "flake-utils": "flake-utils",
-        "nixpkgs": "nixpkgs"
-      },
-      "locked": {
-        "lastModified": 1671489820,
-        "narHash": "sha256-qoei5HDJ8psd1YUPD7DhbHdhLIT9L2nadscp4Qk37uk=",
-        "owner": "numtide",
-        "repo": "devshell",
-        "rev": "5aa3a8039c68b4bf869327446590f4cdf90bb634",
-        "type": "github"
-      },
-      "original": {
-        "owner": "numtide",
-        "repo": "devshell",
-        "type": "github"
-      }
-    },
-    "devshell_3": {
-      "inputs": {
-        "flake-utils": "flake-utils_3",
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
@@ -61,10 +42,10 @@
         "type": "github"
       }
     },
-    "devshell_4": {
+    "devshell_3": {
       "inputs": {
-        "flake-utils": "flake-utils_4",
-        "nixpkgs": "nixpkgs_4"
+        "flake-utils": "flake-utils_2",
+        "nixpkgs": "nixpkgs_5"
       },
       "locked": {
         "lastModified": 1671489820,
@@ -98,9 +79,7 @@
     },
     "fenix": {
       "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ],
+        "nixpkgs": "nixpkgs",
         "rust-analyzer-src": "rust-analyzer-src"
       },
       "locked": {
@@ -134,36 +113,6 @@
     },
     "flake-utils_2": {
       "locked": {
-        "lastModified": 1667395993,
-        "narHash": "sha256-nuEHfE/LcWyuSWnS8t12N1wc105Qtau+/OdUAjtQ0rA=",
-        "owner": "numtide",
-        "repo": "flake-utils",
-        "rev": "5aed5285a952e0b949eb3ba02c12fa4fcfef535f",
-        "type": "github"
-      },
-      "original": {
-        "owner": "numtide",
-        "repo": "flake-utils",
-        "type": "github"
-      }
-    },
-    "flake-utils_3": {
-      "locked": {
-        "lastModified": 1642700792,
-        "narHash": "sha256-XqHrk7hFb+zBvRg6Ghl+AZDq03ov6OshJLiSWOoX5es=",
-        "owner": "numtide",
-        "repo": "flake-utils",
-        "rev": "846b2ae0fc4cc943637d3d1def4454213e203cba",
-        "type": "github"
-      },
-      "original": {
-        "owner": "numtide",
-        "repo": "flake-utils",
-        "type": "github"
-      }
-    },
-    "flake-utils_4": {
-      "locked": {
         "lastModified": 1642700792,
         "narHash": "sha256-XqHrk7hFb+zBvRg6Ghl+AZDq03ov6OshJLiSWOoX5es=",
         "owner": "numtide",
@@ -187,7 +136,9 @@
           "nixpkgs"
         ],
         "vivado-boards": "vivado-boards",
-        "xilinx-flake-utils": "xilinx-flake-utils"
+        "xilinx-flake-utils": [
+          "xilinx-flake-utils"
+        ]
       },
       "locked": {
         "lastModified": 1675768586,
@@ -204,41 +155,9 @@
         "url": "ssh://git@github.com/dadada/vivado-coraz7-uart.git"
       }
     },
-    "fpga-utils": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1668785371,
-        "narHash": "sha256-JPK9URlBWbKAEixaQaQ64tgdU6U9QMB/HnohtuNdgoQ=",
-        "ref": "refs/heads/main",
-        "rev": "08a8347b51c325e68bd08119b9903c70a57e9022",
-        "revCount": 102,
-        "type": "git",
-        "url": "ssh://git@gitlab.dlr.de/ft-ssy-aes/XANDAR/xilinx-workspace.git"
-      },
-      "original": {
-        "type": "git",
-        "url": "ssh://git@gitlab.dlr.de/ft-ssy-aes/XANDAR/xilinx-workspace.git"
-      }
-    },
-    "fpga-utils_2": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1668785371,
-        "narHash": "sha256-JPK9URlBWbKAEixaQaQ64tgdU6U9QMB/HnohtuNdgoQ=",
-        "ref": "refs/heads/main",
-        "rev": "08a8347b51c325e68bd08119b9903c70a57e9022",
-        "revCount": 102,
-        "type": "git",
-        "url": "ssh://git@gitlab.dlr.de/ft-ssy-aes/XANDAR/xilinx-workspace.git"
-      },
-      "original": {
-        "type": "git",
-        "url": "ssh://git@gitlab.dlr.de/ft-ssy-aes/XANDAR/xilinx-workspace.git"
-      }
-    },
     "hypervisor": {
       "inputs": {
-        "devshell": "devshell_3",
+        "devshell": "devshell_2",
         "fenix": [
           "fenix"
         ],
@@ -269,9 +188,7 @@
     },
     "naersk": {
       "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
+        "nixpkgs": "nixpkgs_3"
       },
       "locked": {
         "lastModified": 1671096816,
@@ -289,16 +206,16 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1643381941,
-        "narHash": "sha256-pHTwvnN4tTsEKkWlXQ8JMY423epos8wUOhthpwJjtpc=",
-        "owner": "NixOS",
+        "lastModified": 1675673983,
+        "narHash": "sha256-8hzNh1jtiPxL5r3ICNzSmpSzV7kGb3KwX+FS5BWJUTo=",
+        "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "5efc8ca954272c4376ac929f4c5ffefcc20551d5",
+        "rev": "5a350a8f31bb7ef0c6e79aea3795a890cf7743d4",
         "type": "github"
       },
       "original": {
-        "owner": "NixOS",
-        "ref": "nixpkgs-unstable",
+        "owner": "nixos",
+        "ref": "nixos-unstable",
         "repo": "nixpkgs",
         "type": "github"
       }
@@ -321,6 +238,19 @@
     },
     "nixpkgs_3": {
       "locked": {
+        "lastModified": 1675512093,
+        "narHash": "sha256-u1CY4feK14B57E6T+0Bhkuoj8dpBxCPrWO+SP87UVP8=",
+        "path": "/nix/store/f30dcvgm875ksqbhmp97wqvxmrzlbbjc-source",
+        "rev": "8e8240194eda25b61449f29bb5131e02b28a5486",
+        "type": "path"
+      },
+      "original": {
+        "id": "nixpkgs",
+        "type": "indirect"
+      }
+    },
+    "nixpkgs_4": {
+      "locked": {
         "lastModified": 1669833724,
         "narHash": "sha256-/HEZNyGbnQecrgJnfE8d0WC5c1xuPSD2LUpB6YXlg4c=",
         "owner": "nixos",
@@ -335,7 +265,7 @@
         "type": "github"
       }
     },
-    "nixpkgs_4": {
+    "nixpkgs_5": {
       "locked": {
         "lastModified": 1643381941,
         "narHash": "sha256-pHTwvnN4tTsEKkWlXQ8JMY423epos8wUOhthpwJjtpc=",
@@ -358,9 +288,9 @@
         "fpga-project": "fpga-project",
         "hypervisor": "hypervisor",
         "naersk": "naersk",
-        "nixpkgs": "nixpkgs_3",
+        "nixpkgs": "nixpkgs_4",
         "utils": "utils",
-        "xilinx-flake-utils": "xilinx-flake-utils_2",
+        "xilinx-flake-utils": "xilinx-flake-utils",
         "xilinx-workspace": "xilinx-workspace",
         "xng-utils": "xng-utils"
       }
@@ -416,36 +346,13 @@
     },
     "xilinx-flake-utils": {
       "inputs": {
-        "devshell": "devshell_2",
-        "flake-utils": "flake-utils_2",
-        "fpga-utils": "fpga-utils",
-        "nixpkgs": [
-          "fpga-project",
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1673626437,
-        "narHash": "sha256-MK/U/BydsJONankpMwCsRKhPKIg6Ar+mS9xtLHBoZsw=",
-        "owner": "aeronautical-informatics",
-        "repo": "xilinx-flake-utils",
-        "rev": "c3338901b0a25cc28c1c984f86661ae6d650901b",
-        "type": "github"
-      },
-      "original": {
-        "owner": "aeronautical-informatics",
-        "ref": "dev/add-devshell",
-        "repo": "xilinx-flake-utils",
-        "type": "github"
-      }
-    },
-    "xilinx-flake-utils_2": {
-      "inputs": {
-        "devshell": "devshell_4",
+        "devshell": "devshell_3",
         "flake-utils": [
           "utils"
         ],
-        "fpga-utils": "fpga-utils_2",
+        "fpga-utils": [
+          "xilinx-workspace"
+        ],
         "nixpkgs": [
           "nixpkgs"
         ]
@@ -468,13 +375,10 @@
     "xilinx-workspace": {
       "flake": false,
       "locked": {
-        "lastModified": 1674723013,
-        "narHash": "sha256-kTMJpSEh1GHTYlyfX+0RFWcPVvO94k7sveO+huqLTcE=",
-        "ref": "refs/heads/main",
-        "rev": "760104cc3fabfe1b608d5dc06c98991a638dd11c",
-        "revCount": 975,
-        "type": "git",
-        "url": "ssh://git@gitlab.dlr.de/ft-ssy-aes/XANDAR/xilinx-workspace.git"
+        "lastModified": 1675720679,
+        "narHash": "sha256-Dr2rgaCG1bnPT/HQGZA8eWlI/dbb9qvVclu7ik5z5gk=",
+        "path": "/home/dadada/src/xilinx-workspace",
+        "type": "path"
       },
       "original": {
         "type": "git",
@@ -488,12 +392,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1674490952,
-        "narHash": "sha256-Wz2vO5T9fms/GAankoEo460OZPdyS8Rxlr5PIMVA5AA=",
-        "owner": "dadada",
-        "repo": "xng-flake-utils",
-        "rev": "c439f2072cd2daef4a6a552733c488e4c00ecae9",
-        "type": "github"
+        "lastModified": 1675783176,
+        "narHash": "sha256-JUA63/u803XLJybeo3rR+h/yguWFQ5RmK3QvsEtwwPw=",
+        "path": "/home/dadada/src/xng-flake-utils",
+        "type": "path"
       },
       "original": {
         "owner": "dadada",

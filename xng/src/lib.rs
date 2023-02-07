@@ -8,16 +8,16 @@ extern "C" {
 }
 
 pub mod logging {
-    use XalPrintf;
+    use crate::XalPrintf;
 
     pub struct XalLogger;
 
     impl log::Log for XalLogger {
-        fn enabled(&self, metadata: &Metadata) -> bool {
+        fn enabled(&self, metadata: &log::Metadata) -> bool {
             metadata.level() < log::max_level()
         }
 
-        fn log(&self, record: &Record) {
+        fn log(&self, record: &log::Record) {
             unsafe { XalPrintf(b"AAAAAAAAA\n\0".as_ptr()) };
 
             // if self.enabled(record.metadata()) {

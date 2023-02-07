@@ -37,7 +37,7 @@ pub fn generate_network_partition(
         use core::str::FromStr;
         use core::time::Duration;
         use core::result::Result::*;
-        use log::{error, trace};
+        use log::{error, trace, info};
         use network_partition::prelude::*;
         use once_cell::unsync::OnceCell;
 
@@ -50,6 +50,7 @@ pub fn generate_network_partition(
         #( #define_interfaces )*
 
         extern "C" fn entry_point() {
+            info!("Running network partition");
             let mut shaper = CreditBasedShaper::<#num_links>::new(DataRate::b(#min_interface_data_rate));
             let mut frame_buf = [0u8; #max_mtu];
             let mut interfaces: [&dyn Interface; #num_interfaces] = [ #( unsafe { #interface_names . get().unwrap() } ),* ];

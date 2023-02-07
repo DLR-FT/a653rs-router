@@ -6,7 +6,11 @@
 
     utils.url = "github:numtide/flake-utils";
 
-    devshell.url = "github:numtide/devshell";
+    devshell = {
+      url = "github:numtide/devshell";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-utils.follows = "utils";
+    };
 
     fenix = {
       url = "github:nix-community/fenix";
@@ -18,14 +22,38 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    hypervisor.url = "github:dadada/apex-linux/stable-for-master-thesis";
-    hypervisor.inputs.utils.follows = "utils";
+    hypervisor = {
+      url = "github:dadada/apex-linux/stable-for-master-thesis";
+      inputs.utils.follows = "utils";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.fenix.follows = "fenix";
+      inputs.naersk.follows = "naersk";
+    };
 
-    xng-utils.url = "github:dadada/xng-flake-utils/dev/dadada";
-    xng-utils.inputs.nixpkgs.follows = "nixpkgs";
+    xng-utils = {
+      url = "github:dadada/xng-flake-utils/dev/dadada";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    fpga-project = {
+      url = "git+ssh://git@github.com/dadada/vivado-coraz7-uart.git?ref=main";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-utils.follows = "utils";
+    };
+
+    xilinx-workspace = {
+      url = "git+ssh://git@gitlab.dlr.de/ft-ssy-aes/XANDAR/xilinx-workspace.git";
+      flake = false;
+    };
+
+    xilinx-flake-utils = {
+      url = "github:aeronautical-informatics/xilinx-flake-utils/dev/add-devshell";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-utils.follows = "utils";
+    };
   };
 
-  outputs = { self, nixpkgs, utils, devshell, fenix, hypervisor, naersk, xng-utils, ... }@inputs:
+  outputs = { self, nixpkgs, utils, devshell, fenix, hypervisor, naersk, xng-utils, fpga-project, xilinx-workspace, xilinx-flake-utils, ... }@inputs:
     utils.lib.eachSystem [ "x86_64-linux" ] (system:
       let
         pkgs = import nixpkgs {
@@ -62,6 +90,13 @@
             sha256 = "1b73d6x3galw3bhj5nac7ifgp15zrsyipn4imwknr24gp1l14sc8";
           };
         };
+
+        fpga = fpga-project.packages."${system}".default;
+        xsa = "${fpga}/hw_export.xsa";
+        bitstream = "${fpga}/hw_export.bit";
+        ps7Init = "${fpga}/ps7_init.tcl";
+        zynq7000Init = "${xilinx-workspace}/deployment/scripts/tcl_lib/zynq7000_init_te0706.tcl";
+        vitis = xilinx-flake-utils.packages.${system}.vitis-unified-software-platform-vitis_2019-2_1106_2127;
       in
       {
         inherit formatter;
@@ -91,6 +126,7 @@
           name = "network-partition";
           env = [{ name = "UTILS_ROOT"; value = "../xilinx-workspace"; }];
           packages = with pkgs; [
+            vitis
             hypervisorPackage
             gcc
             rust-toolchain
@@ -139,11 +175,11 @@
               name = "jtag-boot";
               help = "Boot the network partition using JTAG";
               command = ''
-                nix shell ../xilinx-flake-utils\#vitis-unified-software-platform-vitis_2019-2_1106_2127 --command xsct \
-                  $UTILS_ROOT/deployment/scripts/tcl_lib/zynq7000_init.tcl \
-                  xsa/ps7_init.tcl \
-                  xsa/uart_wrapper.bit \
-                  xsa/uart_wrapper.xsa \
+                xsct \
+                  ${zynq7000Init} \
+                  ${ps7Init} \
+                  ${bitstream} \
+                  ${xsa} \
                   result/sys_img.elf
               '';
             }

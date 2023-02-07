@@ -92,9 +92,9 @@
         };
 
         fpga = fpga-project.packages."${system}".default;
-        xsa = "${fpga}/hw_export.xsa";
-        bitstream = "${fpga}/hw_export.bit";
-        ps7Init = "${fpga}/ps7_init.tcl";
+        # xsa = "${fpga}/hw_export.xsa";
+        # bitstream = "${fpga}/hw_export.bit";
+        # ps7Init = "${fpga}/ps7_init.tcl";
         zynq7000Init = "${xilinx-workspace}/deployment/scripts/tcl_lib/zynq7000_init_te0706.tcl";
         vitis = xilinx-flake-utils.packages.${system}.vitis-unified-software-platform-vitis_2019-2_1106_2127;
       in
@@ -175,11 +175,14 @@
               name = "jtag-boot";
               help = "Boot the network partition using JTAG";
               command = ''
+                mkdir -p xsa
+                cp ${fpga} xsa/hw_export.xsa
+                unzip xsa/hw_export.xsa -d xsa
                 xsct \
                   ${zynq7000Init} \
-                  ${ps7Init} \
-                  ${bitstream} \
-                  ${xsa} \
+                  xsa/ps7_init.tcl \
+                  xsa/hw_export.bit \
+                  xsa/hw_export.xsa \
                   result/sys_img.elf
               '';
             }

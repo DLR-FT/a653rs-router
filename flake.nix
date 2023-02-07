@@ -93,12 +93,6 @@
           };
         };
 
-        fpga = fpga-project.packages."${system}".default;
-        # xsa = "${fpga}/hw_export.xsa";
-        # bitstream = "${fpga}/hw_export.bit";
-        # ps7Init = "${fpga}/ps7_init.tcl";
-        zynq7000Init = "${xilinx-workspace}/deployment/scripts/tcl_lib/zynq7000_init.tcl";
-        vitis = xilinx-flake-utils.packages.${system}.vitis-unified-software-platform-vitis_2019-2_1106_2127;
       in
       {
         inherit formatter;
@@ -125,10 +119,8 @@
 
         devShells.default = pkgs.devshell.mkShell {
           imports = [ "${devshell}/extra/git/hooks.nix" ];
-          name = "network-partition";
-          env = [{ name = "UTILS_ROOT"; value = "../xilinx-workspace"; }];
+          name = "network-partition-devshell";
           packages = with pkgs; [
-            vitis
             hypervisorPackage
             gcc
             rust-toolchain
@@ -169,32 +161,52 @@
               '';
               help = "Run echo example using systemd scope";
             }
-            {
-              name = "jtag-boot";
-              help = "Boot the network partition using JTAG";
-              command = ''
-                dir="$(mktemp -d)"
-                cp ${fpga} $dir/hw_export.xsa
-                unzip xsa/hw_export.xsa -d $dir
-                xsct \
-                  ${zynq7000Init} \
-                  $dir/ps7_init.tcl \
-                  $dir/hw_export.bit \
-                  $dir/hw_export.xsa \
-                  result/sys_img.elf
-                rm -f "$dir/hw_export.xsa"
-                rm -r "$dir"
-              '';
-            }
-            {
-              name = "launch-picocom";
-              help = "Launches picocom";
-              command = ''
-                picocom --imap lfcrlf --baud 115200 ''${1:-/dev/ttyUSB1}
-              '';
-            }
+
           ];
         };
+
+        # Separate devshell so we do not need to build Vitis if some flake input does not match just for changing code.
+        devShells.deploy =
+          let
+            fpga = fpga-project.packages."${system}".default;
+            zynq7000Init = "${xilinx-workspace}/deployment/scripts/tcl_lib/zynq7000_init.tcl";
+            vitis = xilinx-flake-utils.packages.${system}.vitis-unified-software-platform-vitis_2019-2_1106_2127;
+            xng-sys-image = self.packages.${system}.xng-sys-image;
+          in
+          pkgs.devshell.mkShell {
+            name = "network-partition-deploy";
+            packages = with pkgs; [
+              xng-sys-image
+              vitis
+              picocom
+            ];
+            commands = [
+              {
+                name = "jtag-boot";
+                help = "Boot the network partition using JTAG";
+                command = ''
+                  dir="$(mktemp -d)"
+                  cp ${fpga} $dir/hw_export.xsa
+                  unzip xsa/hw_export.xsa -d $dir
+                  xsct \
+                    ${zynq7000Init} \
+                    $dir/ps7_init.tcl \
+                    $dir/hw_export.bit \
+                    $dir/hw_export.xsa \
+                    ${xng-sys-image}/sys_img.elf
+                  rm -f "$dir/hw_export.xsa"
+                  rm -r "$dir"
+                '';
+              }
+              {
+                name = "launch-picocom";
+                help = "Launches picocom";
+                command = ''
+                  picocom --imap lfcrlf --baud 115200 ''${1:-/dev/ttyUSB1}
+                '';
+              }
+            ];
+          };
 
         checks = {
           nixpkgs-fmt = pkgs.runCommand "check-format-nix"
@@ -213,7 +225,6 @@
             echo-partition = self.packages.${system}.echo;
           };
         };
-
         packages = {
           echo = naerskLib.buildPackage rec {
             pname = "echo";

@@ -104,11 +104,11 @@
         "rust-analyzer-src": "rust-analyzer-src"
       },
       "locked": {
-        "lastModified": 1675664647,
-        "narHash": "sha256-LtC6Ws4B4b0WhWh65kGVl7kjto7jEU+gWdONZEyu3y0=",
+        "lastModified": 1675750990,
+        "narHash": "sha256-6FJYYK/ivsJJ1bUZydWMzQ6xtwAa8FMdx9RQPICkW7U=",
         "owner": "nix-community",
         "repo": "fenix",
-        "rev": "3bbacb8bd110fbe32056620428ce89ba0dac23de",
+        "rev": "c975d4769150469fc3f56ea4c360e35b2e0c69ee",
         "type": "github"
       },
       "original": {
@@ -190,11 +190,11 @@
         "xilinx-flake-utils": "xilinx-flake-utils"
       },
       "locked": {
-        "lastModified": 1675721679,
-        "narHash": "sha256-AkS9rtkKb1sQL93sh4LuTYU/UV1VYSklVdr0fXNYym8=",
+        "lastModified": 1675768586,
+        "narHash": "sha256-U3+JwF7UGf3X7tuoP5hRGlmmsBq4pHxsdkyGXDRxUHk=",
         "ref": "main",
-        "rev": "7b297721f45a4e90e7192e551f124bdd263fae99",
-        "revCount": 6,
+        "rev": "654c0d30a1ea0a1b4a837480f4ac5ba80c4d6bdb",
+        "revCount": 8,
         "type": "git",
         "url": "ssh://git@github.com/dadada/vivado-coraz7-uart.git"
       },
@@ -368,11 +368,11 @@
     "rust-analyzer-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1675604782,
-        "narHash": "sha256-apIUZwMwZkWqd7anSGcI1g+2rYfd5GoxIpFFabUFYBU=",
+        "lastModified": 1675722937,
+        "narHash": "sha256-yVSjDmsfDA2D7ATQNy3pZSgALtuXqKQ/gxLzu+Hd7ng=",
         "owner": "rust-lang",
         "repo": "rust-analyzer",
-        "rev": "0b32b65ca6aee21f352d178eeb0b85e092a93177",
+        "rev": "1d32a7b7c66450c792dafe162b229d40ab6a1cc8",
         "type": "github"
       },
       "original": {

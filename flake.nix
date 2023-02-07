@@ -143,10 +143,6 @@
           git.hooks.enable = true;
           git.hooks.pre-commit.text = ''
             treefmt --fail-on-change
-            cargo clippy -p network-partition \
-              -p network-partition-linux \
-              -p network-partition \
-              -p echo
           '';
           commands = [
             {

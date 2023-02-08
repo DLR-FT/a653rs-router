@@ -52,6 +52,7 @@ pub mod logging {
             let end = b"\n\0";
             buf[len..len + 2].copy_from_slice(end);
             unsafe { XalPrintf(buf.as_ptr()) };
+            //unsafe { XalPrintf(buf[0..outstream.len() + 2].as_ptr()) };
         }
 
         fn flush(&self) {}

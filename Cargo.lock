@@ -65,7 +65,7 @@ dependencies = [
 [[package]]
 name = "apex-rs-xng"
 version = "0.1.0"
-source = "git+https://github.com/dadada/apex-rs-xng.git?branch=xng-hypervisor-debug#c2106d36c0cd0f62acd235a626d8656b3bcb8a0c"
+source = "git+https://github.com/dadada/apex-rs-xng.git?branch=xng-hypervisor-debug#e0d24511a210092d917bc139710ef1ab81513c5c"
 dependencies = [
  "apex-rs",
  "cty",

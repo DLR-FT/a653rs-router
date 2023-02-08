@@ -10,11 +10,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1675340818,
-        "narHash": "sha256-GAzTgOvonq4K3CVyyKZGbCnqdLi6nRe78t8ko/mLxL0=",
+        "lastModified": 1675790942,
+        "narHash": "sha256-UfXATFXxACtdMQmwRZIdOc6CT4mwgbZBAnGxiUkgUM4=",
         "owner": "numtide",
         "repo": "devshell",
-        "rev": "2e19b92980a79118351ec12496a81c49bd674d8a",
+        "rev": "6fe837bb4f540a1832522ec54604c453757836b2",
         "type": "github"
       },
       "original": {
@@ -83,11 +83,11 @@
         "rust-analyzer-src": "rust-analyzer-src"
       },
       "locked": {
-        "lastModified": 1675750990,
-        "narHash": "sha256-6FJYYK/ivsJJ1bUZydWMzQ6xtwAa8FMdx9RQPICkW7U=",
+        "lastModified": 1675837392,
+        "narHash": "sha256-+QAYahdgiAKehHnWxRp/Nz+uUzydDBMoaIuU4YpbOpQ=",
         "owner": "nix-community",
         "repo": "fenix",
-        "rev": "c975d4769150469fc3f56ea4c360e35b2e0c69ee",
+        "rev": "9d9adba756844591b170db22412059bfe1e4ca87",
         "type": "github"
       },
       "original": {
@@ -126,6 +126,21 @@
         "type": "github"
       }
     },
+    "flake-utils_3": {
+      "locked": {
+        "lastModified": 1667395993,
+        "narHash": "sha256-nuEHfE/LcWyuSWnS8t12N1wc105Qtau+/OdUAjtQ0rA=",
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "rev": "5aed5285a952e0b949eb3ba02c12fa4fcfef535f",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "type": "github"
+      }
+    },
     "fpga-project": {
       "inputs": {
         "digilent-xdc": "digilent-xdc",
@@ -153,6 +168,22 @@
         "ref": "main",
         "type": "git",
         "url": "ssh://git@github.com/dadada/vivado-coraz7-uart.git"
+      }
+    },
+    "fpga-utils": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1668785371,
+        "narHash": "sha256-JPK9URlBWbKAEixaQaQ64tgdU6U9QMB/HnohtuNdgoQ=",
+        "ref": "refs/heads/main",
+        "rev": "08a8347b51c325e68bd08119b9903c70a57e9022",
+        "revCount": 102,
+        "type": "git",
+        "url": "ssh://git@gitlab.dlr.de/ft-ssy-aes/XANDAR/xilinx-workspace.git"
+      },
+      "original": {
+        "type": "git",
+        "url": "ssh://git@gitlab.dlr.de/ft-ssy-aes/XANDAR/xilinx-workspace.git"
       }
     },
     "hypervisor": {
@@ -238,10 +269,10 @@
     },
     "nixpkgs_3": {
       "locked": {
-        "lastModified": 1675512093,
-        "narHash": "sha256-u1CY4feK14B57E6T+0Bhkuoj8dpBxCPrWO+SP87UVP8=",
-        "path": "/nix/store/f30dcvgm875ksqbhmp97wqvxmrzlbbjc-source",
-        "rev": "8e8240194eda25b61449f29bb5131e02b28a5486",
+        "lastModified": 1672686581,
+        "narHash": "sha256-j6OqjEKGHHR8O7vVQVcbHVXA6Lee0dRiIT1BfELoXu4=",
+        "path": "/nix/store/ii3y21rwzll12sravvfnds2gkmd9kkpm-source",
+        "rev": "02ac561953285d0a0f69067010f6e5e4001979b1",
         "type": "path"
       },
       "original": {
@@ -281,6 +312,19 @@
         "type": "github"
       }
     },
+    "nixpkgs_6": {
+      "locked": {
+        "lastModified": 1672686581,
+        "narHash": "sha256-j6OqjEKGHHR8O7vVQVcbHVXA6Lee0dRiIT1BfELoXu4=",
+        "path": "/nix/store/ii3y21rwzll12sravvfnds2gkmd9kkpm-source",
+        "rev": "02ac561953285d0a0f69067010f6e5e4001979b1",
+        "type": "path"
+      },
+      "original": {
+        "id": "nixpkgs",
+        "type": "indirect"
+      }
+    },
     "root": {
       "inputs": {
         "devshell": "devshell",
@@ -298,11 +342,11 @@
     "rust-analyzer-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1675722937,
-        "narHash": "sha256-yVSjDmsfDA2D7ATQNy3pZSgALtuXqKQ/gxLzu+Hd7ng=",
+        "lastModified": 1675790731,
+        "narHash": "sha256-2Va2m+9GL+VTP2IRXVgxGmLG1JDFW/5osxqJeEBfISs=",
         "owner": "rust-lang",
         "repo": "rust-analyzer",
-        "rev": "1d32a7b7c66450c792dafe162b229d40ab6a1cc8",
+        "rev": "7f1234492e3164f9688027278df7e915bc1d919c",
         "type": "github"
       },
       "original": {
@@ -347,15 +391,9 @@
     "xilinx-flake-utils": {
       "inputs": {
         "devshell": "devshell_3",
-        "flake-utils": [
-          "utils"
-        ],
-        "fpga-utils": [
-          "xilinx-workspace"
-        ],
-        "nixpkgs": [
-          "nixpkgs"
-        ]
+        "flake-utils": "flake-utils_3",
+        "fpga-utils": "fpga-utils",
+        "nixpkgs": "nixpkgs_6"
       },
       "locked": {
         "lastModified": 1673626437,
@@ -375,10 +413,13 @@
     "xilinx-workspace": {
       "flake": false,
       "locked": {
-        "lastModified": 1675720679,
-        "narHash": "sha256-Dr2rgaCG1bnPT/HQGZA8eWlI/dbb9qvVclu7ik5z5gk=",
-        "path": "/home/dadada/src/xilinx-workspace",
-        "type": "path"
+        "lastModified": 1674723013,
+        "narHash": "sha256-kTMJpSEh1GHTYlyfX+0RFWcPVvO94k7sveO+huqLTcE=",
+        "ref": "refs/heads/main",
+        "rev": "760104cc3fabfe1b608d5dc06c98991a638dd11c",
+        "revCount": 975,
+        "type": "git",
+        "url": "ssh://git@gitlab.dlr.de/ft-ssy-aes/XANDAR/xilinx-workspace.git"
       },
       "original": {
         "type": "git",
@@ -392,10 +433,12 @@
         ]
       },
       "locked": {
-        "lastModified": 1675783176,
-        "narHash": "sha256-JUA63/u803XLJybeo3rR+h/yguWFQ5RmK3QvsEtwwPw=",
-        "path": "/home/dadada/src/xng-flake-utils",
-        "type": "path"
+        "lastModified": 1674490952,
+        "narHash": "sha256-Wz2vO5T9fms/GAankoEo460OZPdyS8Rxlr5PIMVA5AA=",
+        "owner": "dadada",
+        "repo": "xng-flake-utils",
+        "rev": "c439f2072cd2daef4a6a552733c488e4c00ecae9",
+        "type": "github"
       },
       "original": {
         "owner": "dadada",

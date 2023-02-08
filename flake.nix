@@ -167,7 +167,7 @@
         devShells.deploy =
           let
             fpga = fpga-project.packages."${system}".default;
-            zynq7000Init = "${xilinx-workspace}/deployment/scripts/tcl_lib/zynq7000_init.tcl";
+            zynq7000Init = "${xilinx-workspace}/deployment/scripts/tcl_lib/zynq7000_init_te0706.tcl";
             vitis = xilinx-flake-utils.packages.${system}.vitis-unified-software-platform-vitis_2019-2_1106_2127;
             xng-sys-image = self.packages.${system}.xng-sys-image;
           in

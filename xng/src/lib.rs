@@ -12,17 +12,21 @@ pub mod logging {
 
     use crate::XalPrintf;
     use heapless::String;
+    use log::{LevelFilter, Log, Metadata, Record};
 
     pub struct XalLogger;
 
-    impl log::Log for XalLogger {
-        fn enabled(&self, metadata: &log::Metadata) -> bool {
+    impl Log for XalLogger {
+        fn enabled(&self, metadata: &Metadata) -> bool {
             metadata.level() < log::max_level()
         }
 
-        fn log(&self, record: &log::Record) {
+        fn log(&self, record: &Record) {
             let mut outstream = String::<200>::new();
-            if record.file().is_some() && record.line().is_some() {
+            if record.level() <= LevelFilter::Error
+                && record.file().is_some()
+                && record.line().is_some()
+            {
                 core::fmt::write(
                     &mut outstream,
                     format_args!(
@@ -37,12 +41,7 @@ pub mod logging {
             } else {
                 core::fmt::write(
                     &mut outstream,
-                    format_args!(
-                        "{}: {} {}: at unknown location",
-                        record.target(),
-                        record.level(),
-                        record.args(),
-                    ),
+                    format_args!("{}: {} {}", record.target(), record.level(), record.args(),),
                 );
             }
 

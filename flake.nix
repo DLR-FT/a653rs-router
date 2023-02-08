@@ -49,9 +49,7 @@
 
     xilinx-flake-utils = {
       url = "github:aeronautical-informatics/xilinx-flake-utils/dev/add-devshell";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-utils.follows = "utils";
-      inputs.fpga-utils.follows = "xilinx-workspace";
+      # do not override any inputs here to not have to rebuild Xilinx Vitis
     };
   };
 

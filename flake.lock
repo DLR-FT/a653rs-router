@@ -433,11 +433,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1674490952,
-        "narHash": "sha256-Wz2vO5T9fms/GAankoEo460OZPdyS8Rxlr5PIMVA5AA=",
+        "lastModified": 1675866760,
+        "narHash": "sha256-r1Kf6W8viqkrthy7Y+rNt63N4Zw32G9Rzk464gLPGSU=",
         "owner": "dadada",
         "repo": "xng-flake-utils",
-        "rev": "c439f2072cd2daef4a6a552733c488e4c00ecae9",
+        "rev": "7236462b0e29b915791c4420c18c9b82da273332",
         "type": "github"
       },
       "original": {

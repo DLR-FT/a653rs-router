@@ -185,7 +185,7 @@
                 command = ''
                   dir="$(mktemp -d)"
                   cp ${fpga} $dir/hw_export.xsa
-                  unzip xsa/hw_export.xsa -d $dir
+                  unzip "$dir/hw_export.xsa" -d $dir
                   xsct \
                     ${zynq7000Init} \
                     $dir/ps7_init.tcl \

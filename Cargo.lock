@@ -26,7 +26,7 @@ checksum = "224afbd727c3d6e4b90103ece64b8d1b67fbb1973b1046c2281eed3f3803f800"
 [[package]]
 name = "apex-rs"
 version = "0.1.0"
-source = "git+https://github.com/aeronautical-informatics/apex-rs.git?branch=main#b62d9149864832cddff7294afff5af5af8f292af"
+source = "git+https://github.com/aeronautical-informatics/apex-rs.git?branch=main#20442a6a85d4918dcf22e4a85165e54feb1b4d55"
 dependencies = [
  "serde",
  "strum",
@@ -65,7 +65,7 @@ dependencies = [
 [[package]]
 name = "apex-rs-xng"
 version = "0.1.0"
-source = "git+https://github.com/dadada/apex-rs-xng.git?branch=xng-hypervisor-debug#e0d24511a210092d917bc139710ef1ab81513c5c"
+source = "git+https://github.com/dadada/apex-rs-xng.git?branch=xng-hypervisor-debug#73fe9e1e01821fb1e6594b66bacea9a06c4c09dd"
 dependencies = [
  "apex-rs",
  "cty",

@@ -24,6 +24,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "224afbd727c3d6e4b90103ece64b8d1b67fbb1973b1046c2281eed3f3803f800"
 
 [[package]]
+name = "apex-echo"
+version = "0.1.0"
+dependencies = [
+ "apex-rs",
+ "apex-rs-postcard",
+ "log",
+ "once_cell",
+ "serde",
+]
+
+[[package]]
 name = "apex-rs"
 version = "0.1.0"
 source = "git+https://github.com/aeronautical-informatics/apex-rs.git?branch=main#20442a6a85d4918dcf22e4a85165e54feb1b4d55"
@@ -250,24 +261,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
-]
-
-[[package]]
-name = "echo"
-version = "0.1.0"
-dependencies = [
- "apex-rs",
- "apex-rs-linux",
- "apex-rs-postcard",
- "log",
- "network-partition",
- "network-partition-config",
- "network-partition-linux",
- "once_cell",
- "proc-macro2",
- "quote",
- "serde",
- "serde_yaml",
 ]
 
 [[package]]
@@ -592,6 +585,25 @@ dependencies = [
  "libc",
  "memoffset",
  "pin-utils",
+]
+
+[[package]]
+name = "np-linux-echo-example"
+version = "0.1.0"
+dependencies = [
+ "apex-echo",
+ "apex-rs",
+ "apex-rs-linux",
+ "apex-rs-postcard",
+ "log",
+ "network-partition",
+ "network-partition-config",
+ "network-partition-linux",
+ "once_cell",
+ "proc-macro2",
+ "quote",
+ "serde",
+ "serde_yaml",
 ]
 
 [[package]]

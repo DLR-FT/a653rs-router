@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+  "echo",
   "gen-config",
   "core",
   "linux",
@@ -9,6 +10,7 @@ members = [
   "examples/np-zynq7000"
 ]
 default-members = [  
+  "echo",
   "gen-config",
   "core",
   "linux",

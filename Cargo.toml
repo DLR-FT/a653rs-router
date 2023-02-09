@@ -6,7 +6,7 @@ members = [
   "core",
   "linux",
   "xng",
-  "examples/echo",
+  "examples/echo-linux",
   "examples/np-zynq7000"
 ]
 default-members = [  
@@ -15,6 +15,6 @@ default-members = [
   "core",
   "linux",
   "xng",
-  "examples/echo",
+  "examples/echo-linux",
   #"examples/zynq7000"
 ]

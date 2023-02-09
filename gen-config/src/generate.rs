@@ -80,12 +80,18 @@ pub fn generate_network_partition(
 
         impl Partition<Hypervisor> for NetworkPartition {
             fn cold_start(&self, ctx: &mut StartContext<Hypervisor>) {
+                trace!("Cold start");
 
+                trace!("Setting up sampling port destinations");
                 #( #vl_sampling_port_destinations )*
 
+                trace!("Setting up sampling port sources");
                 #( #vl_sampling_port_sources )*
 
+                trace!("Setting up interfaces");
                 #( #set_interfaces )*
+
+                trace!("Starting process");
 
                 ctx.create_process(ProcessAttribute {
                     period: SystemTime::Normal(Duration::ZERO),

@@ -2,7 +2,7 @@
   description = "network-partition";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/22.11";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-22.11";
 
     utils.url = "github:numtide/flake-utils";
 
@@ -68,6 +68,9 @@
           latest.cargo
           latest.clippy
           latest.rustfmt
+
+latest.rust-src
+          latest.rust-analyzer
           targets.x86_64-unknown-linux-musl.latest.rust-std
           targets.thumbv7m-none-eabi.latest.rust-std
           targets.armv7a-none-eabi.latest.rust-std
@@ -107,7 +110,6 @@
               formatter
               treefmt
               rust-toolchain
-              rust-analyzer
               cargo-outdated
               cargo-udeps
               cargo-audit
@@ -122,7 +124,6 @@
             hypervisorPackage
             gcc
             rust-toolchain
-            rust-analyzer
             cargo-outdated
             cargo-udeps
             cargo-audit

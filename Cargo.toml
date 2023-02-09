@@ -6,7 +6,7 @@ members = [
   "linux",
   "xng",
   "examples/echo",
-  "examples/zynq7000"
+  "examples/np-zynq7000"
 ]
 default-members = [  
   "gen-config",

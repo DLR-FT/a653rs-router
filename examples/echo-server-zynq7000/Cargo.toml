@@ -1,13 +1,15 @@
 [package]
-name = "apex-echo"
+name = "echo-server-zynq7000"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lib]
+crate-type = [ "staticlib" ]
+
 [dependencies]
+apex-echo = { path = "../../echo" }
 apex-rs = { git = "https://github.com/aeronautical-informatics/apex-rs.git", branch = "main" }
-apex-rs-postcard = { git = "https://github.com/aeronautical-informatics/apex-rs-postcard.git", branch = "main" }
-serde = { version = "1.0", features = ["derive"], default-features = false }
-log = "0"
+apex-rs-xng = { git = "https://github.com/dadada/apex-rs-xng.git", branch = "xng-hypervisor-debug" }
 once_cell = { version = "1.17", default-features = false }

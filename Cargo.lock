@@ -264,6 +264,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "echo-client-zynq7000"
+version = "0.1.0"
+dependencies = [
+ "apex-echo",
+ "apex-rs",
+ "apex-rs-xng",
+ "once_cell",
+]
+
+[[package]]
+name = "echo-server-zynq7000"
+version = "0.1.0"
+dependencies = [
+ "apex-echo",
+ "apex-rs",
+ "apex-rs-xng",
+ "once_cell",
+]
+
+[[package]]
 name = "either"
 version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -7,7 +7,9 @@ members = [
   "linux",
   "xng",
   "examples/echo-linux",
-  "examples/np-zynq7000"
+  "examples/np-zynq7000",
+  "examples/echo-client-zynq7000",
+  "examples/echo-server-zynq7000"
 ]
 default-members = [  
   "echo",

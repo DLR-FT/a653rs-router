@@ -2,7 +2,9 @@
 <Module xmlns="http://www.fentiss.com/xngModuleXml" name="Module0">
   <Hypervisor hRef="./hypervisor.xml" />
   <Partitions>
-    <Partition hRef="./partition.xml" />
+    <Partition hRef="./network_partition.xml" />
+    <Partition hRef="./echo_client.xml" />
+    <Partition hRef="./echo_server.xml" />
   </Partitions>
   <MultiPartitionHMTables hRef="./multipartition_health_monitor.xml" />
   <Schedules hRef="./schedules.xml" />

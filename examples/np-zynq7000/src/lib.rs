@@ -12,7 +12,6 @@ include!(concat!(env!("OUT_DIR"), "/np.rs"));
 
 static LOGGER: XalLogger = XalLogger;
 
-#[allow(non_snake_case)]
 #[no_mangle]
 pub extern "C" fn main() {
     unsafe { log::set_logger_racy(&LOGGER).unwrap() };

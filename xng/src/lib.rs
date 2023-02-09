@@ -8,7 +8,7 @@ extern "C" {
 }
 
 pub mod logging {
-    use core::cmp::min;
+    use core::{cmp::min, fmt::Display};
 
     use crate::XalPrintf;
     use heapless::String;
@@ -27,21 +27,26 @@ pub mod logging {
                 && record.file().is_some()
                 && record.line().is_some()
             {
-                core::fmt::write(
+                _ = core::fmt::write(
                     &mut outstream,
                     format_args!(
                         "{}: {} {}: {} at line {}",
                         record.target(),
-                        record.level(),
+                        ColourLogLevel::from(record.level()),
                         record.args(),
                         record.file().unwrap(),
                         record.line().unwrap(),
                     ),
                 );
             } else {
-                core::fmt::write(
+                _ = core::fmt::write(
                     &mut outstream,
-                    format_args!("{}: {} {}", record.target(), record.level(), record.args(),),
+                    format_args!(
+                        "{}: {} {}",
+                        record.target(),
+                        ColourLogLevel::from(record.level()),
+                        record.args(),
+                    ),
                 );
             }
 
@@ -52,9 +57,47 @@ pub mod logging {
             let end = b"\n\0";
             buf[len..len + 2].copy_from_slice(end);
             unsafe { XalPrintf(buf.as_ptr()) };
-            //unsafe { XalPrintf(buf[0..outstream.len() + 2].as_ptr()) };
         }
 
         fn flush(&self) {}
+    }
+
+    pub struct ColourLogLevel(log::Level);
+
+    impl ColourLogLevel {
+        const RESET_COLOUR: &str = "\x1b[39m";
+        const RED_COLOUR: &str = "\x1b[31m";
+        const GREEN_COLOUR: &str = "\x1b[32m";
+        const YELLOW_COLOUR: &str = "\x1b[33m";
+        const BLUE_COLOUR: &str = "\x1b[34m";
+        const MAGENTA_COLOUR: &str = "\x1b[35m";
+
+        pub fn as_colour_code(&self) -> &'static str {
+            match self.0 {
+                log::Level::Error => Self::RED_COLOUR,
+                log::Level::Warn => Self::YELLOW_COLOUR,
+                log::Level::Info => Self::GREEN_COLOUR,
+                log::Level::Debug => Self::BLUE_COLOUR,
+                log::Level::Trace => Self::MAGENTA_COLOUR,
+            }
+        }
+    }
+
+    impl From<log::Level> for ColourLogLevel {
+        fn from(level: log::Level) -> Self {
+            Self(level)
+        }
+    }
+
+    impl Display for ColourLogLevel {
+        fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+            write!(
+                f,
+                "{}{}{}",
+                self.as_colour_code(),
+                self.0,
+                Self::RESET_COLOUR
+            )
+        }
     }
 }

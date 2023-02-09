@@ -11,8 +11,6 @@ network-partition-linux = { path = "../../linux" }
 apex-echo = { path = "../../echo" }
 apex-rs = { git = "https://github.com/aeronautical-informatics/apex-rs.git", branch = "main" }
 apex-rs-linux = { git = "https://github.com/dadada/apex-linux.git", branch = "stable-for-master-thesis" }
-apex-rs-postcard = { git = "https://github.com/aeronautical-informatics/apex-rs-postcard.git", branch = "main" }
-serde = { version = "1.0", features = ["derive"] }
 log = "0"
 once_cell = "1.17"
 

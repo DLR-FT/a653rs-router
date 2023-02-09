@@ -594,7 +594,6 @@ dependencies = [
  "apex-echo",
  "apex-rs",
  "apex-rs-linux",
- "apex-rs-postcard",
  "log",
  "network-partition",
  "network-partition-config",
@@ -602,7 +601,6 @@ dependencies = [
  "once_cell",
  "proc-macro2",
  "quote",
- "serde",
  "serde_yaml",
 ]
 

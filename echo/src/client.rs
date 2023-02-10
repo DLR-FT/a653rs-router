@@ -121,7 +121,7 @@ where
             period: SystemTime::Normal(Duration::ZERO),
             time_capacity: SystemTime::Infinite,
             entry_point: self.entry_point_periodic,
-            stack_size: 100000,
+            stack_size: 10000,
             base_priority: 1,
             deadline: Deadline::Soft,
             name: Name::from_str("periodic_echo_send").unwrap(),

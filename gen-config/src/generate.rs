@@ -94,13 +94,16 @@ pub fn generate_network_partition(
                 trace!("Starting process");
 
                 let process = match ctx.create_process(ProcessAttribute {
-                    period: SystemTime::Normal(Duration::ZERO),
+                    // Execute continually
+                    // Lowest accepted value for LithOS
+                    // TODO get from configuration. Has to be integer multiple of partition period
+                    period: SystemTime::Normal(Duration::from_millis(500)),
                     time_capacity: SystemTime::Infinite,
                     entry_point,
                     stack_size: #process_stack_size,
                     base_priority: 1,
                     deadline: Deadline::Soft,
-                    name: Name::from_str("network_partition").unwrap(),
+                    name: Name::from_str("np").unwrap(),
                 }) {
                     Ok(process) => process,
                     Err(err) => {

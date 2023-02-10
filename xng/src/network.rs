@@ -250,6 +250,6 @@ impl<H: PlatformNetworkInterface> CreateNetworkInterfaceId<H> for UartSerial {
         _destination: &str,
         _rate: network_partition::prelude::DataRate,
     ) -> Result<NetworkInterfaceId, Error> {
-        todo!()
+        Ok(NetworkInterfaceId(1))
     }
 }

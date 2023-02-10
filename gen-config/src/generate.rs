@@ -93,7 +93,7 @@ pub fn generate_network_partition(
 
                 trace!("Starting process");
 
-                ctx.create_process(ProcessAttribute {
+                let process = match ctx.create_process(ProcessAttribute {
                     period: SystemTime::Normal(Duration::ZERO),
                     time_capacity: SystemTime::Infinite,
                     entry_point,
@@ -101,10 +101,13 @@ pub fn generate_network_partition(
                     base_priority: 1,
                     deadline: Deadline::Soft,
                     name: Name::from_str("network_partition").unwrap(),
-                })
-                .unwrap()
-                .start()
-                .unwrap()
+                }) {
+                    Ok(process) => process,
+                    Err(err) => {
+                        panic!("Failed to create process: {:?}", err);
+                    }
+                };
+                process.start().unwrap()
             }
 
             fn warm_start(&self, ctx: &mut StartContext<Hypervisor>) {

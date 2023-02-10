@@ -9,8 +9,8 @@ virtual_links:
       - !SamplingPortDestination
         channel: EchoReplySrv
         validity: 2s
-      - !SamplingPortSource
-        channel: EchoReplyCl
+#      - !SamplingPortSource
+#        channel: EchoReplyCl
   - id: 2
     rate: 10000
     msg_size: 100B
@@ -19,8 +19,8 @@ virtual_links:
       - !SamplingPortDestination
         channel: EchoRequestCl
         validity: 2s
-      - !SamplingPortSource
-        channel: EchoRequestSrv
+#      - !SamplingPortSource
+#        channel: EchoRequestSrv
 interfaces:
   - name: veth0
     rate: 10000000

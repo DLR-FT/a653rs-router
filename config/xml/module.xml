@@ -8,4 +8,5 @@
   </Partitions>
   <MultiPartitionHMTables hRef="./multipartition_health_monitor.xml" />
   <Schedules hRef="./schedules.xml" />
+  <Channels hRef="./channels.xml" />
 </Module>

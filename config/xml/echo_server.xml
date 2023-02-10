@@ -6,5 +6,9 @@
   <HmTable baseHmTable="defaultHmTab" exceptionToEvent = "prefetchExcp dataExcp" nbHmLogs="64" />
   <Devices>
   </Devices>
+  <Ports>
+    <SamplingPort name="EchoRequest" direction="destination" irq="166"/>
+    <SamplingPort name="EchoReply" direction="source" irq="167"/>
+  </Ports>
 </Partition>
 

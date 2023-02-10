@@ -13,6 +13,7 @@ fn main() {
     let dest_path = Path::new(&out_dir).join("np.rs");
     let config_path = Path::new(&config_dir).join("network_partition_config.yml");
     gen_config(config_path.as_path(), dest_path.as_path(), &out_dir);
+    println!("cargo:rerun-if-changed=gen-config");
     println!("cargo:rerun-if-changed=config");
 }
 

@@ -5,17 +5,22 @@ virtual_links:
     rate: 10000
     msg_size: 100B
     interfaces: [ "veth0" ]
-    ports:      
+    ports:
       - !SamplingPortDestination
-        channel: EchoRequest
+        channel: EchoReplySrv
         validity: 2s
+      - !SamplingPortSource
+        channel: EchoReplyCl
   - id: 2
     rate: 10000
     msg_size: 100B
     interfaces: [ "veth0" ]
-    ports:
+    ports:      
+      - !SamplingPortDestination
+        channel: EchoRequestCl
+        validity: 2s
       - !SamplingPortSource
-        channel: EchoReply
+        channel: EchoRequestSrv
 interfaces:
   - name: veth0
     rate: 10000000

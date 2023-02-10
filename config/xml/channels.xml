@@ -1,19 +1,19 @@
 <?xml version="1.0"?>
 <Channels xmlns="http://www.fentiss.com/xngChannelsXml">
-  <SamplingChannel start="0x400000" size="16KB" maxMessageSize="1KB">
+  <SamplingChannel start="0x400000" size="200B" maxMessageSize="100B">
     <Source partition="EchoClient" port="EchoRequest" />
-    <Destination partition="NetworkPartition" port="EchoRequest" />
+    <Destination partition="NetworkPartition" port="EchoRequestCl" />
   </SamplingChannel>
-  <SamplingChannel start="0x800000" size="16KB" maxMessageSize="1KB">
-    <Source partition="NetworkPartition" port="EchoRequest" />
+  <SamplingChannel start="0x400100" size="200B" maxMessageSize="100B">
+    <Source partition="NetworkPartition" port="EchoRequestSrv" />
     <Destination partition="EchoServer" port="EchoRequest" />
   </SamplingChannel>
-  <SamplingChannel start="0xC00000" size="16KB" maxMessageSize="1KB">
+  <SamplingChannel start="0x400200" size="200B" maxMessageSize="100B">
     <Source partition="EchoServer" port="EchoReply" />
-    <Destination partition="NetworkPartition" port="EchoReply" />
+    <Destination partition="NetworkPartition" port="EchoReplySrv" />
   </SamplingChannel>
-  <SamplingChannel start="0x1000000" size="16KB" maxMessageSize="1KB">
-    <Source partition="NetworkPartition" port="EchoReply" />
+  <SamplingChannel start="0x400300" size="200B" maxMessageSize="100B">
+    <Source partition="NetworkPartition" port="EchoReplyCl" />
     <Destination partition="EchoClient" port="EchoReply" />
   </SamplingChannel>
 </Channels>

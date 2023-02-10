@@ -150,8 +150,19 @@ fn set_sampling_port_destination(channel: &str, name: &str, mtu: u32, refresh: u
 fn set_sampling_port_source(channel: &str, name: &str, mtu: u32) -> TokenStream {
     let channel = channel.to_uppercase();
     let var = format_ident!("PORT_{channel}");
-    quote! { unsafe { #var.set(ctx.create_sampling_port_source::<#mtu>(Name::from_str(#name).unwrap()).unwrap()).unwrap(); } }
+    quote! {
+        let name = Name::from_str(#name).unwrap();
+        let src = match ctx.create_sampling_port_source::<#mtu>(name) {
+            Ok(src) => src,
+            Err(err) => {
+                error!("{:?}", err);
+                panic!("{:?}", err)
+            }
+        };
+        unsafe { #var.set(src).unwrap(); }
+    }
 }
+
 /// Generates TokenStreams that each initialize a sampling port.
 /// The function generates all sampling port destinations for all virtual links.
 /// The sampling port destinations must be named as static OnceCells.

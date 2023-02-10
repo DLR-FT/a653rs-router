@@ -10,4 +10,10 @@
       <Configuration value0="0x10" value1="0x20"/>
     </Device>
   </Devices>
+  <Ports>
+    <SamplingPort name="EchoRequestCl" direction="destination" irq="166"/>
+    <SamplingPort name="EchoReplyCl" direction="source" irq="167"/>
+    <SamplingPort name="EchoRequestSrv" direction="source" irq="168"/>
+    <SamplingPort name="EchoReplySrv" direction="destination" irq="169"/>
+  </Ports>
 </Partition>

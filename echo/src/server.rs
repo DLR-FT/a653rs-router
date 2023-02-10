@@ -53,7 +53,7 @@ where
         };
 
         ctx.create_process(ProcessAttribute {
-            period: SystemTime::Normal(Duration::ZERO),
+            period: SystemTime::Normal(Duration::from_millis(500)),
             time_capacity: SystemTime::Infinite,
             entry_point: self.entry_point_periodic,
             // TODO make configurable

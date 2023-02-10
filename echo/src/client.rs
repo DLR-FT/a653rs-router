@@ -102,6 +102,7 @@ where
     H: ApexPartitionP4 + ApexProcessP4 + ApexSamplingPortP4,
 {
     fn cold_start(&self, ctx: &mut StartContext<H>) {
+        trace!("Cold start echo client");
         let send_port = ctx
             .create_sampling_port_source(Name::from_str("EchoRequest").unwrap())
             .unwrap();
@@ -117,8 +118,9 @@ where
         _ = self.receiver.set(receive_port);
 
         // Periodic
+        trace!("Creating periodic echo process");
         ctx.create_process(ProcessAttribute {
-            period: SystemTime::Normal(Duration::ZERO),
+            period: SystemTime::Normal(Duration::from_millis(500)),
             time_capacity: SystemTime::Infinite,
             entry_point: self.entry_point_periodic,
             stack_size: 10000,
@@ -131,6 +133,7 @@ where
         .unwrap();
 
         // Aperiodic
+        trace!("Creating aperiodic echo process");
         ctx.create_process(ProcessAttribute {
             // There can be only one process with normal period
             period: SystemTime::Infinite,

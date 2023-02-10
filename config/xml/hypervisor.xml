@@ -37,7 +37,7 @@
   <Devices>
     
     <!--    <Console start="0x180000" size="4KB"/> -->
-    <Board oscillator="50.0MHz" activeCpus="0x1" />
+    <Board oscillator="50.0MHz" activeCpus="0x3" />
     <UART baudRate="115200" baseAddr="0xE0000000" />
     <Processor attributes="l1Prefetch BPU parity" />
     <L2Cache attributes="instrPrefetch dataPrefetch cacheReplRR parity" />

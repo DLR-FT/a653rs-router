@@ -26,6 +26,7 @@ where
     pub fn run<H: ApexSamplingPortP4 + ApexTimeP4Ext>(
         port: &mut SamplingPortSource<ECHO_SIZE, H>,
     ) -> ! {
+        trace!("Running echo client periodic process");
         let mut i: u32 = 0;
         loop {
             i += 1;
@@ -63,6 +64,7 @@ where
         port: &mut SamplingPortDestination<ECHO_SIZE, H>,
     ) -> ! {
         let mut last = 0;
+        trace!("Running echo client aperiodic process");
         loop {
             let now = <H as ApexTimeP4Ext>::get_time().unwrap_duration();
             let result = port.recv_type::<Echo>();

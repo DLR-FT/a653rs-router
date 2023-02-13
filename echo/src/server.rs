@@ -35,6 +35,7 @@ where
     H: ApexPartitionP4 + ApexProcessP4 + ApexSamplingPortP4,
 {
     fn cold_start(&self, ctx: &mut StartContext<H>) {
+        trace!("Echo server cold start");
         {
             let recv = ctx
                 .create_sampling_port_destination(
@@ -83,6 +84,7 @@ where
         send: &mut SamplingPortSource<ECHO_SIZE, H>,
         recv: &mut SamplingPortDestination<ECHO_SIZE, H>,
     ) {
+        trace!("Running echo server");
         let mut buf = [0u8; ECHO_SIZE as usize];
         loop {
             match recv.receive(&mut buf) {

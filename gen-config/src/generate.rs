@@ -93,11 +93,10 @@ pub fn generate_network_partition(
 
                 trace!("Starting process");
 
+                let period = Self::get_partition_status().period;
+
                 let process = match ctx.create_process(ProcessAttribute {
-                    // Execute continually
-                    // Lowest accepted value for LithOS
-                    // TODO get from configuration. Has to be integer multiple of partition period
-                    period: SystemTime::Normal(Duration::from_millis(500)),
+                    period: period,
                     time_capacity: SystemTime::Infinite,
                     entry_point,
                     stack_size: #process_stack_size,

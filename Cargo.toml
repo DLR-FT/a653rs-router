@@ -22,3 +22,6 @@ default-members = [
   "examples/echo-linux",
   #"examples/zynq7000"
 ]
+
+[patch."https://github.com/aeronautical-informatics/apex-rs.git"]
+apex-rs = { git = "https://github.com/dadada/apex-rs.git", branch = "dev/fix-refresh-period-magic-value" }

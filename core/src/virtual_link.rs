@@ -5,7 +5,9 @@ use crate::network::{Frame, PayloadSize};
 use crate::prelude::{FrameQueue, Interface, Shaper, Transmission};
 use crate::shaper::QueueId;
 use crate::types::DataRate;
-use apex_rs::prelude::{ApexSamplingPortP4, SamplingPortDestination, SamplingPortSource, Validity};
+use apex_rs::prelude::{
+    ApexSamplingPortP4, Error as ApexError, SamplingPortDestination, SamplingPortSource, Validity,
+};
 use core::fmt::{Debug, Display};
 use core::time::Duration;
 use heapless::spsc::Queue;
@@ -207,11 +209,11 @@ fn receive_sampling_port_valid<'a, const MTU: PayloadSize, H: ApexSamplingPortP4
     dst: &SamplingPortDestination<MTU, H>,
     buf: &'a mut [u8],
 ) -> Result<&'a [u8], Error> {
-    let (valid, _) = dst.receive(buf)?;
-    if valid == Validity::Invalid {
-        return Err(Error::InvalidData);
+    match dst.receive(buf) {
+        Err(ApexError::NoAction) => Ok(&buf[0..=0]),
+        Err(e) => panic!("{:?}", e),
+        _ => Ok(buf),
     }
-    Ok(buf)
 }
 
 fn forward_to_sources<const MTU: PayloadSize, const PORTS: usize, H: ApexSamplingPortP4>(
@@ -237,7 +239,9 @@ where
     fn receive_hypervisor(&mut self, shaper: &mut dyn Shaper) -> Result<(), Error> {
         if let Some(dst) = &mut self.port_dst {
             let mut buf = [0u8; MTU as usize];
+            trace!("Reading from sampling ports");
             _ = receive_sampling_port_valid(dst, &mut buf)?;
+            trace!("Forwarding to sampling ports");
             forward_to_sources(&self.port_srcs, &buf)?;
             if let Some(queue) = &mut self.queue {
                 if let Some(id) = &mut self.queue_id {

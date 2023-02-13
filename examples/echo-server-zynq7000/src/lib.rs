@@ -6,10 +6,11 @@
 use apex_echo::server::*;
 use apex_rs::prelude::*;
 use apex_rs_xng::apex::XngHypervisor;
+use log::info;
 use once_cell::unsync::OnceCell;
 use xng_rs_log::log::XalLogger;
 
-const ECHO_SIZE: MessageSize = 1000;
+const ECHO_SIZE: MessageSize = 100;
 
 static mut SENDER: OnceCell<SamplingPortSource<ECHO_SIZE, XngHypervisor>> = OnceCell::new();
 static mut RECEIVER: OnceCell<SamplingPortDestination<ECHO_SIZE, XngHypervisor>> = OnceCell::new();
@@ -17,8 +18,9 @@ static LOGGER: XalLogger = XalLogger;
 
 #[no_mangle]
 pub extern "C" fn main() {
-    unsafe { log::set_logger_racy(&XalLogger) };
+    //    unsafe { log::set_logger_racy(&XalLogger) };
     log::set_max_level(log::LevelFilter::Trace);
+    info!("Echo server main");
     let partition = EchoServerPartition::new(
         unsafe { &SENDER },
         unsafe { &RECEIVER },

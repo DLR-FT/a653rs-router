@@ -37,7 +37,7 @@ dependencies = [
 [[package]]
 name = "apex-rs"
 version = "0.1.0"
-source = "git+https://github.com/aeronautical-informatics/apex-rs.git?branch=main#20442a6a85d4918dcf22e4a85165e54feb1b4d55"
+source = "git+https://github.com/dadada/apex-rs.git?branch=dev/fix-refresh-period-magic-value#9d1cf1b1fb4e18de55821de4bc7effc08abc5cf3"
 dependencies = [
  "serde",
  "strum",

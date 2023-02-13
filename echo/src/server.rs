@@ -37,11 +37,13 @@ where
     fn cold_start(&self, ctx: &mut StartContext<H>) {
         trace!("Echo server cold start");
         {
+            let period = Self::get_partition_status()
+                .period
+                .unwrap_duration()
+                .checked_mul(2)
+                .unwrap();
             let recv = ctx
-                .create_sampling_port_destination(
-                    Name::from_str("EchoRequest").unwrap(),
-                    Duration::from_secs(1),
-                )
+                .create_sampling_port_destination(Name::from_str("EchoRequest").unwrap(), period)
                 .unwrap();
             _ = self.receiver.set(recv);
         };

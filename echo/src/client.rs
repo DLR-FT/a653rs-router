@@ -26,7 +26,7 @@ where
     pub fn run<H: ApexSamplingPortP4 + ApexTimeP4Ext>(
         port: &mut SamplingPortSource<ECHO_SIZE, H>,
     ) -> ! {
-        trace!("Running echo client periodic process");
+        info!("Running echo client periodic process");
         let mut i: u32 = 0;
         loop {
             i += 1;
@@ -60,11 +60,11 @@ impl<const ECHO_SIZE: MessageSize> EchoReceiverProcess<ECHO_SIZE>
 where
     [u8; ECHO_SIZE as usize]:,
 {
-    pub fn run<H: ApexSamplingPortP4 + ApexTimeP4Ext>(
+    pub fn run<H: ApexSamplingPortP4 + ApexTimeP4Ext + ApexTimeP1Ext>(
         port: &mut SamplingPortDestination<ECHO_SIZE, H>,
     ) -> ! {
-        let mut last = 0;
         trace!("Running echo client aperiodic process");
+        let mut last = 0;
         loop {
             let now = <H as ApexTimeP4Ext>::get_time().unwrap_duration();
             let result = port.recv_type::<Echo>();
@@ -81,10 +81,9 @@ where
                     }
                 }
                 Err(_) => {
-                    trace!("Failed to receive anything");
+                    //trace!("Failed to receive anything");
                 }
             }
-            for _ in 0..10000 {}
         }
     }
 }
@@ -111,8 +110,9 @@ where
 
         _ = self.sender.set(send_port);
 
-        let period = Self::get_partition_status().period.unwrap_duration();
-        let echo_validity: Duration = period.checked_mul(2).unwrap();
+        let period = Self::get_partition_status().period;
+        info!("{:?}", period);
+        let echo_validity: Duration = period.clone().unwrap_duration().checked_mul(2).unwrap();
 
         let receive_port = ctx
             .create_sampling_port_destination(Name::from_str("EchoReply").unwrap(), echo_validity)
@@ -122,13 +122,13 @@ where
         // Periodic
         trace!("Creating periodic echo process");
         ctx.create_process(ProcessAttribute {
-            period: SystemTime::Normal(Duration::from_millis(500)),
+            period,
             time_capacity: SystemTime::Infinite,
             entry_point: self.entry_point_periodic,
             stack_size: 10000,
-            base_priority: 1,
+            base_priority: 5,
             deadline: Deadline::Soft,
-            name: Name::from_str("periodic_echo_send").unwrap(),
+            name: Name::from_str("EchoSend").unwrap(),
         })
         .unwrap()
         .start()
@@ -141,10 +141,10 @@ where
             period: SystemTime::Infinite,
             time_capacity: SystemTime::Infinite,
             entry_point: self.entry_point_aperiodic,
-            stack_size: 100000,
+            stack_size: 10000,
             base_priority: 1,
             deadline: Deadline::Soft,
-            name: Name::from_str("aperiodic_echo_receive").unwrap(),
+            name: Name::from_str("EchoReceive").unwrap(),
         })
         .unwrap()
         .start()

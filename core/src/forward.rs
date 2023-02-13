@@ -97,15 +97,18 @@ impl<'a> Forwarder<'a> {
     }
 
     fn receive_hypervisor(&mut self) -> Result<(), Error> {
-        self.links
-            .iter_mut()
-            .filter_map(|vl| vl.receive_hypervisor(self.shaper).err())
-            .map(|e| {
-                error!("{e}");
-                Err(e)
-            })
-            .last()
-            .unwrap_or(Ok(()))
+        let mut err: Option<Error> = None;
+        for vl in self.links.iter_mut() {
+            if let Err(e) = vl.receive_hypervisor(self.shaper) {
+                error!("VL {} {e}", vl.vl_id());
+                err = Some(e);
+            }
+        }
+
+        match err {
+            Some(err) => Err(err),
+            None => Ok(()),
+        }
     }
 
     fn receive_network(&mut self) -> Result<(), Error> {

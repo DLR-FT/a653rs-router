@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<Hypervisor xmlns="http://www.fentiss.com/xngHypervisorXml" entryPoint="0x100000" attributes="none" nbTraceLogs="256" logTraceEvents="contextSwitch schedStart hcallRequest sysInstrRequest partitionOp receiveIrq issueVIrq exception">
+  <MemoryAreas>
+    <Area start = "0x0" size="16MB" type="nonSharedNormal" access="readwrite executable" cachePolicy="l1WriteBackWa l2WriteBackWa"/>
+    <Area start = "0x1000000" size="16MB" type="nonSharedNormal" access="readwrite executable" cachePolicy="l1WriteBackWa l2WriteBackWa"/>
+  </MemoryAreas>
+  <DataArea start = "0x140000" size="512KB" />
+  <HmTable nbHmLogs="64">
+    <Event name="externalSyncError" action="haltHypervisor" />
+    <Event name="numericError" action="haltHypervisor" />
+    <Event name="modeError" action="haltHypervisor" />
+    <Event name="internalError" action="haltHypervisor" />
+    <Event name="bootSyncTimeOut" action="ignore" />
+    <Event name="schedSyncTimeOut" action="ignore" />
+    <Event name="deadLockTimeOut" action="ignore" />
+    
+    <Event name="udfCoprocessorNotAccessible" action="haltHypervisor" />
+    <Event name="udfCoprocessorException" action="haltHypervisor" />
+    <Event name="udfInstruction" action="haltHypervisor" />
+    <Event name="prefetchMmuFault" action="haltHypervisor" />
+    <Event name="prefetchAlignmentFault" action="haltHypervisor" />
+    <Event name="prefetchExternalAbort" action="haltHypervisor" />
+    <Event name="prefetchCacheMaintenanceFault" action="haltHypervisor" />
+    <Event name="prefetchDebugEvent" action="haltHypervisor" />
+    <Event name="dataMmuFault" action="haltHypervisor" />
+    <Event name="dataAlignmentFault" action="haltHypervisor" />
+    <Event name="dataExternalAbort" action="haltHypervisor" />
+    <Event name="dataCacheMaintenanceFault" action="haltHypervisor" />
+    <Event name="dataDebugEvent" action="haltHypervisor" />
+    <Event name="svcInstruction" action="haltHypervisor" />
+    <Event name="unexpectedIrq" action="haltHypervisor" />
+    <Event name="eccError" action="haltHypervisor" />
+    <Event name="correctableParityError" action="ignore" />
+    <Event name="uncorrectableParityError" action="haltHypervisor" />
+        
+  </HmTable>
+  <Devices>
+    
+    <!--    <Console start="0x180000" size="4KB"/> -->
+    <Board oscillator="50.0MHz" activeCpus="0x3" />
+    <UART baudRate="115200" baseAddr="0xE0000000" />
+    <Processor attributes="l1Prefetch BPU parity" />
+    <L2Cache attributes="instrPrefetch dataPrefetch cacheReplRR parity" />
+    
+  </Devices>
+</Hypervisor>
+

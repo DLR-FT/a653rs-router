@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<Module xmlns="http://www.fentiss.com/xngModuleXml" name="Module0">
+  <Hypervisor hRef="./hypervisor.xml" />
+  <Partitions>
+    <Partition hRef="./network_partition.xml" />
+    <Partition hRef="./echo_server.xml" />
+  </Partitions>
+  <MultiPartitionHMTables hRef="./multipartition_health_monitor.xml" />
+  <Schedules hRef="./schedules.xml" />
+  <Channels hRef="./channels.xml" />
+</Module>

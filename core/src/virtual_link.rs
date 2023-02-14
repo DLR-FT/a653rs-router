@@ -211,7 +211,8 @@ fn receive_sampling_port_valid<'a, const MTU: PayloadSize, H: ApexSamplingPortP4
 ) -> Result<&'a [u8], Error> {
     match dst.receive(buf) {
         Err(ApexError::NoAction) => Ok(&buf[0..=0]),
-        Err(e) => panic!("{:?}", e),
+        Err(e) => Err(Error::PortReceiveFail(e)),
+        Ok((Validity::Invalid, _)) => Err(Error::InvalidData),
         _ => Ok(buf),
     }
 }

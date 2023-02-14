@@ -72,7 +72,6 @@ pub fn generate_network_partition(
                     error!("{err:?}");
                 }
                 trace!("Suspending...");
-                Hypervisor::periodic_wait().unwrap();
            }
         }
 
@@ -93,14 +92,12 @@ pub fn generate_network_partition(
 
                 trace!("Starting process");
 
-                let period = Self::get_partition_status().period;
-
                 let process = match ctx.create_process(ProcessAttribute {
-                    period: period,
+                    period: SystemTime::Infinite,
                     time_capacity: SystemTime::Infinite,
                     entry_point,
                     stack_size: #process_stack_size,
-                    base_priority: 1,
+                    base_priority: 5,
                     deadline: Deadline::Soft,
                     name: Name::from_str("np").unwrap(),
                 }) {

@@ -37,13 +37,11 @@ where
     fn cold_start(&self, ctx: &mut StartContext<H>) {
         trace!("Echo server cold start");
         {
-            let period = Self::get_partition_status()
-                .period
-                .unwrap_duration()
-                .checked_mul(2)
-                .unwrap();
             let recv = ctx
-                .create_sampling_port_destination(Name::from_str("EchoRequest").unwrap(), period)
+                .create_sampling_port_destination(
+                    Name::from_str("EchoRequest").unwrap(),
+                    Duration::from_secs(10),
+                )
                 .unwrap();
             _ = self.receiver.set(recv);
         };
@@ -54,14 +52,13 @@ where
                 .unwrap();
             _ = self.sender.set(send);
         };
-
         ctx.create_process(ProcessAttribute {
-            period: SystemTime::Normal(Duration::from_millis(500)),
+            period: SystemTime::Infinite,
             time_capacity: SystemTime::Infinite,
             entry_point: self.entry_point_periodic,
             // TODO make configurable
             stack_size: 10000,
-            base_priority: 1,
+            base_priority: 5,
             deadline: Deadline::Soft,
             name: Name::from_str("echo_server").unwrap(),
         })
@@ -108,7 +105,6 @@ where
                     error!("Failed to receive echo");
                 }
             }
-            <H as ApexTimeP4Ext>::periodic_wait().unwrap();
         }
     }
 }

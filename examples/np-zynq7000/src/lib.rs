@@ -15,7 +15,7 @@ static LOGGER: XalLogger = XalLogger;
 
 #[no_mangle]
 pub extern "C" fn main() {
-    unsafe { log::set_logger_racy(&LOGGER).unwrap() };
-    log::set_max_level(log::LevelFilter::Trace);
+    //unsafe { log::set_logger_racy(&LOGGER).unwrap() };
+    log::set_max_level(log::LevelFilter::Info);
     NetworkPartition.run();
 }

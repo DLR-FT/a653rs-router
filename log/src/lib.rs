@@ -9,36 +9,24 @@ pub mod log {
     use core::fmt::{Display, Write};
 
     use crate::XalPutchar;
-    use log::{LevelFilter, Log, Metadata, Record};
+    use log::{max_level, Log, Metadata, Record};
 
     pub struct XalLogger;
 
     impl Log for XalLogger {
         fn enabled(&self, metadata: &Metadata) -> bool {
-            metadata.level() < log::max_level()
+            metadata.level() < max_level()
         }
 
         fn log(&self, record: &Record) {
             let mut writer = XalWriter;
-            if let (lvl, Some(file), Some(line)) =
-                (record.level(), record.file(), record.line()) && lvl <= LevelFilter::Error
-            {
-                _ = core::write!(
-                    &mut writer,
-                    "{}: {} {}: {file} at line {line}\n",
-                    record.target(),
-                    ColourLogLevel::from(lvl),
-                    record.args(),
-                );
-            } else {
-                _ = core::write!(
-                    &mut writer,
-                    "{}: {} {}\n",
-                    record.target(),
-                    ColourLogLevel::from(record.level()),
-                    record.args(),
-                );
-            }
+            _ = core::write!(
+                &mut writer,
+                "{}: {} {}\n",
+                record.target(),
+                ColourLogLevel::from(record.level()),
+                record.args(),
+            );
         }
 
         fn flush(&self) {}

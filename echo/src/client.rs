@@ -38,10 +38,9 @@ where
             let result = port.send_type(data);
             match result {
                 Ok(_) => {
-                    trace!(
+                    info!(
                         "EchoRequest: seqnr = {:?}, time = {:?}",
-                        data.sequence,
-                        data.when_ms
+                        data.sequence, data.when_ms
                     );
                 }
                 Err(_) => {
@@ -63,9 +62,9 @@ where
     pub fn run<H: ApexSamplingPortP4 + ApexTimeP4Ext + ApexTimeP1Ext>(
         port: &mut SamplingPortDestination<ECHO_SIZE, H>,
     ) -> ! {
-        trace!("Running echo client aperiodic process");
         let mut last = 0;
         loop {
+            trace!("Running echo client aperiodic process");
             let now = <H as ApexTimeP4Ext>::get_time().unwrap_duration();
             let result = port.recv_type::<Echo>();
             match result {
@@ -110,9 +109,7 @@ where
 
         _ = self.sender.set(send_port);
 
-        let period = Self::get_partition_status().period;
-        info!("{:?}", period);
-        let echo_validity: Duration = period.clone().unwrap_duration().checked_mul(2).unwrap();
+        let echo_validity: Duration = Duration::from_secs(10);
 
         let receive_port = ctx
             .create_sampling_port_destination(Name::from_str("EchoReply").unwrap(), echo_validity)
@@ -122,7 +119,7 @@ where
         // Periodic
         trace!("Creating periodic echo process");
         ctx.create_process(ProcessAttribute {
-            period,
+            period: SystemTime::Normal(Duration::from_secs(1)),
             time_capacity: SystemTime::Infinite,
             entry_point: self.entry_point_periodic,
             stack_size: 10000,

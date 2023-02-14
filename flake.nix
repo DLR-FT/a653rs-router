@@ -178,7 +178,6 @@
                 name = "jtag-boot";
                 help = "Boot the network partition using JTAG";
                 command = ''
-                  nix --offline build .\#xng-sys-img-local_echo --print-build-logs
                   dir="$(mktemp -d)"
                   cp ${fpga} $dir/hw_export.xsa
                   unzip "$dir/hw_export.xsa" -d $dir
@@ -189,7 +188,7 @@
                       $dir/ps7_init.tcl \
                       $dir/hw_export.bit \
                       $dir/hw_export.xsa \
-                      ${xng-sys-img-local_echo}/sys_img.elf \
+                      result/sys_img.elf \
                       "$cable" \
                       || printf "Failed to flash target"
                   done
@@ -244,9 +243,9 @@
             copyBins = false;
             #doDoc = true;
           };
-          np-zynq7000-remote_echo = naerskLib.buildPackage rec {
+          np-zynq7000-echo_client = naerskLib.buildPackage rec {
             pname = "np-zynq7000";
-            CONFIG_DIR = ./config/remote_echo;
+            CONFIG_DIR = ./config/echo_client;
             root = ./.;
             cargoBuildOptions = x: x ++ [ "-p" pname "--target" "armv7a-none-eabi" ];
             doCheck = false;
@@ -256,7 +255,6 @@
           };
           echo-client-zynq7000 = naerskLib.buildPackage rec {
             pname = "echo-client-zynq7000";
-            CONFIG_DIR = ./config;
             root = ./.;
             cargoBuildOptions = x: x ++ [ "-p" pname "--target" "armv7a-none-eabi" ];
             doCheck = false;
@@ -266,7 +264,6 @@
           };
           echo-server-zynq7000 = naerskLib.buildPackage rec {
             pname = "echo-server-zynq7000";
-            CONFIG_DIR = ./config;
             root = ./.;
             cargoBuildOptions = x: x ++ [ "-p" pname "--target" "armv7a-none-eabi" ];
             doCheck = false;
@@ -284,7 +281,6 @@
           };
           xng-sys-img-local_echo = xng-utils.lib.buildXngSysImage {
             inherit pkgs;
-            # TODO enable when armv7a-none-eabihf is in rust nightly or define target file
             hardFp = false;
             xngOps = self.packages.${system}.xng-ops;
             lithOsOps = self.packages.${system}.lithos-ops;
@@ -311,6 +307,28 @@
                 src = "${self.packages."${system}".echo-server-zynq7000}/lib/libecho_server_zynq7000.a";
                 enableLithOs = true;
                 ltcf = ./config/local_echo/echo_server.ltcf;
+              };
+            };
+          };
+          xng-sys-img-echo_client = xng-utils.lib.buildXngSysImage {
+            inherit pkgs;
+            hardFp = false;
+            xngOps = self.packages.${system}.xng-ops;
+            lithOsOps = self.packages.${system}.lithos-ops;
+            xcf = pkgs.runCommandNoCC "patch-src" { } ''
+              cp -r ${./. + "/config/echo_client/xml"} $out/
+            '';
+            name = "xng-sys-img-echo-client";
+            partitions = {
+              NetworkPartition = {
+                src = "${self.packages."${system}".np-zynq7000-echo_client}/lib/libnp_zynq7000.a";
+                enableLithOs = true;
+                ltcf = ./config/echo_client/network_partition.ltcf;
+              };
+              EchoClient = {
+                src = "${self.packages."${system}".echo-client-zynq7000}/lib/libecho_client_zynq7000.a";
+                enableLithOs = true;
+                ltcf = ./config/echo_client/echo_client.ltcf;
               };
             };
           };

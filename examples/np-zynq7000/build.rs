@@ -11,7 +11,7 @@ fn main() {
     let out_dir = env::var_os("OUT_DIR").unwrap_or_default();
     let config_dir = env::var_os("CONFIG_DIR").unwrap_or(OsString::from("../../config"));
     let dest_path = Path::new(&out_dir).join("np.rs");
-    let config_path = Path::new(&config_dir).join("network_partition_config.yml");
+    let config_path = Path::new(&config_dir).join("network_partition.yml");
     gen_config(config_path.as_path(), dest_path.as_path(), &out_dir);
     println!("cargo:rerun-if-changed=gen-config");
     println!("cargo:rerun-if-changed=config");

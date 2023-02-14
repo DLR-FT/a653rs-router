@@ -88,40 +88,7 @@
             sha256 = "1b73d6x3galw3bhj5nac7ifgp15zrsyipn4imwknr24gp1l14sc8";
           };
         };
-        
-          xng-sys-image = config: xng-utils.lib.buildXngSysImage {
-            inherit pkgs;
-            # TODO enable when armv7a-none-eabihf is in rust nightly or define target file
-            hardFp = false;
-            xngOps = self.packages.${system}.xng-ops;
-            lithOsOps = self.packages.${system}.lithos-ops;
-            xcf = pkgs.runCommandNoCC "patch-src" { } ''
-              cp -r ${./. + "/config/${config}/xml"} $out/
-              #for file in $(find $out -name hypervisor.xml)
-              #do
-              #  substituteInPlace "$file" --replace 'baseAddr="0xE0001000"' 'baseAddr="0xE0000000"'
-              #done
-            '';
-            name = "network_partition_local_echo";
-            partitions = {
-              NetworkPartition = {
-                src = "${self.packages."${system}".np-zynq7000-local_echo}/lib/libnp_zynq7000.a";
-                enableLithOs = true;
-                ltcf = ./config/local_echo/network_partition.ltcf;
-              };
-              EchoClient = {
-                src = "${self.packages."${system}".echo-client-zynq7000}/lib/libecho_client_zynq7000.a";
-                enableLithOs = true;
-                ltcf = ./config/local_echo/echo_client.ltcf;
-              };
-              EchoServer = {
-                src = "${self.packages."${system}".echo-server-zynq7000}/lib/libecho_server_zynq7000.a";
-                enableLithOs = true;
-                ltcf = ./config/local_echo/echo_server.ltcf;
-              };
-            };
-          };
-
+        xng-sys-img-local_echo = self.packages.${system}.xng-sys-image-local_ecxho;
       in
       {
         inherit formatter;
@@ -133,7 +100,7 @@
           in
           with self.packages."${system}"; mkShell {
             C_INCLUDE_PATH = "${xng-ops}/include";
-            inputsFrom = [ (xng-sys-image "local_echo" )];
+            inputsFrom = [ xng-sys-img-local_echo ];
             packages = with pkgs; [
               formatter
               treefmt
@@ -315,7 +282,38 @@
             inherit pkgs;
             src = xngSrcs.lithos;
           };
-          xng-sys-img-local_echo = xng-sys-image "local_echo";
+          xng-sys-img-local_echo = xng-utils.lib.buildXngSysImage {
+            inherit pkgs;
+            # TODO enable when armv7a-none-eabihf is in rust nightly or define target file
+            hardFp = false;
+            xngOps = self.packages.${system}.xng-ops;
+            lithOsOps = self.packages.${system}.lithos-ops;
+            xcf = pkgs.runCommandNoCC "patch-src" { } ''
+              cp -r ${./. + "/config/local_echo/xml"} $out/
+              #for file in $(find $out -name hypervisor.xml)
+              #do
+              #  substituteInPlace "$file" --replace 'baseAddr="0xE0001000"' 'baseAddr="0xE0000000"'
+              #done
+            '';
+            name = "network_partition_local_echo";
+            partitions = {
+              NetworkPartition = {
+                src = "${self.packages."${system}".np-zynq7000-local_echo}/lib/libnp_zynq7000.a";
+                enableLithOs = true;
+                ltcf = ./config/local_echo/network_partition.ltcf;
+              };
+              EchoClient = {
+                src = "${self.packages."${system}".echo-client-zynq7000}/lib/libecho_client_zynq7000.a";
+                enableLithOs = true;
+                ltcf = ./config/local_echo/echo_client.ltcf;
+              };
+              EchoServer = {
+                src = "${self.packages."${system}".echo-server-zynq7000}/lib/libecho_server_zynq7000.a";
+                enableLithOs = true;
+                ltcf = ./config/local_echo/echo_server.ltcf;
+              };
+            };
+          };
         };
       });
 }

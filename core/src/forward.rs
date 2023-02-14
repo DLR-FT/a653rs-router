@@ -100,7 +100,7 @@ impl<'a> Forwarder<'a> {
         let mut err: Option<Error> = None;
         for vl in self.links.iter_mut() {
             if let Err(e) = vl.receive_hypervisor(self.shaper) {
-                error!("VL {} {e}", vl.vl_id());
+                error!("AAAA VL {} {e}", vl.vl_id());
                 err = Some(e);
             }
         }

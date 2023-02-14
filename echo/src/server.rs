@@ -1,7 +1,7 @@
 use apex_rs::prelude::*;
 use core::str::FromStr;
 use core::time::Duration;
-use log::{error, trace};
+use log::{error, trace, warn};
 use once_cell::unsync::OnceCell;
 
 pub struct EchoServerPartition<const ECHO_SIZE: MessageSize, S>
@@ -98,11 +98,11 @@ where
                             }
                         }
                     } else {
-                        trace!("Ignoring invalid data");
+                        warn!("Ignoring invalid data");
                     }
                 }
                 Err(Error::NotAvailable) | Err(Error::NoAction) => {
-                    trace!("No echo request available yet");
+                    warn!("No echo request available yet");
                 }
                 Err(e) => {
                     error!("Failed to receive echo: ${e:?}");

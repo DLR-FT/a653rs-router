@@ -67,12 +67,10 @@ pub fn generate_network_partition(
             let mut forwarder = Forwarder::new(&mut frame_buf, &mut shaper, &mut links, &mut interfaces);
 
             loop {
-                trace!("Continuing...");
                 if let Err(err) = forwarder.forward::<Hypervisor>() {
                     error!("{err:?}");
                 }
-                trace!("Suspending...");
-           }
+            }
         }
 
         struct NetworkPartition;
@@ -348,7 +346,7 @@ fn get_min_interface_data_rate(config: &Config) -> u64 {
         .iter()
         .map(|i| i.rate)
         .min()
-        .unwrap()
+        .unwrap_or_default()
         .as_u64()
 }
 
@@ -358,7 +356,7 @@ fn get_max_mtu(config: &Config) -> u64 {
         .iter()
         .map(|i| i.mtu)
         .max()
-        .unwrap()
+        .unwrap_or_default()
         .as_u64()
 }
 

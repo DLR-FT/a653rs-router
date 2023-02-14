@@ -101,8 +101,11 @@ where
                         trace!("Ignoring invalid data");
                     }
                 }
-                _ => {
-                    error!("Failed to receive echo");
+                Err(Error::NotAvailable) | Err(Error::NoAction) => {
+                    trace!("No echo request available yet");
+                }
+                Err(e) => {
+                    error!("Failed to receive echo: ${e:?}");
                 }
             }
         }

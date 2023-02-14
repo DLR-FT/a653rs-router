@@ -71,7 +71,12 @@ pub struct Config {
     pub virtual_links: Vec<VirtualLinkConfig>,
 
     /// The interfaces that will be attached to the partition.
+    #[serde(default = "default_interfaces")]
     pub interfaces: Vec<InterfaceConfig>,
+}
+
+fn default_interfaces() -> Vec<InterfaceConfig> {
+    Vec::new()
 }
 
 /// Configures the amount of stack memory to reserve for the prcesses of the partition.

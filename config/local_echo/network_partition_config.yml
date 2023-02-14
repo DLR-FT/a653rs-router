@@ -4,26 +4,20 @@ virtual_links:
   - id: 1
     rate: 10000
     msg_size: 100B
-    interfaces: [ "veth0" ]
+    interfaces: [ ]
     ports:
       - !SamplingPortDestination
         channel: EchoReplySrv
-        validity: 2s
+        validity: 10s
       - !SamplingPortSource
         channel: EchoReplyCl
   - id: 2
     rate: 10000
     msg_size: 100B
-    interfaces: [ "veth0" ]
+    interfaces: [ ]
     ports:      
       - !SamplingPortDestination
         channel: EchoRequestCl
-        validity: 2s
+        validity: 10s
       - !SamplingPortSource
         channel: EchoRequestSrv
-interfaces:
-  - name: veth0
-    rate: 10000000
-    mtu: 1.5KB
-    # TODO remove. not needed for veth, only for UDP
-    destination: "127.0.0.1:34256"

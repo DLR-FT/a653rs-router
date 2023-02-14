@@ -14,10 +14,13 @@ pub enum Error {
     PortReceiveFail(apex_rs::prelude::Error),
 
     /// Failed to receive something from an interface.
-    InterfaceReceiveFail,
+    InterfaceReceiveFail(InterfaceError),
 
     /// Received invalid data.
     InvalidData,
+
+    /// Invalid configuration for network partition
+    InvalidConfig,
 
     /// It has been tried to dequeue an item from an empty queue.
     QueueEmpty,
@@ -38,12 +41,35 @@ pub enum Error {
     Unknown,
 }
 
+/// Inteface error type.
+#[derive(Clone, Debug)]
+pub enum InterfaceError {
+    /// Insufficient buffer space
+    InsufficientBuffer,
+    /// No data available
+    NoData,
+    /// Invalid data received from interface
+    InvalidData,
+}
+
+impl core::fmt::Display for InterfaceError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::NoData => write!(f, "No data available"),
+            Self::InsufficientBuffer => write!(f, "Insufficient buffer space"),
+            Self::InvalidData => write!(f, "InvalidData"),
+        }
+    }
+}
+
 impl core::fmt::Display for Error {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Error::PortSendFail(source) => write!(f, "Failed to send data: {source:?}"),
             Error::PortReceiveFail(source) => write!(f, "Failed to receive data: {source:?}"),
-            Error::InterfaceReceiveFail => write!(f, "Failed to receive data from an interface"),
+            Error::InterfaceReceiveFail(reason) => {
+                write!(f, "Failed to receive data from an interface: {reason}")
+            }
             Error::InvalidData => write!(f, "Received invalid data."),
             Error::QueueEmpty => write!(f, "Tried to dequeue an element of an empty queue."),
             Error::TransmitNotAllowed => write!(
@@ -55,6 +81,7 @@ impl core::fmt::Display for Error {
             }
             Error::NoSuchQueue(q_id) => write!(f, "No such queue: {q_id}"),
             Error::EnqueueFailed => write!(f, "Failed to enqueue a frame into queue"),
+            Error::InvalidConfig => write!(f, "Invalid configuration"),
             Error::Unknown => write!(f, "Unknown error"),
         }
     }

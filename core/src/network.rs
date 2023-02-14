@@ -1,6 +1,10 @@
 use core::{marker::PhantomData, time::Duration};
 
-use crate::{error::Error, prelude::DataRate, virtual_link::VirtualLinkId};
+use crate::{
+    error::Error,
+    prelude::{DataRate, InterfaceError},
+    virtual_link::VirtualLinkId,
+};
 use log::{trace, warn};
 
 /// Size of a frame payload.
@@ -115,7 +119,9 @@ impl<const MTU: PayloadSize, H: PlatformNetworkInterface> NetworkInterface<MTU, 
     /// Receives data from the interface.
     pub fn receive<'a>(&self, buf: &'a mut [u8]) -> Result<(VirtualLinkId, &'a [u8]), Error> {
         if buf.len() < MTU as usize {
-            return Err(Error::InterfaceReceiveFail);
+            return Err(Error::InterfaceReceiveFail(
+                InterfaceError::InsufficientBuffer,
+            ));
         }
 
         H::platform_interface_receive_unchecked(self.id, buf)

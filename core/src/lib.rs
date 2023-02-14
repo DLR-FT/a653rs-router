@@ -24,7 +24,7 @@ mod virtual_link;
 
 /// Standard Prelude to be used by network partition implementations (e.g. network_partition_linux)
 pub mod prelude {
-    pub use crate::error::Error;
+    pub use crate::error::{Error, InterfaceError};
     pub use crate::forward::*;
     pub use crate::network::*;
     pub use crate::shaper::*;

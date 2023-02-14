@@ -2,7 +2,7 @@
 
 use crate::error::Error;
 use crate::network::{Frame, PayloadSize};
-use crate::prelude::{FrameQueue, Interface, Shaper, Transmission};
+use crate::prelude::{FrameQueue, Interface, InterfaceError, Shaper, Transmission};
 use crate::shaper::QueueId;
 use crate::types::DataRate;
 use apex_rs::prelude::{
@@ -12,7 +12,7 @@ use core::fmt::{Debug, Display};
 use core::time::Duration;
 use heapless::spsc::Queue;
 use heapless::Vec;
-use log::{error, trace};
+use log::{error, trace, warn};
 
 /// An ID of a virtual link.
 ///
@@ -282,12 +282,14 @@ where
 
     fn receive_network(&mut self, buf: &[u8]) -> Result<(), Error> {
         if self.port_dst.is_some() {
-            trace!("A VL may never receive things from both a local port and the network. This means that another hypervisor is misconfigured to use one of the same VLs as the local hypervisor.");
-            return Err(Error::InterfaceReceiveFail);
+            warn!("A VL may never receive things from both a local port and the network. This means that another hypervisor is misconfigured to use one of the same VLs as the local hypervisor.");
+            return Err(Error::InvalidConfig);
         }
         if buf.len() > MTU as usize {
             error!("Discarding the message because it is too large for the virtual link");
-            return Err(Error::InterfaceReceiveFail);
+            return Err(Error::InterfaceReceiveFail(
+                InterfaceError::InsufficientBuffer,
+            ));
         }
         forward_to_sources(&self.port_srcs, buf)?;
         Ok(())

@@ -3,12 +3,12 @@ use core::{fmt::Debug, time::Duration};
 use crate::{
     error::Error,
     network::NetworkInterface,
-    prelude::{PayloadSize, PlatformNetworkInterface, VirtualLinkId},
+    prelude::{InterfaceError, PayloadSize, PlatformNetworkInterface, VirtualLinkId},
     shaper::Shaper,
     virtual_link::VirtualLink,
 };
 use apex_rs::prelude::*;
-use log::{error, trace};
+use log::{error, trace, warn};
 
 /// Trait that hides hypervisor and MTU.
 pub trait Interface: Debug {
@@ -116,17 +116,18 @@ impl<'a> Forwarder<'a> {
             .iter_mut()
             .filter_map(|intf| {
                 let res = intf.receive(self.frame_buf);
-                if let Ok((vl_id, buf)) = res {
-                    self.links
+                match res {
+                    Ok((vl_id, buf)) => self
+                        .links
                         .iter_mut()
                         .find(|vl| vl.vl_id() == vl_id)
                         .and_then(|vl| vl.receive_network(buf).err())
-                        .map(|e| {
-                            error!("{e}");
-                            Err(e)
-                        })
-                } else {
-                    Some(Err(res.unwrap_err()))
+                        .map(|e| Err(e)),
+                    Err(Error::InterfaceReceiveFail(InterfaceError::NoData)) => {
+                        warn!("{res:?}");
+                        None
+                    }
+                    Err(e) => Some(Err(e)),
                 }
             })
             .last()

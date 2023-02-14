@@ -3,7 +3,8 @@ use core::time::Duration;
 use corncobs::{decode_in_place, encode_buf, max_encoded_len};
 use heapless::spsc::Queue;
 use network_partition::prelude::{
-    CreateNetworkInterfaceId, Error, NetworkInterfaceId, PlatformNetworkInterface, VirtualLinkId,
+    CreateNetworkInterfaceId, Error, InterfaceError, NetworkInterfaceId, PlatformNetworkInterface,
+    VirtualLinkId,
 };
 use once_cell::unsync::Lazy;
 use uart_xilinx::MmioUartAxi16550;
@@ -185,7 +186,7 @@ impl PlatformNetworkInterface for UartSerial {
             }
         }
         if !eof {
-            return Err(Error::InterfaceReceiveFail);
+            return Err(Error::InterfaceReceiveFail(InterfaceError::NoData));
         }
         let mut buf = [0u8; { UartFrame::max_encoded_len() + 1 }];
         let mut end = 0;
@@ -207,7 +208,7 @@ impl PlatformNetworkInterface for UartSerial {
                 rpl.copy_from_slice(pl);
                 Ok((vl, rpl))
             }
-            _ => Err(Error::InterfaceReceiveFail),
+            _ => Err(Error::InterfaceReceiveFail(InterfaceError::InvalidData)),
         }
     }
 

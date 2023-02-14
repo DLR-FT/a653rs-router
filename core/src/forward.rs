@@ -7,7 +7,7 @@ use crate::{
     shaper::Shaper,
     virtual_link::VirtualLink,
 };
-use apex_rs::prelude::*;
+use apex_rs::prelude::{Error as ApexError, *};
 use log::{error, trace, warn};
 
 /// Trait that hides hypervisor and MTU.
@@ -100,7 +100,14 @@ impl<'a> Forwarder<'a> {
         let mut err: Option<Error> = None;
         for vl in self.links.iter_mut() {
             if let Err(e) = vl.receive_hypervisor(self.shaper) {
-                error!("AAAA VL {} {e}", vl.vl_id());
+                match e {
+                    Error::PortReceiveFail(ApexError::NotAvailable) => {
+                        warn!("No data available from port: {e}");
+                    }
+                    _ => {
+                        error!("Failed to receive from hypervisor: {e}");
+                    }
+                }
                 err = Some(e);
             }
         }

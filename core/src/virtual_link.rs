@@ -5,9 +5,7 @@ use crate::network::{Frame, PayloadSize};
 use crate::prelude::{FrameQueue, Interface, InterfaceError, Shaper, Transmission};
 use crate::shaper::QueueId;
 use crate::types::DataRate;
-use apex_rs::prelude::{
-    ApexSamplingPortP4, Error as ApexError, SamplingPortDestination, SamplingPortSource, Validity,
-};
+use apex_rs::prelude::{ApexSamplingPortP4, SamplingPortDestination, SamplingPortSource, Validity};
 use core::fmt::{Debug, Display};
 use core::time::Duration;
 use heapless::spsc::Queue;
@@ -210,9 +208,8 @@ fn receive_sampling_port_valid<'a, const MTU: PayloadSize, H: ApexSamplingPortP4
     buf: &'a mut [u8],
 ) -> Result<&'a [u8], Error> {
     match dst.receive(buf) {
-        Err(ApexError::NoAction) => Ok(&buf[0..=0]),
-        Err(e) => Err(Error::PortReceiveFail(e)),
         Ok((Validity::Invalid, _)) => Err(Error::InvalidData),
+        Err(e) => Err(Error::PortReceiveFail(e)),
         _ => Ok(buf),
     }
 }

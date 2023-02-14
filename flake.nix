@@ -253,6 +253,16 @@
             copyBins = false;
             #doDoc = true;
           };
+          np-zynq7000-echo_server = naerskLib.buildPackage rec {
+            pname = "np-zynq7000";
+            CONFIG_DIR = ./config/echo_server;
+            root = ./.;
+            cargoBuildOptions = x: x ++ [ "-p" pname "--target" "armv7a-none-eabi" ];
+            doCheck = false;
+            copyLibs = true;
+            copyBins = false;
+            #doDoc = true;
+          };
           echo-client-zynq7000 = naerskLib.buildPackage rec {
             pname = "echo-client-zynq7000";
             root = ./.;
@@ -329,6 +339,28 @@
                 src = "${self.packages."${system}".echo-client-zynq7000}/lib/libecho_client_zynq7000.a";
                 enableLithOs = true;
                 ltcf = ./config/echo_client/echo_client.ltcf;
+              };
+            };
+          };
+          xng-sys-img-echo_server = xng-utils.lib.buildXngSysImage {
+            inherit pkgs;
+            hardFp = false;
+            xngOps = self.packages.${system}.xng-ops;
+            lithOsOps = self.packages.${system}.lithos-ops;
+            xcf = pkgs.runCommandNoCC "patch-src" { } ''
+              cp -r ${./. + "/config/echo_server/xml"} $out/
+            '';
+            name = "xng-sys-img-echo-server";
+            partitions = {
+              NetworkPartition = {
+                src = "${self.packages."${system}".np-zynq7000-echo_server}/lib/libnp_zynq7000.a";
+                enableLithOs = true;
+                ltcf = ./config/echo_server/network_partition.ltcf;
+              };
+              EchoServer = {
+                src = "${self.packages."${system}".echo-server-zynq7000}/lib/libecho_server_zynq7000.a";
+                enableLithOs = true;
+                ltcf = ./config/echo_server/echo_server.ltcf;
               };
             };
           };

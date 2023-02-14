@@ -101,14 +101,14 @@ impl<'a> Forwarder<'a> {
         for vl in self.links.iter_mut() {
             if let Err(e) = vl.receive_hypervisor(self.shaper) {
                 match e {
-                    Error::PortReceiveFail(ApexError::NotAvailable) => {
+                    Error::PortReceiveFail(ApexError::NoAction) => {
                         warn!("No data available from port: {e}");
                     }
                     _ => {
                         error!("Failed to receive from hypervisor: {e}");
+                        err = Some(e);
                     }
                 }
-                err = Some(e);
             }
         }
 

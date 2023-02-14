@@ -8,14 +8,14 @@ virtual_links:
     ports:
       - !SamplingPortDestination
         channel: EchoReplySrv
-        validity: 2s
+        validity: 10s
   - id: 2
     rate: 10000
     msg_size: 100B
     interfaces: [ "veth0" ]
     ports:      
       - !SamplingPortSource
-        channel: EchoRequestCl
+        channel: EchoRequestSrv
 interfaces:
   - name: veth0
     rate: 10000000

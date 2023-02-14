@@ -42,18 +42,13 @@
       inputs.xilinx-flake-utils.follows = "xilinx-flake-utils";
     };
 
-    xilinx-workspace = {
-      url = "git+ssh://git@gitlab.dlr.de/ft-ssy-aes/XANDAR/xilinx-workspace.git";
-      flake = false;
-    };
-
     xilinx-flake-utils = {
       url = "github:aeronautical-informatics/xilinx-flake-utils/dev/add-devshell";
       # do not override any inputs here to not have to rebuild Xilinx Vitis
     };
   };
 
-  outputs = { self, nixpkgs, utils, devshell, fenix, hypervisor, naersk, xng-utils, fpga-project, xilinx-workspace, xilinx-flake-utils, ... }@inputs:
+  outputs = { self, nixpkgs, utils, devshell, fenix, hypervisor, naersk, xng-utils, fpga-project, xilinx-flake-utils, ... }@inputs:
     utils.lib.eachSystem [ "x86_64-linux" ] (system:
       let
         pkgs = import nixpkgs {
@@ -168,7 +163,7 @@
         devShells.deploy =
           let
             fpga = fpga-project.packages."${system}".default;
-            zynq7000Init = "${xilinx-workspace}/deployment/scripts/tcl_lib/zynq7000_init_te0706.tcl";
+            zynq7000Init = ./deployment/zynq7000_init_te0706.tcl;
             vitis = xilinx-flake-utils.packages.${system}.vitis-unified-software-platform-vitis_2019-2_1106_2127;
             xng-sys-image = self.packages.${system}.xng-sys-image;
           in
@@ -184,15 +179,21 @@
                 name = "jtag-boot";
                 help = "Boot the network partition using JTAG";
                 command = ''
+                  nix --offline build .\#xng-sys-image --print-build-logs
                   dir="$(mktemp -d)"
                   cp ${fpga} $dir/hw_export.xsa
                   unzip "$dir/hw_export.xsa" -d $dir
-                  xsct \
-                    ${zynq7000Init} \
-                    $dir/ps7_init.tcl \
-                    $dir/hw_export.bit \
-                    $dir/hw_export.xsa \
-                    ${xng-sys-image}/sys_img.elf
+                  for cable in "210370AD523FA"
+                  do 
+                    xsct \
+                      ${zynq7000Init} \
+                      $dir/ps7_init.tcl \
+                      $dir/hw_export.bit \
+                      $dir/hw_export.xsa \
+                      ${xng-sys-image}/sys_img.elf \
+                      "$cable" \
+                      || printf "Failed to flash target"
+                  done
                   rm -f "$dir/hw_export.xsa"
                   rm -r "$dir"
                 '';

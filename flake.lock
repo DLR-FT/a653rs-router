@@ -335,7 +335,6 @@
         "nixpkgs": "nixpkgs_4",
         "utils": "utils",
         "xilinx-flake-utils": "xilinx-flake-utils",
-        "xilinx-workspace": "xilinx-workspace",
         "xng-utils": "xng-utils"
       }
     },
@@ -408,22 +407,6 @@
         "ref": "dev/add-devshell",
         "repo": "xilinx-flake-utils",
         "type": "github"
-      }
-    },
-    "xilinx-workspace": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1674723013,
-        "narHash": "sha256-kTMJpSEh1GHTYlyfX+0RFWcPVvO94k7sveO+huqLTcE=",
-        "ref": "refs/heads/main",
-        "rev": "760104cc3fabfe1b608d5dc06c98991a638dd11c",
-        "revCount": 975,
-        "type": "git",
-        "url": "ssh://git@gitlab.dlr.de/ft-ssy-aes/XANDAR/xilinx-workspace.git"
-      },
-      "original": {
-        "type": "git",
-        "url": "ssh://git@gitlab.dlr.de/ft-ssy-aes/XANDAR/xilinx-workspace.git"
       }
     },
     "xng-utils": {

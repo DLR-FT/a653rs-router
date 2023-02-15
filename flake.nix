@@ -198,8 +198,40 @@
                       $hwdir/hw_export.xsa \
                       $swdir/sys_img.elf \
                       "$cable" \
-                      || printf "Failed to flash target" && exit 1
+                      || printf "Failed to flash target"
                   done
+                '';
+              }
+              {
+                name = "run-remote_echo";
+                help = "Run the distributed echo example";
+                command = ''
+                  function flash() { 
+                    example="$1"
+                    cable="$2"
+                    dir="outputs/$example"
+                    mkdir -p "$dir"
+                    swdir="$dir/img"
+
+                    nix --offline build ".#xng-sys-img-$example" -o "$swdir"
+
+                    hwdir="$dir/hardware"
+                    mkdir -p "$hwdir"
+                    cp --no-preserve=all ${fpga} $hwdir/hw_export.xsa
+                    unzip -u "$hwdir/hw_export.xsa" -d "$hwdir"
+
+                    xsct \
+                      ${zynq7000Init} \
+                      $hwdir/ps7_init.tcl \
+                      $hwdir/hw_export.bit \
+                      $hwdir/hw_export.xsa \
+                      $swdir/sys_img.elf \
+                      "$cable" \
+                      || printf "Failed to flash target" && exit 1
+                  }
+
+                  flash echo_server 210370AD5202A
+                  flash echo_client 210370AD523FA
                 '';
               }
               {

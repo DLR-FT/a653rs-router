@@ -102,7 +102,7 @@ where
                     }
                 }
                 Err(Error::NotAvailable) | Err(Error::NoAction) => {
-                    warn!("No echo request available yet");
+                    trace!("No echo request available yet");
                 }
                 Err(e) => {
                     error!("Failed to receive echo: ${e:?}");

@@ -122,6 +122,8 @@ where
     }
 
     /// Add a queue.
+    /// TODO Should use interface ID instead of queue id.
+    /// TODO The queue should and shaper instance should be internal to the interface.
     pub fn queue(mut self, shaper: &mut dyn Shaper, share: DataRate) -> Self {
         let queue_id = shaper.add_queue(share);
         self.queue_id = queue_id;
@@ -210,7 +212,7 @@ fn receive_sampling_port_valid<'a, const MTU: PayloadSize, H: ApexSamplingPortP4
     match dst.receive(buf) {
         Ok((Validity::Invalid, _)) => Err(Error::InvalidData),
         Err(e) => Err(Error::PortReceiveFail(e)),
-        _ => Ok(buf),
+        Ok((Validity::Valid, pl)) => Ok(pl),
     }
 }
 

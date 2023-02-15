@@ -131,7 +131,7 @@ impl<'a> Forwarder<'a> {
                         .and_then(|vl| vl.receive_network(buf).err())
                         .map(|e| Err(e)),
                     Err(Error::InterfaceReceiveFail(InterfaceError::NoData)) => {
-                        warn!("{res:?}");
+                        trace!("{res:?}");
                         None
                     }
                     Err(e) => Some(Err(e)),
@@ -153,6 +153,8 @@ impl<'a> Forwarder<'a> {
                 .iter_mut()
                 .find(|vl| vl.queue_id() == Some(q_id))
                 .and_then(|vl| {
+                    // TODO Should not iterate over all interfaces, just the interfaces that were assigned to a virtual link.
+                    // TODO Shaper instance should be local to interface.
                     self.interfaces
                         .iter_mut()
                         .filter_map(|intf| vl.send_network(*intf, self.shaper).err())

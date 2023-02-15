@@ -5,7 +5,7 @@ use crate::{
     prelude::{DataRate, InterfaceError},
     virtual_link::VirtualLinkId,
 };
-use log::{trace, warn};
+use log::{info, trace, warn};
 
 /// Size of a frame payload.
 pub type PayloadSize = u32;
@@ -64,7 +64,7 @@ where
                 Err(_) => Err(Error::EnqueueFailed),
             }
         } else {
-            warn!("Dropping first frame from queue");
+            trace!("Dropping first frame from queue");
             _ = self.dequeue();
             match self.enqueue(frame) {
                 Ok(_) => {
@@ -113,6 +113,7 @@ impl<const MTU: PayloadSize, H: PlatformNetworkInterface> NetworkInterface<MTU, 
             return Err(Duration::ZERO);
         }
 
+        info!("Sending to interface");
         H::platform_interface_send_unchecked(self.id, *vl, buf)
     }
 

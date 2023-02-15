@@ -2,6 +2,7 @@ use core::time::Duration;
 
 use corncobs::{decode_in_place, encode_buf, max_encoded_len};
 use heapless::spsc::Queue;
+use log::error;
 use network_partition::prelude::{
     CreateNetworkInterfaceId, Error, InterfaceError, NetworkInterfaceId, PlatformNetworkInterface,
     VirtualLinkId,
@@ -167,26 +168,15 @@ impl PlatformNetworkInterface for UartSerial {
         _id: NetworkInterfaceId,
         buffer: &'_ mut [u8],
     ) -> Result<(VirtualLinkId, &'_ [u8]), Error> {
-        // TODO Get rid of one buffer. Should be possible to decode directly inside RX-Buffer.
-        let mut eof = false;
-        let mut limit: u32 = 0;
-        while unsafe { UART.uart.is_data_ready() } && limit < u32::MAX {
-            limit += 1;
-            if let Some(b) = unsafe { UART.uart.read_byte() } {
-                unsafe {
-                    if UART.rx_buffer.enqueue(b).is_err() {
-                        _ = UART.rx_buffer.dequeue_unchecked();
-                        UART.rx_buffer.enqueue_unchecked(b);
-                    }
-                    if b == 0x0 {
-                        eof = true;
-                        break;
-                    }
-                }
-            }
-        }
-        if !eof {
+        if unsafe { !UART.uart.is_data_ready() } {
             return Err(Error::InterfaceReceiveFail(InterfaceError::NoData));
+        }
+        // TODO Get rid of one buffer. Should be possible to decode directly inside RX-Buffer.
+        while let Some(b) = unsafe { UART.uart.read_byte() } {
+            _ = unsafe { UART.rx_buffer.enqueue(b) };
+            if b == 0x0 {
+                break;
+            }
         }
         let mut buf = [0u8; { UartFrame::max_encoded_len() + 1 }];
         let mut end = 0;
@@ -202,6 +192,7 @@ impl PlatformNetworkInterface for UartSerial {
             }
         }
         let buf = &mut buf[..end];
+        error!("Received data: {:?}", buf);
         match UartFrame::decode(buf) {
             Ok((vl, pl)) => {
                 let rpl = &mut buffer[0..pl.len()];

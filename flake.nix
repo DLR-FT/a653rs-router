@@ -88,7 +88,7 @@
             sha256 = "1b73d6x3galw3bhj5nac7ifgp15zrsyipn4imwknr24gp1l14sc8";
           };
         };
-        xng-sys-img-local_echo = self.packages.${system}.xng-sys-image-local_ecxho;
+        xng-sys-img-local_echo = self.packages.${system}.xng-sys-image-local_echo;
       in
       {
         inherit formatter;
@@ -203,36 +203,39 @@
                 '';
               }
               {
-                name = "run-remote_echo";
-                help = "Run the distributed echo example";
+                name = "flash";
+                help = "Compile and flash a configuration";
                 command = ''
-                  function flash() { 
-                    example="$1"
-                    cable="$2"
-                    dir="outputs/$example"
-                    mkdir -p "$dir"
-                    swdir="$dir/img"
+                  example="''${1:-local_echo}"
+                  cable="''${2:-210370AD5202A}"
+                  dir="outputs/$example"
+                  mkdir -p "$dir"
+                  swdir="$dir/img"
 
-                    nix --offline build ".#xng-sys-img-$example" -o "$swdir"
+                  nix --offline build ".#xng-sys-img-$example" -o "$swdir"
 
-                    hwdir="$dir/hardware"
-                    mkdir -p "$hwdir"
-                    cp --no-preserve=all ${fpga} $hwdir/hw_export.xsa
-                    unzip -u "$hwdir/hw_export.xsa" -d "$hwdir"
+                  hwdir="$dir/hardware"
+                  mkdir -p "$hwdir"
+                  cp --no-preserve=all ${fpga} $hwdir/hw_export.xsa
+                  unzip -u "$hwdir/hw_export.xsa" -d "$hwdir"
 
-                    xsct \
-                      ${zynq7000Init} \
-                      $hwdir/ps7_init.tcl \
-                      $hwdir/hw_export.bit \
-                      $hwdir/hw_export.xsa \
-                      $swdir/sys_img.elf \
-                      "$cable" \
-                      || printf "Failed to flash target" && exit 1
-                  }
-
-                  flash echo_server 210370AD5202A
-                  flash echo_client 210370AD523FA
+                  xsct \
+                    ${zynq7000Init} \
+                    $hwdir/ps7_init.tcl \
+                    $hwdir/hw_export.bit \
+                    $hwdir/hw_export.xsa \
+                    $swdir/sys_img.elf \
+                    "$cable" \
+                    || printf "Failed to flash target"
                 '';
+              }
+              {
+                name = "flash-echo-client";
+                command = "flash echo_client 210370AD523FA";
+              }
+              {
+                name = "flash-echo-server";
+                command = "flash echo_server 210370AD5202A";
               }
               {
                 name = "launch-picocom";

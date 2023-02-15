@@ -175,25 +175,31 @@
             ];
             commands = [
               {
-                name = "jtag-boot";
+                name = "run-local_echo";
                 help = "Boot the network partition using JTAG";
                 command = ''
-                  dir="$(mktemp -d)"
-                  cp ${fpga} $dir/hw_export.xsa
-                  unzip "$dir/hw_export.xsa" -d $dir
+                  dir="outputs/local_echo"
+                  mkdir -p "$dir"
+                  swdir="$dir/img"
+
+                  nix --offline build .#xng-sys-img-local_echo -o $swdir
+
+                  hwdir="$dir/hardware"
+                  mkdir -p "$hwdir"
+                  cp --no-preserve=all ${fpga} $hwdir/hw_export.xsa
+                  unzip -u "$hwdir/hw_export.xsa" -d "$hwdir"
+
                   for cable in "210370AD523FA"
                   do 
                     xsct \
                       ${zynq7000Init} \
-                      $dir/ps7_init.tcl \
-                      $dir/hw_export.bit \
-                      $dir/hw_export.xsa \
-                      result/sys_img.elf \
+                      $hwdir/ps7_init.tcl \
+                      $hwdir/hw_export.bit \
+                      $hwdir/hw_export.xsa \
+                      $swdir/sys_img.elf \
                       "$cable" \
-                      || printf "Failed to flash target"
+                      || printf "Failed to flash target" && exit 1
                   done
-                  rm -f "$dir/hw_export.xsa"
-                  rm -r "$dir"
                 '';
               }
               {

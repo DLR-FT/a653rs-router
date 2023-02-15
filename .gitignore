@@ -4,3 +4,4 @@ result
 *.log
 /xsa
 **/target
+/outputs

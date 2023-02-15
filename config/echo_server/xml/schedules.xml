@@ -2,8 +2,8 @@
 <Schedules xmlns="http://www.fentiss.com/xngScheduleXml">
   <Schedule name="sched0" majorFrame="200ms">
     <Cpu id="0">
-      <PartitionWindow id="0" partition="EchoServer" offset="0ms" duration="100ms" startPoint="true" />
-      <PartitionWindow id="1" partition="NetworkPartition" offset="100ms" duration="100ms" startPoint="true" />
+      <PartitionWindow id="0" partition="NetworkPartition" offset="0ms" duration="190ms" startPoint="true" />
+      <PartitionWindow id="1" partition="EchoServer" offset="190ms" duration="10ms" startPoint="true" />
     </Cpu>
   </Schedule>
 </Schedules>

@@ -163,7 +163,7 @@ where
         Ok(enqueued) => match enqueued {
             Some(bytes) => {
                 let transmission = Transmission::new(*queue_id, Duration::ZERO, bytes);
-                trace!("Requesting transmission of {} bytes from shaper", MTU);
+                trace!("Requesting transmission of {} bytes from shaper", bytes);
                 shaper.request_transmission(&transmission)
             }
             None => {

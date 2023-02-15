@@ -25,6 +25,15 @@ where
     pub fn into_inner(self) -> Vec<u8, { PL_SIZE as usize }> {
         self.0
     }
+
+    /// Create a frame from a slice.
+    pub fn from_slice(slice: &[u8]) -> Result<Self, ()> {
+        Ok(Self(Vec::from_slice(slice)?))
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
 }
 
 impl<const PL_SIZE: PayloadSize> TryFrom<&[u8]> for Frame<PL_SIZE>
@@ -59,10 +68,11 @@ where
 {
     fn enqueue_frame(&mut self, frame: Frame<PL_SIZE>) -> Result<Option<u32>, Error> {
         if self.len() < self.capacity() {
+            let len = frame.len() as u32;
             match self.enqueue(frame) {
                 Ok(_) => {
                     trace!("Enqueued frame without overflowing a queue.");
-                    Ok(Some(PL_SIZE * self.len() as u32))
+                    Ok(Some(len))
                 }
                 Err(_) => Err(Error::EnqueueFailed),
             }
@@ -195,13 +205,17 @@ mod tests {
         let mut q: Queue<Frame<10>, 5> = Queue::default();
         for i in 0..4u8 {
             let a = [i; 10];
-            let frame = Frame::<100>::try_from(&a).unwrap();
+            let frame = Frame::from_slice(&a).unwrap();
             assert!(FrameQueue::enqueue_frame(&mut q, frame).is_ok());
         }
         assert_eq!(q.capacity(), q.len());
-        assert_eq!(*q.peek().unwrap(), Frame::from([0; 10]));
-        assert!(FrameQueue::enqueue_frame(&mut q, Frame::from([5; 10])).is_ok());
-        assert!(q.into_iter().any(|x| *x == Frame::from([5; 10])));
-        assert!(!q.into_iter().any(|x| *x == Frame::from([4; 10])));
+        assert_eq!(*q.peek().unwrap(), Frame::from_slice(&[0; 10]).unwrap());
+        assert!(FrameQueue::enqueue_frame(&mut q, Frame::from_slice(&[5; 10]).unwrap()).is_ok());
+        assert!(q
+            .into_iter()
+            .any(|x| *x == Frame::from_slice(&[5; 10]).unwrap()));
+        assert!(!q
+            .into_iter()
+            .any(|x| *x == Frame::from_slice(&[4; 10]).unwrap()));
     }
 }

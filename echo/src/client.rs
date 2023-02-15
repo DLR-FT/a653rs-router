@@ -59,7 +59,7 @@ impl<const ECHO_SIZE: MessageSize> EchoReceiverProcess<ECHO_SIZE>
 where
     [u8; ECHO_SIZE as usize]:,
 {
-    pub fn run<H: ApexSamplingPortP4 + ApexTimeP4Ext + ApexTimeP1Ext>(
+    pub fn run<H: ApexSamplingPortP4 + ApexTimeP4Ext>(
         port: &mut SamplingPortDestination<ECHO_SIZE, H>,
     ) -> ! {
         let mut last = 0;

@@ -191,13 +191,13 @@ where
     let frame = queue.dequeue_frame();
     match frame {
         Some(frame) => {
-            let buf = frame.as_slice();
+            let pl = frame.into_inner();
             // Always remove credit from a queue. It is using its credit regardless of if the transmission was successful.
-            let duration = match interface.send(vl, &buf) {
+            let duration = match interface.send(vl, pl.as_slice()) {
                 Ok(dur) => dur,
                 Err(dur) => dur,
             };
-            let trans = Transmission::new(*queue_id, duration, buf.len() as u32);
+            let trans = Transmission::new(*queue_id, duration, pl.len() as u32);
             shaper.record_transmission(&trans)?;
             Ok(trans)
         }
@@ -240,13 +240,18 @@ where
         if let Some(dst) = &mut self.port_dst {
             let mut buf = [0u8; MTU as usize];
             trace!("Reading from sampling ports");
-            _ = receive_sampling_port_valid(dst, &mut buf)?;
+            let buf = receive_sampling_port_valid(dst, &mut buf)?;
             trace!("Forwarding to sampling ports");
-            forward_to_sources(&self.port_srcs, &buf)?;
+            forward_to_sources(&self.port_srcs, buf)?;
             if let Some(queue) = &mut self.queue {
                 if let Some(id) = &mut self.queue_id {
                     trace!("VL forwarding to network queue");
-                    return forward_to_network_queue(id, queue, Frame::from(buf), shaper);
+                    return forward_to_network_queue(
+                        id,
+                        queue,
+                        Frame::try_from(buf).unwrap(),
+                        shaper,
+                    );
                 }
             } else {
                 trace!("Not forwarding to the network, because the virtual link {} does not have a network queue", self.id);

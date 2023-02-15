@@ -5,14 +5,15 @@ use crate::{
     prelude::{DataRate, InterfaceError},
     virtual_link::VirtualLinkId,
 };
-use log::{info, trace, warn};
+use heapless::Vec;
+use log::{info, trace};
 
 /// Size of a frame payload.
 pub type PayloadSize = u32;
 
 /// A frame that is managed by the queue.
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub(crate) struct Frame<const PL_SIZE: PayloadSize>([u8; PL_SIZE as usize])
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub(crate) struct Frame<const PL_SIZE: PayloadSize>(Vec<u8, { PL_SIZE as usize }>)
 where
     [u8; PL_SIZE as usize]:;
 
@@ -21,17 +22,19 @@ where
     [(); PL_SIZE as usize]:,
 {
     /// The contents of a frame.
-    pub const fn as_slice(self) -> [u8; PL_SIZE as usize] {
+    pub fn into_inner(self) -> Vec<u8, { PL_SIZE as usize }> {
         self.0
     }
 }
 
-impl<const PL_SIZE: PayloadSize> From<[u8; PL_SIZE as usize]> for Frame<PL_SIZE>
+impl<const PL_SIZE: PayloadSize> TryFrom<&[u8]> for Frame<PL_SIZE>
 where
     [(); PL_SIZE as usize]:,
 {
-    fn from(val: [u8; PL_SIZE as usize]) -> Self {
-        Self(val)
+    type Error = ();
+
+    fn try_from(val: &[u8]) -> Result<Self, ()> {
+        Ok(Self(Vec::from_slice(val)?))
     }
 }
 
@@ -190,8 +193,10 @@ mod tests {
     #[test]
     fn given_queue_is_full_when_enqueue_then_drop_first_and_insert() {
         let mut q: Queue<Frame<10>, 5> = Queue::default();
-        for i in 0..4 {
-            assert!(FrameQueue::enqueue_frame(&mut q, Frame::from([i; 10])).is_ok());
+        for i in 0..4u8 {
+            let a = [i; 10];
+            let frame = Frame::<100>::try_from(&a).unwrap();
+            assert!(FrameQueue::enqueue_frame(&mut q, frame).is_ok());
         }
         assert_eq!(q.capacity(), q.len());
         assert_eq!(*q.peek().unwrap(), Frame::from([0; 10]));

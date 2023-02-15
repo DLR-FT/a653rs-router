@@ -50,6 +50,8 @@ pub enum InterfaceError {
     NoData,
     /// Invalid data received from interface
     InvalidData,
+    /// Interface not found
+    NotFound,
 }
 
 impl core::fmt::Display for InterfaceError {
@@ -57,7 +59,8 @@ impl core::fmt::Display for InterfaceError {
         match self {
             Self::NoData => write!(f, "No data available"),
             Self::InsufficientBuffer => write!(f, "Insufficient buffer space"),
-            Self::InvalidData => write!(f, "InvalidData"),
+            Self::InvalidData => write!(f, "Invalid data"),
+            Self::NotFound => write!(f, "Interface not found"),
         }
     }
 }

@@ -6,8 +6,8 @@ use apex_rs_linux::partition::ApexLinuxPartition;
 
 use log::{error, trace, warn};
 use network_partition::prelude::{
-    CreateNetworkInterfaceId, DataRate, Error, NetworkInterfaceId, PlatformNetworkInterface,
-    VirtualLinkId,
+    CreateNetworkInterfaceId, DataRate, Error, InterfaceError, NetworkInterfaceId,
+    PlatformNetworkInterface, VirtualLinkId,
 };
 use once_cell::sync::Lazy;
 
@@ -27,7 +27,9 @@ impl PlatformNetworkInterface for LinuxNetworking {
     ) -> Result<(VirtualLinkId, &'_ [u8]), Error> {
         let index: usize = id.into();
         let interfaces = INTERFACES.lock().unwrap();
-        let sock = interfaces.get(index).ok_or(Error::InterfaceReceiveFail)?;
+        let sock = interfaces
+            .get(index)
+            .ok_or(Error::InterfaceReceiveFail(InterfaceError::NotFound))?;
         match sock.sock.recv(buffer) {
             Ok(read) => {
                 let vl_id_len = size_of::<VirtualLinkId>();
@@ -42,7 +44,7 @@ impl PlatformNetworkInterface for LinuxNetworking {
             }
             Err(err) => {
                 warn!("Failed to receive from UDP socket: {err:?}");
-                Err(Error::InterfaceReceiveFail)
+                Err(Error::InterfaceReceiveFail(InterfaceError::NoData))
             }
         }
     }

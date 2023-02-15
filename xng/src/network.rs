@@ -172,10 +172,14 @@ impl PlatformNetworkInterface for UartSerial {
             return Err(Error::InterfaceReceiveFail(InterfaceError::NoData));
         }
         // TODO Get rid of one buffer. Should be possible to decode directly inside RX-Buffer.
-        while let Some(b) = unsafe { UART.uart.read_byte() } {
-            _ = unsafe { UART.rx_buffer.enqueue(b) };
-            if b == 0x0 {
-                break;
+        let mut limit = 0;
+        while limit < u32::MAX {
+            while let Some(b) = unsafe { UART.uart.read_byte() } {
+                _ = unsafe { UART.rx_buffer.enqueue(b) };
+                if b == 0x0 {
+                    limit = u32::MAX;
+                    break;
+                }
             }
         }
         let mut buf = [0u8; { UartFrame::max_encoded_len() + 1 }];

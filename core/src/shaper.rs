@@ -237,6 +237,10 @@ impl QueueStatus {
                 let consumed = consumed.as_secs() as i128;
                 self.credit -= consumed;
                 self.backlog -= bits;
+                if self.backlog <= 0 {
+                    self.credit = 0;
+                    self.backlog = 0;
+                }
                 trace!("Consumed {consumed:?} and removed {bits:?} from backlog");
                 Ok(consumed as u64)
             }

@@ -7,7 +7,10 @@ use crate::{
     shaper::Shaper,
     virtual_link::VirtualLink,
 };
-use apex_rs::prelude::{Error as ApexError, *};
+use apex_rs::{
+    bindings::ApexTimeP4,
+    prelude::{Error as ApexError, *},
+};
 use log::{error, trace, warn};
 
 /// Trait that hides hypervisor and MTU.
@@ -60,36 +63,39 @@ impl<'a> Forwarder<'a> {
 
     /// Forwards messages between the hypervisor and the network.
     pub fn forward<H: ApexTimeP4Ext>(&mut self) -> Result<(), Error> {
-        let time = <H as ApexTimeP4Ext>::get_time().unwrap_duration();
-        let time_diff = time - self.timestamp;
-        self.timestamp = time;
         let mut last_err: Option<Error> = None;
-        trace!("Restoring queue credit");
-        if let Err(err) = self.shaper.restore_all(time_diff) {
-            last_err = Some(err);
-        }
+
         trace!("Receiving messages from hypervisor");
         if let Err(err) = self.receive_hypervisor() {
             last_err = Some(err);
         }
+
         trace!("Receiving messages from the network");
         if let Err(err) = self.receive_network() {
             last_err = Some(err);
         }
+
+        self.timestamp = <H as ApexTimeP4Ext>::get_time().unwrap_duration();
+
         trace!("Sending messages to the network");
-        let (_, transmitted) = match self.send_network() {
+        let (last_err, transmitted) = match self.send_network() {
             Ok(transmitted) => (None, transmitted),
             Err((transmitted, err)) => (Some(err), transmitted),
         };
+
         if !transmitted {
             trace!(
                 "Restoring credit to queues, because there were no transmissions to the network."
             );
-            let time_diff = <H as ApexTimeP4Ext>::get_time().unwrap_duration() - time;
+            let time_diff = Duration::from_micros(100);
+            // P1 timed_wait would be nicer, but is not available for apex-linux
+            let ts = <H as ApexTimeP4Ext>::get_time();
+            while <H as ApexTimeP4Ext>::get_time().unwrap_duration() - ts < time_diff {}
             if let Err(err) = self.shaper.restore_all(time_diff) {
                 last_err = Some(err);
             }
         }
+
         match last_err {
             Some(err) => Err(err),
             None => Ok(()),

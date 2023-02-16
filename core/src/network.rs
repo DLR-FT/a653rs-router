@@ -6,44 +6,40 @@ use crate::{
     virtual_link::VirtualLinkId,
 };
 use heapless::Vec;
-use log::{info, trace};
+use log::trace;
 
 /// Size of a frame payload.
 pub type PayloadSize = u32;
 
 /// A frame that is managed by the queue.
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub(crate) struct Frame<const PL_SIZE: PayloadSize>(Vec<u8, { PL_SIZE as usize }>)
+pub(crate) struct Frame<const PL_SIZE: PayloadSize>
 where
-    [u8; PL_SIZE as usize]:;
+    [u8; PL_SIZE as usize]:,
+{
+    vl_id: VirtualLinkId,
+    pl: Vec<u8, { PL_SIZE as usize }>,
+}
 
 impl<const PL_SIZE: PayloadSize> Frame<PL_SIZE>
 where
     [(); PL_SIZE as usize]:,
 {
     /// The contents of a frame.
-    pub fn into_inner(self) -> Vec<u8, { PL_SIZE as usize }> {
-        self.0
+    pub fn into_inner(self) -> (VirtualLinkId, Vec<u8, { PL_SIZE as usize }>) {
+        (self.vl_id, self.pl)
     }
 
     /// Create a frame from a slice.
-    pub fn from_slice(slice: &[u8]) -> Result<Self, ()> {
-        Ok(Self(Vec::from_slice(slice)?))
+    pub fn from_parts(vl_id: VirtualLinkId, slice: &[u8]) -> Result<Self, ()> {
+        Ok(Self {
+            vl_id,
+            pl: Vec::from_slice(slice)?,
+        })
     }
 
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-}
-
-impl<const PL_SIZE: PayloadSize> TryFrom<&[u8]> for Frame<PL_SIZE>
-where
-    [(); PL_SIZE as usize]:,
-{
-    type Error = ();
-
-    fn try_from(val: &[u8]) -> Result<Self, ()> {
-        Ok(Self(Vec::from_slice(val)?))
+    pub fn as_parts(&self) -> (VirtualLinkId, &[u8]) {
+        (self.vl_id, self.pl.as_slice())
     }
 }
 
@@ -55,7 +51,7 @@ where
     /// Saves a frame to the queue to be written to the network later.
     /// If the underlying queue has no more free space, the oldest frame is dropped from the front
     /// and the new frame is inserted at the back.
-    fn enqueue_frame(&mut self, frame: Frame<PL_SIZE>) -> Result<Option<u32>, Error>;
+    fn enqueue_frame(&mut self, frame: Frame<PL_SIZE>) -> Result<bool, Error>;
 
     /// Retrieves a frame from the queue to write it to the network.
     fn dequeue_frame(&mut self) -> Option<Frame<PL_SIZE>>;
@@ -66,13 +62,12 @@ impl<const PL_SIZE: PayloadSize, const QUEUE_CAPACITY: usize> FrameQueue<PL_SIZE
 where
     [(); PL_SIZE as usize]:,
 {
-    fn enqueue_frame(&mut self, frame: Frame<PL_SIZE>) -> Result<Option<u32>, Error> {
+    fn enqueue_frame(&mut self, frame: Frame<PL_SIZE>) -> Result<bool, Error> {
         if self.len() < self.capacity() {
-            let len = frame.len() as u32;
             match self.enqueue(frame) {
                 Ok(_) => {
                     trace!("Enqueued frame without overflowing a queue.");
-                    Ok(Some(len))
+                    Ok(true)
                 }
                 Err(_) => Err(Error::EnqueueFailed),
             }
@@ -82,7 +77,7 @@ where
             match self.enqueue(frame) {
                 Ok(_) => {
                     trace!("Enqueued frame while overflowing a queue.");
-                    Ok(None)
+                    Ok(false)
                 }
                 Err(_) => Err(Error::EnqueueFailed),
             }
@@ -126,7 +121,7 @@ impl<const MTU: PayloadSize, H: PlatformNetworkInterface> NetworkInterface<MTU, 
             return Err(Error::InterfaceSendFail(InterfaceError::InsufficientBuffer));
         }
 
-        info!("Sending to interface");
+        trace!("Sending to interface");
         match H::platform_interface_send_unchecked(self.id, *vl, buf) {
             Ok(bytes) => Ok(bytes),
             Err(e) => Err(Error::InterfaceSendFail(e)),
@@ -146,6 +141,15 @@ impl<const MTU: PayloadSize, H: PlatformNetworkInterface> NetworkInterface<MTU, 
             Err(e) => Err(Error::InterfaceReceiveFail(e)),
         }
     }
+
+    /// Gets the encoded length of a frame.
+    pub fn get_encoded_len(&self, vl: &VirtualLinkId, buf: &[u8]) -> Result<usize, Error> {
+        match H::platform_interface_get_encoded_len(self.id, *vl, buf) {
+            Ok(res) => Ok(res),
+            // TODO replace with generic Interface error
+            Err(e) => Err(Error::InterfaceSendFail(e)),
+        }
+    }
 }
 
 /// Platform-specific network interface type.
@@ -162,6 +166,13 @@ pub trait PlatformNetworkInterface {
         id: NetworkInterfaceId,
         buffer: &'_ mut [u8],
     ) -> Result<(VirtualLinkId, &'_ [u8]), InterfaceError>;
+
+    /// Gets the amout of bytes the encoded message requires.
+    fn platform_interface_get_encoded_len(
+        id: NetworkInterfaceId,
+        vl: VirtualLinkId,
+        buffer: &[u8],
+    ) -> Result<usize, InterfaceError>;
 }
 
 /// Creates a network interface id.
@@ -214,17 +225,24 @@ mod tests {
         let mut q: Queue<Frame<10>, 5> = Queue::default();
         for i in 0..4u8 {
             let a = [i; 10];
-            let frame = Frame::from_slice(&a).unwrap();
+            let frame = Frame::from_parts(VirtualLinkId(1), &a).unwrap();
             assert!(FrameQueue::enqueue_frame(&mut q, frame).is_ok());
         }
         assert_eq!(q.capacity(), q.len());
-        assert_eq!(*q.peek().unwrap(), Frame::from_slice(&[0; 10]).unwrap());
-        assert!(FrameQueue::enqueue_frame(&mut q, Frame::from_slice(&[5; 10]).unwrap()).is_ok());
+        assert_eq!(
+            *q.peek().unwrap(),
+            Frame::from_parts(VirtualLinkId(1), &[0; 10]).unwrap()
+        );
+        assert!(FrameQueue::enqueue_frame(
+            &mut q,
+            Frame::from_parts(VirtualLinkId(1), &[5; 10]).unwrap()
+        )
+        .is_ok());
         assert!(q
             .into_iter()
-            .any(|x| *x == Frame::from_slice(&[5; 10]).unwrap()));
+            .any(|x| *x == Frame::from_parts(VirtualLinkId(1), &[5; 10]).unwrap()));
         assert!(!q
             .into_iter()
-            .any(|x| *x == Frame::from_slice(&[4; 10]).unwrap()));
+            .any(|x| *x == Frame::from_parts(VirtualLinkId(1), &[4; 10]).unwrap()));
     }
 }

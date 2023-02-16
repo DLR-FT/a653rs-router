@@ -236,6 +236,23 @@ impl PlatformNetworkInterface for UartSerial {
 
         Ok(encoded.len())
     }
+
+    fn platform_interface_get_encoded_len(
+        _id: NetworkInterfaceId,
+        vl: VirtualLinkId,
+        buffer: &[u8],
+    ) -> Result<usize, InterfaceError> {
+        // It's ugly to encode things twice, because it uses more CPU resources.
+        // On the other hand, the not-encoded frame saves some memory when storing it inside the queue.
+        let mut buf = [0u8; { UartFrame::max_encoded_len() + 1 }];
+        let frame = UartFrame { vl, pl: buffer };
+
+        // TODO Time it takes to do this should be accounted for if line is not used.
+        match UartFrame::encode(&frame, &mut buf).or(Err(InterfaceError::InvalidData)) {
+            Ok(encoded) => Ok(encoded.len()),
+            Err(_) => Err(InterfaceError::InvalidData),
+        }
+    }
 }
 
 impl<H: PlatformNetworkInterface> CreateNetworkInterfaceId<H> for UartSerial {

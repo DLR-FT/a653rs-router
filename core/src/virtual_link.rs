@@ -68,7 +68,11 @@ pub trait VirtualLink: Debug {
     fn queue_id(&self) -> Option<QueueId>;
 
     /// Receives frames from the hypervisor.
-    fn receive_hypervisor(&mut self, shaper: &mut dyn Shaper) -> Result<(), Error>;
+    fn receive_hypervisor(
+        &mut self,
+        shaper: &mut dyn Shaper,
+        interface: &dyn Interface,
+    ) -> Result<(), Error>;
 
     /// Receives a message from the network and forwards it to the local ports.
     /// The contents of `buf` must already have been determined to belong to this virtual link (e.g. by comparing with the ID of this link).
@@ -154,19 +158,21 @@ fn forward_to_network_queue<const MTU: PayloadSize, const MAX_QUEUE_LEN: usize>(
     queue: &mut Queue<Frame<MTU>, MAX_QUEUE_LEN>,
     frame: Frame<MTU>,
     shaper: &mut dyn Shaper,
+    interface: &dyn Interface,
 ) -> Result<(), Error>
 where
     [(); MTU as usize]:,
 {
+    let (vl_id, pl) = frame.as_parts();
+    let encoded = interface.get_encoded_len(&vl_id, pl)?;
     match queue.enqueue_frame(frame) {
         Ok(enqueued) => match enqueued {
-            Some(bytes) => {
-                // Encoded bytes are unknown
-                let transmission = Transmission::new(*queue_id, 0, bytes);
-                trace!("Requesting transmission of {} bytes from shaper", bytes);
+            true => {
+                let transmission = Transmission::new(*queue_id, encoded);
+                trace!("Requesting transmission of {} bytes from shaper", encoded);
                 shaper.request_transmission(&transmission)
             }
-            None => {
+            false => {
                 trace!(
             "Not requesting transmission from shaper because queue is already full. Queue size {}",
             queue.len()
@@ -191,9 +197,11 @@ where
     let frame = queue.dequeue_frame();
     match frame {
         Some(frame) => {
-            let pl = frame.into_inner();
-            let bytes = interface.send(vl, pl.as_slice())?;
-            let trans = Transmission::new(*queue_id, bytes, pl.len() as u32);
+            let (_, pl) = frame.into_inner();
+            let trans = Transmission::new(
+                *queue_id,
+                interface.get_encoded_len(vl, pl.as_slice()).unwrap(),
+            );
             shaper.record_transmission(&trans)?;
             Ok(trans)
         }
@@ -232,12 +240,18 @@ impl<
 where
     [(); MTU as usize]:,
 {
-    fn receive_hypervisor(&mut self, shaper: &mut dyn Shaper) -> Result<(), Error> {
+    fn receive_hypervisor(
+        &mut self,
+        shaper: &mut dyn Shaper,
+        interface: &dyn Interface,
+    ) -> Result<(), Error> {
+        let vl_id = self.vl_id();
         if let Some(dst) = &mut self.port_dst {
             let mut buf = [0u8; MTU as usize];
             trace!("Reading from sampling ports");
             let buf = receive_sampling_port_valid(dst, &mut buf)?;
             trace!("Forwarding to sampling ports");
+            // TODO do this outside of here
             forward_to_sources(&self.port_srcs, buf)?;
             if let Some(queue) = &mut self.queue {
                 if let Some(id) = &mut self.queue_id {
@@ -245,8 +259,9 @@ where
                     return forward_to_network_queue(
                         id,
                         queue,
-                        Frame::try_from(buf).unwrap(),
+                        Frame::from_parts(vl_id, buf).unwrap(),
                         shaper,
+                        interface,
                     );
                 }
             } else {

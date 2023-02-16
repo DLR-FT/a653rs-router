@@ -36,20 +36,16 @@ pub struct Transmission {
     /// The queue that performed or requested the transmission.
     queue: QueueId,
 
-    /// The time it took to transmit the bits.
+    /// The amount of bits of the encoded message the interface will transmit.
     encoded: u64,
-
-    /// The amount of bits that were transmitted.
-    bits: u64,
 }
 
 impl Transmission {
     /// Creates a new transmission.
-    pub(crate) fn new(queue: QueueId, encoded: usize, length: u32) -> Self {
+    pub(crate) fn new(queue: QueueId, encoded: usize) -> Self {
         Self {
             queue,
             encoded: encoded as u64 * 8,
-            bits: length as u64 * 8,
         }
     }
 }
@@ -120,7 +116,7 @@ impl<const NUM_QUEUES: usize> Shaper for CreditBasedShaper<NUM_QUEUES> {
             .queues
             .get_mut(q_id.0 as usize)
             .ok_or(Error::NoSuchQueue(q_id))?;
-        _ = q.submit(transmission.bits);
+        _ = q.submit(transmission.encoded);
         Ok(())
     }
 
@@ -129,7 +125,7 @@ impl<const NUM_QUEUES: usize> Shaper for CreditBasedShaper<NUM_QUEUES> {
         for q in self.queues.iter_mut() {
             if q.id == transmission.queue {
                 q.transmit = false;
-                _ = q.consume(&transmission.bits, &transmission.encoded)?;
+                _ = q.consume(&transmission.encoded)?;
                 consumed = true;
             } else {
                 let duration_blocked = Duration::from_micros(
@@ -230,20 +226,19 @@ impl QueueStatus {
     }
 
     /// Consumes credit from the queue.
-    fn consume(&mut self, bits: &u64, encoded: &u64) -> Result<u64, Error> {
+    fn consume(&mut self, encoded: &u64) -> Result<u64, Error> {
         if !self.transmit_allowed() {
             return Err(Error::TransmitNotAllowed);
         }
         let consumed = encoded;
-        let send_slope = self.send_slope;
 
         self.credit -= *consumed as i128;
-        self.backlog -= bits;
-        if self.backlog <= 0 {
-            self.credit = 0;
+        if self.backlog >= *consumed {
+            self.backlog -= consumed;
+        } else {
             self.backlog = 0;
         }
-        trace!("Consumed {consumed:?} and removed {bits:?} from backlog");
+        trace!("Consumed {consumed:?} and removed {consumed:?} from backlog");
         Ok(*consumed)
     }
 
@@ -375,18 +370,18 @@ mod tests {
         const MTU_Q2: u32 = 4_000;
 
         let transmissions = [
-            Transmission::new(q0_id, 2000, MTU_Q1),
-            Transmission::new(q1_id, 2000, MTU_Q2),
-            Transmission::new(q1_id, 2000, MTU_Q2),
-            Transmission::new(q0_id, 2000, MTU_Q1),
-            Transmission::new(q0_id, 2000, MTU_Q1),
-            Transmission::new(q1_id, 2000, MTU_Q2),
-            Transmission::new(q0_id, 2000, MTU_Q1),
-            Transmission::new(q1_id, 2000, MTU_Q2),
-            Transmission::new(q1_id, 2000, MTU_Q2),
-            Transmission::new(q0_id, 2000, MTU_Q1),
-            Transmission::new(q0_id, 2000, MTU_Q1),
-            Transmission::new(q1_id, 2000, MTU_Q2),
+            Transmission::new(q0_id, 2000),
+            Transmission::new(q1_id, 2000),
+            Transmission::new(q1_id, 2000),
+            Transmission::new(q0_id, 2000),
+            Transmission::new(q0_id, 2000),
+            Transmission::new(q1_id, 2000),
+            Transmission::new(q0_id, 2000),
+            Transmission::new(q1_id, 2000),
+            Transmission::new(q1_id, 2000),
+            Transmission::new(q0_id, 2000),
+            Transmission::new(q0_id, 2000),
+            Transmission::new(q1_id, 2000),
         ];
 
         for t in transmissions.iter() {
@@ -400,12 +395,12 @@ mod tests {
         while let Some(next_q) = s.next_queue() {
             // ... transmit
             if next_q == QueueId(0) {
-                let t = Transmission::new(next_q, 2000, MTU_Q1);
+                let t = Transmission::new(next_q, 2000);
                 s.record_transmission(&t).unwrap();
                 total_byte += MTU_Q1 as u64;
                 total_trans += 2000;
             } else {
-                let t = Transmission::new(next_q, 5000, MTU_Q2);
+                let t = Transmission::new(next_q, 5000);
                 s.record_transmission(&t).unwrap();
                 total_byte += MTU_Q2 as u64;
                 total_trans += 5000;

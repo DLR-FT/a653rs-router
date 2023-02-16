@@ -7,10 +7,7 @@ use crate::{
     shaper::Shaper,
     virtual_link::VirtualLink,
 };
-use apex_rs::{
-    bindings::ApexTimeP4,
-    prelude::{Error as ApexError, *},
-};
+use apex_rs::prelude::{Error as ApexError, *};
 use log::{error, trace, warn};
 
 /// Trait that hides hypervisor and MTU.
@@ -20,6 +17,9 @@ pub trait Interface: Debug {
 
     /// Receive data.
     fn receive<'a>(&self, buf: &'a mut [u8]) -> Result<(VirtualLinkId, &'a [u8]), Error>;
+
+    /// Get encoded length.
+    fn get_encoded_len(&self, vl: &VirtualLinkId, buf: &[u8]) -> Result<usize, Error>;
 }
 
 impl<const MTU: PayloadSize, H: PlatformNetworkInterface + Debug> Interface
@@ -31,6 +31,11 @@ impl<const MTU: PayloadSize, H: PlatformNetworkInterface + Debug> Interface
 
     fn send(&self, vl: &VirtualLinkId, buf: &[u8]) -> Result<usize, Error> {
         NetworkInterface::send(self, vl, buf)
+    }
+
+    /// Get encoded length.
+    fn get_encoded_len(&self, vl: &VirtualLinkId, buf: &[u8]) -> Result<usize, Error> {
+        NetworkInterface::get_encoded_len(self, vl, buf)
     }
 }
 
@@ -78,19 +83,21 @@ impl<'a> Forwarder<'a> {
         self.timestamp = <H as ApexTimeP4Ext>::get_time().unwrap_duration();
 
         trace!("Sending messages to the network");
-        let (last_err, transmitted) = match self.send_network() {
+        let (e, transmitted) = match self.send_network() {
             Ok(transmitted) => (None, transmitted),
             Err((transmitted, err)) => (Some(err), transmitted),
         };
+
+        if e.is_some() {
+            last_err = e;
+        }
 
         if !transmitted {
             trace!(
                 "Restoring credit to queues, because there were no transmissions to the network."
             );
-            let time_diff = Duration::from_micros(100);
-            // P1 timed_wait would be nicer, but is not available for apex-linux
-            let ts = <H as ApexTimeP4Ext>::get_time();
-            while <H as ApexTimeP4Ext>::get_time().unwrap_duration() - ts < time_diff {}
+            // TODO get proper time to restore
+            let time_diff = Duration::from_millis(10);
             if let Err(err) = self.shaper.restore_all(time_diff) {
                 last_err = Some(err);
             }
@@ -105,7 +112,8 @@ impl<'a> Forwarder<'a> {
     fn receive_hypervisor(&mut self) -> Result<(), Error> {
         let mut err: Option<Error> = None;
         for vl in self.links.iter_mut() {
-            if let Err(e) = vl.receive_hypervisor(self.shaper) {
+            // TODO should forward to *all* interfaces...
+            if let Err(e) = vl.receive_hypervisor(self.shaper, self.interfaces[0]) {
                 match e {
                     Error::PortReceiveFail(ApexError::NoAction) => {
                         warn!("No data available from port: {e}");

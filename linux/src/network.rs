@@ -1,5 +1,4 @@
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
 use std::{mem::size_of, net::UdpSocket};
 
 use apex_rs_linux::partition::ApexLinuxPartition;
@@ -24,12 +23,10 @@ impl PlatformNetworkInterface for LinuxNetworking {
     fn platform_interface_receive_unchecked(
         id: NetworkInterfaceId,
         buffer: &'_ mut [u8],
-    ) -> Result<(VirtualLinkId, &'_ [u8]), Error> {
+    ) -> Result<(VirtualLinkId, &'_ [u8]), InterfaceError> {
         let index: usize = id.into();
         let interfaces = INTERFACES.lock().unwrap();
-        let sock = interfaces
-            .get(index)
-            .ok_or(Error::InterfaceReceiveFail(InterfaceError::NotFound))?;
+        let sock = interfaces.get(index).ok_or(InterfaceError::NotFound)?;
         match sock.sock.recv(buffer) {
             Ok(read) => {
                 let vl_id_len = size_of::<VirtualLinkId>();
@@ -44,7 +41,7 @@ impl PlatformNetworkInterface for LinuxNetworking {
             }
             Err(err) => {
                 warn!("Failed to receive from UDP socket: {err:?}");
-                Err(Error::InterfaceReceiveFail(InterfaceError::NoData))
+                Err(InterfaceError::NoData)
             }
         }
     }
@@ -53,21 +50,21 @@ impl PlatformNetworkInterface for LinuxNetworking {
         id: network_partition::prelude::NetworkInterfaceId,
         vl: VirtualLinkId,
         buffer: &[u8],
-    ) -> Result<Duration, Duration> {
+    ) -> Result<usize, InterfaceError> {
         let index: usize = id.into();
         let interfaces = INTERFACES.lock().unwrap();
-        let sock = interfaces.get(index).ok_or(Duration::ZERO)?;
+        let sock = interfaces.get(index).ok_or(InterfaceError::NotFound)?;
         let id = vl.into_inner();
         let id = id.to_be_bytes();
         let udp_buf = [id.as_slice(), buffer].concat();
         match sock.sock.send(&udp_buf) {
             Ok(trans) => {
                 trace!("Send {} bytes to UDP socket", udp_buf.len());
-                Ok(sock.duration(trans))
+                Ok(trans)
             }
             Err(err) => {
                 error!("Failed to send to UDP socket: {err:?}");
-                Err(Duration::ZERO)
+                Err(InterfaceError::SendFailed)
             }
         }
     }
@@ -77,15 +74,6 @@ impl PlatformNetworkInterface for LinuxNetworking {
 struct LimitedUdpSocket {
     sock: UdpSocket,
     rate: DataRate,
-}
-
-impl LimitedUdpSocket {
-    /// trans is transmitted bytes
-    fn duration(&self, trans: usize) -> Duration {
-        // TODO configure data rate from configuration
-        let duration = ((trans as u64) * 8_000_000_000) / self.rate.as_u64();
-        Duration::from_nanos(duration)
-    }
 }
 
 impl CreateNetworkInterfaceId<LinuxNetworking> for LinuxNetworking {
@@ -103,24 +91,5 @@ impl CreateNetworkInterfaceId<LinuxNetworking> for LinuxNetworking {
         let id = interfaces.len() - 1;
 
         Ok(NetworkInterfaceId::from(id))
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use network_partition::prelude::DataRate;
-    use std::{net::UdpSocket, time::Duration};
-
-    use super::LimitedUdpSocket;
-
-    #[test]
-    fn calc_duration() {
-        let sock = UdpSocket::bind("127.0.0.1:34254").unwrap();
-        let limited_sock = LimitedUdpSocket {
-            sock,
-            rate: DataRate::b(100),
-        };
-        let trans = 100;
-        assert_eq!(limited_sock.duration(trans), Duration::from_secs(8))
     }
 }

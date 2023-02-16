@@ -16,7 +16,7 @@ use log::{error, trace, warn};
 /// Trait that hides hypervisor and MTU.
 pub trait Interface: Debug {
     /// Send data.
-    fn send(&self, vl: &VirtualLinkId, buf: &[u8]) -> Result<Duration, Duration>;
+    fn send(&self, vl: &VirtualLinkId, buf: &[u8]) -> Result<usize, Error>;
 
     /// Receive data.
     fn receive<'a>(&self, buf: &'a mut [u8]) -> Result<(VirtualLinkId, &'a [u8]), Error>;
@@ -29,7 +29,7 @@ impl<const MTU: PayloadSize, H: PlatformNetworkInterface + Debug> Interface
         NetworkInterface::receive(self, buf)
     }
 
-    fn send(&self, vl: &VirtualLinkId, buf: &[u8]) -> Result<Duration, Duration> {
+    fn send(&self, vl: &VirtualLinkId, buf: &[u8]) -> Result<usize, Error> {
         NetworkInterface::send(self, vl, buf)
     }
 }

@@ -1,4 +1,4 @@
-use core::{marker::PhantomData, time::Duration};
+use core::marker::PhantomData;
 
 use crate::{
     error::Error,
@@ -121,13 +121,16 @@ pub struct NetworkInterface<const MTU: PayloadSize, H: PlatformNetworkInterface>
 
 impl<const MTU: PayloadSize, H: PlatformNetworkInterface> NetworkInterface<MTU, H> {
     /// Sends data to the interface.
-    pub fn send(&self, vl: &VirtualLinkId, buf: &[u8]) -> Result<Duration, Duration> {
+    pub fn send(&self, vl: &VirtualLinkId, buf: &[u8]) -> Result<usize, Error> {
         if buf.len() > MTU as usize {
-            return Err(Duration::ZERO);
+            return Err(Error::InterfaceSendFail(InterfaceError::InsufficientBuffer));
         }
 
         info!("Sending to interface");
-        H::platform_interface_send_unchecked(self.id, *vl, buf)
+        match H::platform_interface_send_unchecked(self.id, *vl, buf) {
+            Ok(bytes) => Ok(bytes),
+            Err(e) => Err(Error::InterfaceSendFail(e)),
+        }
     }
 
     /// Receives data from the interface.
@@ -138,7 +141,10 @@ impl<const MTU: PayloadSize, H: PlatformNetworkInterface> NetworkInterface<MTU, 
             ));
         }
 
-        H::platform_interface_receive_unchecked(self.id, buf)
+        match H::platform_interface_receive_unchecked(self.id, buf) {
+            Ok(res) => Ok(res),
+            Err(e) => Err(Error::InterfaceReceiveFail(e)),
+        }
     }
 }
 
@@ -149,13 +155,13 @@ pub trait PlatformNetworkInterface {
         id: NetworkInterfaceId,
         vl: VirtualLinkId,
         buffer: &[u8],
-    ) -> Result<Duration, Duration>;
+    ) -> Result<usize, InterfaceError>;
 
     /// Receive something from the network and report the virtual link id and the payload.
     fn platform_interface_receive_unchecked(
         id: NetworkInterfaceId,
         buffer: &'_ mut [u8],
-    ) -> Result<(VirtualLinkId, &'_ [u8]), Error>;
+    ) -> Result<(VirtualLinkId, &'_ [u8]), InterfaceError>;
 }
 
 /// Creates a network interface id.
@@ -165,7 +171,7 @@ pub trait CreateNetworkInterfaceId<H: PlatformNetworkInterface> {
         _name: &str, // TODO use network_partition_config::config::InterfaceName ?
         destination: &str,
         rate: DataRate,
-    ) -> Result<NetworkInterfaceId, Error>;
+    ) -> Result<NetworkInterfaceId, InterfaceError>;
 }
 
 /// Creates a nertwork interface with an MTU.
@@ -187,7 +193,10 @@ where
         destination: &str,
         rate: DataRate,
     ) -> Result<NetworkInterface<MTU, H>, Error> {
-        let id = T::create_network_interface_id(name, destination, rate)?;
+        let id = match T::create_network_interface_id(name, destination, rate) {
+            Ok(id) => id,
+            Err(e) => return Err(Error::InterfaceCreationError(e)),
+        };
         Ok(NetworkInterface {
             _h: PhantomData::default(),
             id,

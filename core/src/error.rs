@@ -16,6 +16,12 @@ pub enum Error {
     /// Failed to receive something from an interface.
     InterfaceReceiveFail(InterfaceError),
 
+    /// Interface failed to send data.
+    InterfaceSendFail(InterfaceError),
+
+    /// Failed to create interface.
+    InterfaceCreationError(InterfaceError),
+
     /// Received invalid data.
     InvalidData,
 
@@ -68,6 +74,7 @@ impl core::fmt::Display for InterfaceError {
 impl core::fmt::Display for Error {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
+            Error::InterfaceCreationError(e) => write!(f, "Failed to create interface: {e}"),
             Error::PortSendFail(source) => write!(f, "Failed to send data: {source:?}"),
             Error::PortReceiveFail(source) => write!(f, "Failed to receive data: {source:?}"),
             Error::InterfaceReceiveFail(reason) => {
@@ -85,6 +92,7 @@ impl core::fmt::Display for Error {
             Error::NoSuchQueue(q_id) => write!(f, "No such queue: {q_id}"),
             Error::EnqueueFailed => write!(f, "Failed to enqueue a frame into queue"),
             Error::InvalidConfig => write!(f, "Invalid configuration"),
+            Error::InterfaceSendFail(e) => write!(f, "Interface failed to send some data: {e}"),
             Error::Unknown => write!(f, "Unknown error"),
         }
     }

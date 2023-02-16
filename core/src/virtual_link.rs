@@ -7,7 +7,6 @@ use crate::shaper::QueueId;
 use crate::types::DataRate;
 use apex_rs::prelude::{ApexSamplingPortP4, SamplingPortDestination, SamplingPortSource, Validity};
 use core::fmt::{Debug, Display};
-use core::time::Duration;
 use heapless::spsc::Queue;
 use heapless::Vec;
 use log::{error, trace, warn};
@@ -162,7 +161,8 @@ where
     match queue.enqueue_frame(frame) {
         Ok(enqueued) => match enqueued {
             Some(bytes) => {
-                let transmission = Transmission::new(*queue_id, Duration::ZERO, bytes);
+                // Encoded bytes are unknown
+                let transmission = Transmission::new(*queue_id, 0, bytes);
                 trace!("Requesting transmission of {} bytes from shaper", bytes);
                 shaper.request_transmission(&transmission)
             }
@@ -192,12 +192,8 @@ where
     match frame {
         Some(frame) => {
             let pl = frame.into_inner();
-            // Always remove credit from a queue. It is using its credit regardless of if the transmission was successful.
-            let duration = match interface.send(vl, pl.as_slice()) {
-                Ok(dur) => dur,
-                Err(dur) => dur,
-            };
-            let trans = Transmission::new(*queue_id, duration, pl.len() as u32);
+            let bytes = interface.send(vl, pl.as_slice())?;
+            let trans = Transmission::new(*queue_id, bytes, pl.len() as u32);
             shaper.record_transmission(&trans)?;
             Ok(trans)
         }

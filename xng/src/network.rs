@@ -1,10 +1,10 @@
-use core::time::Duration;
+use core::mem::size_of;
 
 use corncobs::{decode_in_place, encode_buf, max_encoded_len};
 use heapless::spsc::Queue;
 use log::error;
 use network_partition::prelude::{
-    CreateNetworkInterfaceId, Error, InterfaceError, NetworkInterfaceId, PlatformNetworkInterface,
+    CreateNetworkInterfaceId, InterfaceError, NetworkInterfaceId, PlatformNetworkInterface,
     VirtualLinkId,
 };
 use once_cell::unsync::Lazy;
@@ -71,12 +71,13 @@ impl<'p> UartFrame<'p> {
         // COBS decode
         let declen = decode_in_place(buf).or(Err(()))?;
 
-        if declen < 2 * core::mem::size_of::<u16>() {
+        let crclen = size_of::<u16>();
+        if declen < crclen {
             return Err(());
         }
 
         // Check CRC
-        let (msg, crc) = buf.split_at(declen - 2);
+        let (msg, crc) = buf.split_at(declen - crclen);
         let rcrc = u16::from_be_bytes(crc.try_into().or(Err(()))?);
         let crc = crc16::State::<crc16::USB>::calculate(msg);
         if rcrc != crc {
@@ -84,12 +85,9 @@ impl<'p> UartFrame<'p> {
         }
 
         // VL ID
-        let (vl, _) = buf.split_at(2);
+        let (vl, pl) = buf.split_at(2);
         let vl: [u8; 2] = vl.try_into().or(Err(()))?;
         let vl = u16::from_be_bytes(vl);
-
-        // Payload
-        let pl = &buf[2..declen - 2];
 
         Ok((VirtualLinkId::from_u32(vl as u32), pl))
     }
@@ -139,11 +137,6 @@ impl<const BUFFER_LEN: usize> BufferedUart<BUFFER_LEN> {
         // Rx FIFO trigger level is 1 byte, reset Rx & Tx FIFO, enable FIFO
         self.uart.write_fcr(0b00_000_11_1);
     }
-
-    fn transmission_duration(&self, bytes: usize) -> Duration {
-        // TODO Calculate how long the transmission should take...
-        Duration::from_micros(bytes as u64)
-    }
 }
 
 impl<const BUFFER_LEN: usize> Drop for BufferedUart<BUFFER_LEN> {
@@ -167,27 +160,33 @@ impl PlatformNetworkInterface for UartSerial {
     fn platform_interface_receive_unchecked(
         _id: NetworkInterfaceId,
         buffer: &'_ mut [u8],
-    ) -> Result<(VirtualLinkId, &'_ [u8]), Error> {
+    ) -> Result<(VirtualLinkId, &'_ [u8]), InterfaceError> {
         if unsafe { !UART.uart.is_data_ready() } {
-            return Err(Error::InterfaceReceiveFail(InterfaceError::NoData));
+            return Err(InterfaceError::NoData);
         }
         // TODO Get rid of one buffer. Should be possible to decode directly inside RX-Buffer.
         let mut limit = 0;
-        while limit < u32::MAX {
+        let mut queue_has_eof = false;
+        while limit < u128::MAX && !queue_has_eof {
             while let Some(b) = unsafe { UART.uart.read_byte() } {
+                limit += 1;
+
                 _ = unsafe { UART.rx_buffer.enqueue(b) };
                 if b == 0x0 {
-                    limit = u32::MAX;
+                    queue_has_eof = true;
                     break;
                 }
             }
+        }
+        if !queue_has_eof {
+            return Err(InterfaceError::NoData);
         }
         let mut buf = [0u8; { UartFrame::max_encoded_len() + 1 }];
         let mut end = 0;
         for b in buf.iter_mut() {
             if let Some(c) = unsafe { UART.rx_buffer.dequeue() } {
-                end += 1;
                 *b = c;
+                end += 1;
                 if c == 0x0 {
                     break;
                 }
@@ -203,7 +202,7 @@ impl PlatformNetworkInterface for UartSerial {
                 rpl.copy_from_slice(pl);
                 Ok((vl, rpl))
             }
-            _ => Err(Error::InterfaceReceiveFail(InterfaceError::InvalidData)),
+            _ => Err(InterfaceError::InvalidData),
         }
     }
 
@@ -211,12 +210,12 @@ impl PlatformNetworkInterface for UartSerial {
         _id: NetworkInterfaceId,
         vl: VirtualLinkId,
         buffer: &[u8],
-    ) -> Result<Duration, Duration> {
+    ) -> Result<usize, InterfaceError> {
         let mut buf = [0u8; { UartFrame::max_encoded_len() + 1 }];
         let frame = UartFrame { vl, pl: buffer };
 
         // TODO Time it takes to do this should be accounted for if line is not used.
-        let encoded = UartFrame::encode(&frame, &mut buf).or(Err(Duration::ZERO))?;
+        let encoded = UartFrame::encode(&frame, &mut buf).or(Err(InterfaceError::InvalidData))?;
 
         unsafe {
             let mut index: usize = 0;
@@ -235,8 +234,7 @@ impl PlatformNetworkInterface for UartSerial {
             while !UART.uart.is_transmitter_holding_register_empty() {}
         }
 
-        // TODO measure transmission time, cancel if time limit exceeded
-        Ok(unsafe { UART.transmission_duration(buffer.len()) })
+        Ok(encoded.len())
     }
 }
 
@@ -245,7 +243,7 @@ impl<H: PlatformNetworkInterface> CreateNetworkInterfaceId<H> for UartSerial {
         _name: &str, // TODO use network_partition_config::config::InterfaceName ?
         _destination: &str,
         _rate: network_partition::prelude::DataRate,
-    ) -> Result<NetworkInterfaceId, Error> {
+    ) -> Result<NetworkInterfaceId, InterfaceError> {
         Ok(NetworkInterfaceId(1))
     }
 }

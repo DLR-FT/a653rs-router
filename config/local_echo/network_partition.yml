@@ -2,7 +2,7 @@ stack_size:
   periodic_process: 15000B
 virtual_links:
   - id: 1
-    rate: 10000
+    rate: 1s
     msg_size: 100B
     interfaces: [ ]
     ports:
@@ -12,7 +12,7 @@ virtual_links:
       - !SamplingPortSource
         channel: EchoReplyCl
   - id: 2
-    rate: 10000
+    rate: 500ms
     msg_size: 100B
     interfaces: [ ]
     ports:      

@@ -2,7 +2,7 @@ stack_size:
   periodic_process: 1MB
 virtual_links:
   - id: 1
-    rate: 10000
+    rate: 1s
     msg_size: 100B
     interfaces: [ "veth0" ]
     ports:      
@@ -10,14 +10,15 @@ virtual_links:
         channel: EchoRequest
         validity: 2s
   - id: 2
-    rate: 10000
+    rate: 500ms
     msg_size: 100B
     interfaces: [ "veth0" ]
     ports:
       - !SamplingPortSource
         channel: EchoReply
 interfaces:
-  - name: veth0
+  - id: 1
+    name: veth0
     rate: 10000000
     mtu: 1.5KB
     # TODO remove. not needed for veth, only for UDP

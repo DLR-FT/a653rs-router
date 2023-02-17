@@ -1,15 +1,16 @@
 //! Virtual links.
 
 use crate::error::Error;
-use crate::network::{Frame, PayloadSize};
-use crate::prelude::{FrameQueue, Interface, InterfaceError, Shaper, Transmission};
-use crate::shaper::QueueId;
-use crate::types::DataRate;
-use apex_rs::prelude::{ApexSamplingPortP4, SamplingPortDestination, SamplingPortSource, Validity};
+use crate::error::VirtualLinkError;
+use crate::prelude::NetworkInterfaceId;
+use crate::prelude::PayloadSize;
+use apex_rs::prelude::ApexSamplingPortP4;
+use apex_rs::prelude::SamplingPortSource;
+use apex_rs::prelude::{SamplingPortDestination, Validity};
 use core::fmt::{Debug, Display};
-use heapless::spsc::Queue;
 use heapless::Vec;
-use log::{error, trace, warn};
+use log::info;
+use log::{trace, warn};
 
 /// An ID of a virtual link.
 ///
@@ -53,38 +54,14 @@ impl From<VirtualLinkId> for u32 {
     }
 }
 
-impl From<VirtualLinkId> for QueueId {
-    fn from(val: VirtualLinkId) -> Self {
-        Self::from(val.into_inner())
-    }
-}
-
 /// A virtual link.
 pub trait VirtualLink: Debug {
     /// Gets the VirtualLinkId.
     fn vl_id(&self) -> VirtualLinkId;
 
-    /// Gets the queue id.
-    fn queue_id(&self) -> Option<QueueId>;
+    fn read_local<'a>(&self, buffer: &'a mut [u8]) -> Result<&'a [u8], Error>;
 
-    /// Receives frames from the hypervisor.
-    fn receive_hypervisor(
-        &mut self,
-        shaper: &mut dyn Shaper,
-        interface: &dyn Interface,
-    ) -> Result<(), Error>;
-
-    /// Receives a message from the network and forwards it to the local ports.
-    /// The contents of `buf` must already have been determined to belong to this virtual link (e.g. by comparing with the ID of this link).
-    fn receive_network(&mut self, buf: &[u8]) -> Result<(), Error>;
-
-    /// Sends frames from the queue of this virtual link to the network.
-    /// The shaper is used for shaping the traffic emitted by the virtual link to the network.
-    fn send_network(
-        &mut self,
-        interface: &dyn Interface,
-        shaper: &mut dyn Shaper,
-    ) -> Result<(), Error>;
+    fn process_remote(&self, buffer: &[u8]) -> Result<(), Error>;
 }
 
 /// The data of a virtual link.
@@ -92,24 +69,23 @@ pub trait VirtualLink: Debug {
 pub struct VirtualLinkData<
     const MTU: PayloadSize,
     const PORTS: usize,
-    const MAX_QUEUE_LEN: usize,
+    const IFS: usize,
     H: ApexSamplingPortP4,
 > where
     [(); MTU as usize]:,
 {
     id: VirtualLinkId,
-    queue_id: Option<QueueId>,
     port_dst: Option<SamplingPortDestination<MTU, H>>,
     port_srcs: Vec<SamplingPortSource<MTU, H>, PORTS>,
-    queue: Option<Queue<Frame<MTU>, MAX_QUEUE_LEN>>,
+    interfaces: Vec<NetworkInterfaceId, IFS>,
 }
 
 impl<
         const MTU: PayloadSize,
         const PORTS: usize,
-        const MAX_QUEUE_LEN: usize,
+        const IFS: usize,
         H: ApexSamplingPortP4 + Debug,
-    > VirtualLinkData<MTU, PORTS, MAX_QUEUE_LEN, H>
+    > VirtualLinkData<MTU, PORTS, IFS, H>
 where
     [(); MTU as usize]:,
 {
@@ -117,27 +93,15 @@ where
     pub fn new(id: VirtualLinkId) -> Self {
         Self {
             id,
-            queue_id: None,
             port_dst: None,
             port_srcs: Vec::default(),
-            queue: None,
+            interfaces: Vec::default(),
         }
-    }
-
-    /// Add a queue.
-    /// TODO Should use interface ID instead of queue id.
-    /// TODO The queue should and shaper instance should be internal to the interface.
-    pub fn queue(mut self, shaper: &mut dyn Shaper, share: DataRate) -> Self {
-        let queue_id = shaper.add_queue(share);
-        self.queue_id = queue_id;
-        self.queue = Some(Queue::default());
-        trace!("Added queue to virtual link {}", self.id);
-        self
     }
 
     /// Add a port destination.
     pub fn add_port_dst(&mut self, port_dst: SamplingPortDestination<MTU, H>) {
-        if self.queue.is_some() {
+        if !self.interfaces.is_empty() {
             panic!("A virtual link may not both receive things from the network and receive things from the hypervisor.")
         }
         trace!("Added port destination to virtual link {}", self.id);
@@ -151,61 +115,13 @@ where
             .expect("Not enough free source port slots.");
         trace!("Added port sources to virtual link {}", self.id);
     }
-}
 
-fn forward_to_network_queue<const MTU: PayloadSize, const MAX_QUEUE_LEN: usize>(
-    queue_id: &QueueId,
-    queue: &mut Queue<Frame<MTU>, MAX_QUEUE_LEN>,
-    frame: Frame<MTU>,
-    shaper: &mut dyn Shaper,
-    interface: &dyn Interface,
-) -> Result<(), Error>
-where
-    [(); MTU as usize]:,
-{
-    let (vl_id, pl) = frame.as_parts();
-    let encoded = interface.get_encoded_len(&vl_id, pl)?;
-    match queue.enqueue_frame(frame) {
-        Ok(enqueued) => match enqueued {
-            true => {
-                let transmission = Transmission::new(*queue_id, encoded);
-                trace!("Requesting transmission of {} bytes from shaper", encoded);
-                shaper.request_transmission(&transmission)
-            }
-            false => {
-                trace!(
-            "Not requesting transmission from shaper because queue is already full. Queue size {}",
-            queue.len()
-                );
-                Ok(())
-            }
-        },
-        Err(err) => Err(err),
-    }
-}
-
-fn send_network<const MTU: PayloadSize, const MAX_QUEUE_LEN: usize>(
-    vl: &VirtualLinkId,
-    queue_id: &QueueId,
-    queue: &mut Queue<Frame<MTU>, MAX_QUEUE_LEN>,
-    interface: &dyn Interface,
-    shaper: &mut dyn Shaper,
-) -> Result<Transmission, Error>
-where
-    [(); MTU as usize]:,
-{
-    let frame = queue.dequeue_frame();
-    match frame {
-        Some(frame) => {
-            let (_, pl) = frame.into_inner();
-            let trans = Transmission::new(
-                *queue_id,
-                interface.get_encoded_len(vl, pl.as_slice()).unwrap(),
-            );
-            shaper.record_transmission(&trans)?;
-            Ok(trans)
-        }
-        None => Err(Error::QueueEmpty),
+    /// Adds an interface to the destinations of this virtual link.
+    pub fn add_interface(&mut self, interface: NetworkInterfaceId) {
+        self.interfaces
+            .push(interface)
+            .expect("Not enough free interface slots");
+        trace!("Added interface to virtual link: {}", self.id);
     }
 }
 
@@ -234,87 +150,71 @@ fn forward_to_sources<const MTU: PayloadSize, const PORTS: usize, H: ApexSamplin
 impl<
         const MTU: PayloadSize,
         const PORTS: usize,
-        const MAX_QUEUE_LEN: usize,
+        const IFS: usize,
         H: ApexSamplingPortP4 + Debug,
-    > VirtualLink for VirtualLinkData<MTU, PORTS, MAX_QUEUE_LEN, H>
+    > VirtualLinkData<MTU, PORTS, IFS, H>
 where
     [(); MTU as usize]:,
 {
-    fn receive_hypervisor(
-        &mut self,
-        shaper: &mut dyn Shaper,
-        interface: &dyn Interface,
-    ) -> Result<(), Error> {
-        let vl_id = self.vl_id();
-        if let Some(dst) = &mut self.port_dst {
-            let mut buf = [0u8; MTU as usize];
-            trace!("Reading from sampling ports");
-            let buf = receive_sampling_port_valid(dst, &mut buf)?;
-            trace!("Forwarding to sampling ports");
-            // TODO do this outside of here
-            forward_to_sources(&self.port_srcs, buf)?;
-            if let Some(queue) = &mut self.queue {
-                if let Some(id) = &mut self.queue_id {
-                    trace!("VL forwarding to network queue");
-                    return forward_to_network_queue(
-                        id,
-                        queue,
-                        Frame::from_parts(vl_id, buf).unwrap(),
-                        shaper,
-                        interface,
-                    );
-                }
+    fn forward_to_local(&self, buffer: &[u8]) -> Result<(), Error> {
+        // TODO make sure only messages for this virtual link arrive here
+        if buffer.len() > MTU as usize {
+            return Err(Error::VirtualLinkError(VirtualLinkError::MtuMismatch));
+        }
+
+        let mut last_e: Option<Error> = None;
+
+        for src in self.port_srcs.iter() {
+            if let Err(e) = src.send(&buffer) {
+                last_e = Some(Error::PortSendFail(e));
+                warn!("Failed to write to {src:?}");
             } else {
-                trace!("Not forwarding to the network, because the virtual link {} does not have a network queue", self.id);
+                trace!("Wrote to source: {buffer:?}")
             }
         }
-        Ok(())
-    }
 
-    fn send_network(
-        &mut self,
-        interface: &dyn Interface,
-        shaper: &mut dyn Shaper,
-    ) -> Result<(), Error> {
-        if let Some(queue) = &mut self.queue {
-            if let Some(id) = &mut self.queue_id {
-                _ = send_network(&self.id, id, queue, interface, shaper)?;
-                return Ok(());
-            } else {
-                trace!(
-                    "Not sending anything from VL {}, because it has no queue ID.",
-                    self.id
-                );
-            }
-        } else {
-            trace!(
-                "Not sending anything from VL {}, because it has no queue.",
-                self.id
-            );
+        match last_e {
+            None => Ok(()),
+            Some(e) => Err(e),
         }
-        Ok(())
     }
+}
 
-    fn receive_network(&mut self, buf: &[u8]) -> Result<(), Error> {
-        if self.port_dst.is_some() {
-            warn!("A VL may never receive things from both a local port and the network. This means that another hypervisor is misconfigured to use one of the same VLs as the local hypervisor.");
-            return Err(Error::InvalidConfig);
-        }
-        if buf.len() > MTU as usize {
-            error!("Discarding the message because it is too large for the virtual link");
-            return Err(Error::InterfaceReceiveFail(
-                InterfaceError::InsufficientBuffer,
-            ));
-        }
-        forward_to_sources(&self.port_srcs, buf)?;
-        Ok(())
-    }
-
-    fn queue_id(&self) -> Option<QueueId> {
-        self.queue_id
-    }
-
+impl<
+        const MTU: PayloadSize,
+        const PORTS: usize,
+        const IFS: usize,
+        H: ApexSamplingPortP4 + Debug,
+    > VirtualLink for VirtualLinkData<MTU, PORTS, IFS, H>
+where
+    [(); MTU as usize]:,
+{
     fn vl_id(&self) -> VirtualLinkId {
         self.id
+    }
+
+    fn process_remote(&self, buffer: &[u8]) -> Result<(), Error> {
+        self.forward_to_local(buffer)
+    }
+
+    // TODO only call this if the scheduler says that it is this virtual link's turn.
+    fn read_local<'a>(&self, buf: &'a mut [u8]) -> Result<&'a [u8], Error> {
+        // Take the first data that is available
+        if let Some(dst) = self.port_dst.as_ref() {
+            match dst.receive(buf) {
+                Ok((val, data)) => {
+                    if val == Validity::Invalid {
+                        warn!("Reading invalid data from port");
+                    } else {
+                        return Ok(data);
+                    }
+                }
+                Err(e) => {
+                    warn!("Failed to receive data from port: {e:?}");
+                }
+            }
+        }
+
+        Err(Error::InvalidConfig)
     }
 }

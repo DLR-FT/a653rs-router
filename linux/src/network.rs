@@ -5,7 +5,7 @@ use apex_rs_linux::partition::ApexLinuxPartition;
 
 use log::{error, trace, warn};
 use network_partition::prelude::{
-    CreateNetworkInterfaceId, DataRate, Error, InterfaceError, NetworkInterfaceId,
+    CreateNetworkInterfaceId, DataRate, InterfaceError, NetworkInterfaceId,
     PlatformNetworkInterface, VirtualLinkId,
 };
 use once_cell::sync::Lazy;
@@ -73,7 +73,7 @@ impl PlatformNetworkInterface for LinuxNetworking {
 #[derive(Debug)]
 struct LimitedUdpSocket {
     sock: UdpSocket,
-    rate: DataRate,
+    _rate: DataRate,
 }
 
 impl CreateNetworkInterfaceId<LinuxNetworking> for LinuxNetworking {
@@ -81,12 +81,12 @@ impl CreateNetworkInterfaceId<LinuxNetworking> for LinuxNetworking {
         _name: &str, // TODO use network_partition_config::config::InterfaceName ?
         destination: &str,
         rate: DataRate,
-    ) -> Result<NetworkInterfaceId, Error> {
+    ) -> Result<NetworkInterfaceId, InterfaceError> {
         let mut interfaces = INTERFACES.lock().unwrap(); // TODO wrap error
         let sock = SOCKETS.lock().unwrap().pop().unwrap(); // TODO wrap error
         sock.set_nonblocking(true).unwrap();
         sock.connect(destination).unwrap();
-        let sock = LimitedUdpSocket { sock, rate };
+        let sock = LimitedUdpSocket { sock, _rate: rate };
         interfaces.push(sock);
         let id = interfaces.len() - 1;
 

@@ -11,7 +11,6 @@ pub fn generate_network_partition(
     let process_stack_size = config.stack_size.periodic_process.as_u64() as u32;
     let max_mtu = get_max_mtu(config) as usize;
     let num_links = get_num_links(config);
-    let min_interface_data_rate = get_min_interface_data_rate(config);
 
     let vl_names = get_vl_names(config);
 
@@ -26,11 +25,12 @@ pub fn generate_network_partition(
 
     let add_sampling_port_sources_to_links = add_sampling_port_sources_to_links(config);
     let add_sampling_port_destinations_to_links = add_sampling_port_destinations_to_links(config);
-    let add_queues_to_links = add_queues_to_links(config);
+    let add_interfaces_to_links = add_interfaces_to_links(config);
 
     let define_port_sources = define_port_sources(config);
     let define_port_destinations = define_port_destinations(config);
     let define_interfaces = define_interfaces(config, &interface);
+    let windows = define_windows(config);
 
     quote! {
         use apex_rs::prelude::*;
@@ -51,8 +51,6 @@ pub fn generate_network_partition(
 
         extern "C" fn entry_point() {
             info!("Running network partition");
-            let mut shaper = CreditBasedShaper::<#num_links>::new(DataRate::b(#min_interface_data_rate));
-            let mut frame_buf = [0u8; #max_mtu];
             let mut interfaces: [&dyn Interface; #num_interfaces] = [ #( unsafe { #interface_names . get().unwrap() } ),* ];
 
             #( #define_virtual_links )*
@@ -61,15 +59,20 @@ pub fn generate_network_partition(
 
             #( #add_sampling_port_destinations_to_links )*
 
-            #( #add_queues_to_links )*
+            #( #add_interfaces_to_links )*
 
-            let mut links: [&mut dyn VirtualLink; #num_links] = [ #( &mut #vl_names ),* ];
-            let mut forwarder = Forwarder::new(&mut frame_buf, &mut shaper, &mut links, &mut interfaces);
+            let mut links: [&dyn VirtualLink; #num_links] = [ #( &#vl_names ),* ];
 
+            let mut scheduler = DeadlineRrScheduler::<#num_links>::new();
+            let windows = [ #( #windows ),* ];
+            for (vl_id, period) in windows {
+                scheduler.insert(VirtualLinkId(vl_id), period);
+            }
+
+            let mut forwarder = Forwarder::new(&mut scheduler, &mut links, &mut interfaces);
             loop {
-                if let Err(err) = forwarder.forward::<Hypervisor>() {
-                    error!("{err:?}");
-                }
+                let mut frame_buf = [0u8; #max_mtu];
+                forwarder.forward::<Hypervisor>(&mut frame_buf);
             }
         }
 
@@ -112,6 +115,38 @@ pub fn generate_network_partition(
             }
         }
     }
+}
+
+fn add_interfaces_to_links(config: &Config) -> Vec<TokenStream> {
+    config
+        .virtual_links
+        .iter()
+        .flat_map(|vl| {
+            vl.interfaces.iter().map(|i| {
+                let id = vl.id;
+                let vl_ident = format_ident!("vl_{id}");
+                let if_id = config
+                    .interfaces
+                    .iter()
+                    .find(|intf| *i.0 == intf.name.0)
+                    .unwrap()
+                    .id.0;
+                quote! { #vl_ident.add_interface(NetworkInterfaceId::from(NetworkInterfaceId(#if_id))); }
+            })
+        })
+        .collect()
+}
+
+fn define_windows(config: &Config) -> Vec<TokenStream> {
+    config
+        .virtual_links
+        .iter()
+        .map(|l| {
+            let id = l.id.0;
+            let rate = l.rate.as_nanos() as u64;
+            quote! { (#id, Duration::from_nanos(#rate)) }
+        })
+        .collect()
 }
 
 // TODO write functions for names of variables
@@ -266,19 +301,6 @@ fn add_sampling_port_sources_to_links(config: &Config) -> Vec<TokenStream> {
         .collect()
 }
 
-fn add_queues_to_links(config: &Config) -> Vec<TokenStream> {
-    config
-        .virtual_links
-        .iter()
-        .map(|vl| {
-            let vl_id = vl.id.to_string();
-            let vl_rate = vl.rate.as_u64();
-            let vl_id = format_ident!("vl_{vl_id}");
-            quote!(#vl_id = #vl_id.queue(&mut shaper, DataRate::b(#vl_rate));)
-        })
-        .collect()
-}
-
 fn add_sampling_port_destinations_to_links(config: &Config) -> Vec<TokenStream> {
     config
         .virtual_links
@@ -338,16 +360,6 @@ fn define_port_destinations(config: &Config) -> Vec<TokenStream> {
 // TODO move getters to config module
 fn get_num_links(config: &Config) -> usize {
     config.virtual_links.len()
-}
-
-fn get_min_interface_data_rate(config: &Config) -> u64 {
-    config
-        .interfaces
-        .iter()
-        .map(|i| i.rate)
-        .min()
-        .unwrap_or_default()
-        .as_u64()
 }
 
 fn get_max_mtu(config: &Config) -> u64 {

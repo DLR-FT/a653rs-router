@@ -1,8 +1,11 @@
 use apex_rs::prelude::*;
-use apex_rs_postcard::sampling::{SamplingPortDestinationExt, SamplingPortSourceExt};
+use apex_rs_postcard::{
+    prelude::SamplingRecvError,
+    sampling::{SamplingPortDestinationExt, SamplingPortSourceExt},
+};
 use core::str::FromStr;
 use core::time::Duration;
-use log::{error, info, trace};
+use log::{error, info, trace, warn};
 use once_cell::unsync::OnceCell;
 use serde::{Deserialize, Serialize};
 
@@ -38,9 +41,10 @@ where
             let result = port.send_type(data);
             match result {
                 Ok(_) => {
-                    info!(
+                    trace!(
                         "EchoRequest: seqnr = {:?}, time = {:?}",
-                        data.sequence, data.when_ms
+                        data.sequence,
+                        data.when_ms
                     );
                 }
                 Err(_) => {
@@ -70,6 +74,10 @@ where
             match result {
                 Ok(data) => {
                     let (valid, received) = data;
+                    // Reset when client restarts
+                    if received.sequence == 1 {
+                        last = 0;
+                    }
                     if received.sequence > last {
                         last = received.sequence;
                         info!(
@@ -77,10 +85,15 @@ where
                             received.sequence,
                             (now.as_millis() as u64) - received.when_ms
                         );
+                    } else {
+                        trace!("Duplicate")
                     }
                 }
-                Err(_) => {
-                    //trace!("Failed to receive anything");
+                Err(SamplingRecvError::Apex(Error::NotAvailable)) => {
+                    trace!("No echo reply available");
+                }
+                Err(e) => {
+                    error!("Failed to receive reply: {e:?}");
                 }
             }
         }

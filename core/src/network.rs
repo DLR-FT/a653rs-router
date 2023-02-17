@@ -141,15 +141,6 @@ impl<const MTU: PayloadSize, H: PlatformNetworkInterface> NetworkInterface<MTU, 
             Err(e) => Err(Error::InterfaceReceiveFail(e)),
         }
     }
-
-    /// Gets the encoded length of a frame.
-    pub fn get_encoded_len(&self, vl: &VirtualLinkId, buf: &[u8]) -> Result<usize, Error> {
-        match H::platform_interface_get_encoded_len(self.id, *vl, buf) {
-            Ok(res) => Ok(res),
-            // TODO replace with generic Interface error
-            Err(e) => Err(Error::InterfaceSendFail(e)),
-        }
-    }
 }
 
 /// Platform-specific network interface type.
@@ -166,13 +157,6 @@ pub trait PlatformNetworkInterface {
         id: NetworkInterfaceId,
         buffer: &'_ mut [u8],
     ) -> Result<(VirtualLinkId, &'_ [u8]), InterfaceError>;
-
-    /// Gets the amout of bytes the encoded message requires.
-    fn platform_interface_get_encoded_len(
-        id: NetworkInterfaceId,
-        vl: VirtualLinkId,
-        buffer: &[u8],
-    ) -> Result<usize, InterfaceError>;
 }
 
 /// Creates a network interface id.

@@ -2,7 +2,6 @@ use core::mem::size_of;
 
 use corncobs::{decode_in_place, encode_buf, max_encoded_len};
 use heapless::spsc::Queue;
-use log::error;
 use network_partition::prelude::{
     CreateNetworkInterfaceId, InterfaceError, NetworkInterfaceId, PlatformNetworkInterface,
     VirtualLinkId,
@@ -78,14 +77,15 @@ impl<'p> UartFrame<'p> {
 
         // Check CRC
         let (msg, crc) = buf.split_at(declen - crclen);
-        let rcrc = u16::from_be_bytes(crc.try_into().or(Err(()))?);
+        let crc = crc[0..2].try_into().or(Err(()))?;
+        let rcrc = u16::from_be_bytes(crc);
         let crc = crc16::State::<crc16::USB>::calculate(msg);
         if rcrc != crc {
             return Err(());
         }
 
         // VL ID
-        let (vl, pl) = buf.split_at(2);
+        let (vl, pl) = msg.split_at(2);
         let vl: [u8; 2] = vl.try_into().or(Err(()))?;
         let vl = u16::from_be_bytes(vl);
 
@@ -167,7 +167,7 @@ impl PlatformNetworkInterface for UartSerial {
         // TODO Get rid of one buffer. Should be possible to decode directly inside RX-Buffer.
         let mut limit = 0;
         let mut queue_has_eof = false;
-        while limit < u128::MAX && !queue_has_eof {
+        while limit < u8::MAX && !queue_has_eof {
             while let Some(b) = unsafe { UART.uart.read_byte() } {
                 limit += 1;
 
@@ -182,11 +182,9 @@ impl PlatformNetworkInterface for UartSerial {
             return Err(InterfaceError::NoData);
         }
         let mut buf = [0u8; { UartFrame::max_encoded_len() + 1 }];
-        let mut end = 0;
         for b in buf.iter_mut() {
             if let Some(c) = unsafe { UART.rx_buffer.dequeue() } {
                 *b = c;
-                end += 1;
                 if c == 0x0 {
                     break;
                 }
@@ -194,9 +192,7 @@ impl PlatformNetworkInterface for UartSerial {
                 break;
             }
         }
-        let buf = &mut buf[..end];
-        error!("Received data: {:?}", buf);
-        match UartFrame::decode(buf) {
+        match UartFrame::decode(&mut buf) {
             Ok((vl, pl)) => {
                 let rpl = &mut buffer[0..pl.len()];
                 rpl.copy_from_slice(pl);
@@ -235,23 +231,6 @@ impl PlatformNetworkInterface for UartSerial {
         }
 
         Ok(encoded.len())
-    }
-
-    fn platform_interface_get_encoded_len(
-        _id: NetworkInterfaceId,
-        vl: VirtualLinkId,
-        buffer: &[u8],
-    ) -> Result<usize, InterfaceError> {
-        // It's ugly to encode things twice, because it uses more CPU resources.
-        // On the other hand, the not-encoded frame saves some memory when storing it inside the queue.
-        let mut buf = [0u8; { UartFrame::max_encoded_len() + 1 }];
-        let frame = UartFrame { vl, pl: buffer };
-
-        // TODO Time it takes to do this should be accounted for if line is not used.
-        match UartFrame::encode(&frame, &mut buf).or(Err(InterfaceError::InvalidData)) {
-            Ok(encoded) => Ok(encoded.len()),
-            Err(_) => Err(InterfaceError::InvalidData),
-        }
     }
 }
 

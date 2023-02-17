@@ -1,7 +1,7 @@
 use apex_rs::prelude::*;
 use core::str::FromStr;
 use core::time::Duration;
-use log::{error, trace, warn};
+use log::{error, info, trace, warn};
 use once_cell::unsync::OnceCell;
 
 pub struct EchoServerPartition<const ECHO_SIZE: MessageSize, S>
@@ -83,7 +83,7 @@ where
         send: &mut SamplingPortSource<ECHO_SIZE, H>,
         recv: &mut SamplingPortDestination<ECHO_SIZE, H>,
     ) {
-        trace!("Running echo server");
+        info!("Running echo server");
         let mut buf = [0u8; ECHO_SIZE as usize];
         loop {
             match recv.receive(&mut buf) {
@@ -91,7 +91,7 @@ where
                     if val == Validity::Valid {
                         match send.send(data) {
                             Ok(_) => {
-                                trace!("Replied to echo");
+                                info!("Replied to echo");
                             }
                             Err(err) => {
                                 error!("Failed to reply to echo: {:?}", err);

@@ -1,14 +1,13 @@
-use core::{fmt::Debug, time::Duration};
+use core::fmt::Debug;
 
 use crate::{
     error::Error,
     network::NetworkInterface,
-    prelude::{InterfaceError, PayloadSize, PlatformNetworkInterface, VirtualLinkId},
-    shaper::Shaper,
+    prelude::{InterfaceError, PayloadSize, PlatformNetworkInterface, Scheduler, VirtualLinkId},
     virtual_link::VirtualLink,
 };
-use apex_rs::prelude::{Error as ApexError, *};
-use log::{error, trace, warn};
+use apex_rs::prelude::{ApexTimeP4Ext, SystemTime};
+use log::{info, trace, warn};
 
 /// Trait that hides hypervisor and MTU.
 pub trait Interface: Debug {
@@ -17,9 +16,6 @@ pub trait Interface: Debug {
 
     /// Receive data.
     fn receive<'a>(&self, buf: &'a mut [u8]) -> Result<(VirtualLinkId, &'a [u8]), Error>;
-
-    /// Get encoded length.
-    fn get_encoded_len(&self, vl: &VirtualLinkId, buf: &[u8]) -> Result<usize, Error>;
 }
 
 impl<const MTU: PayloadSize, H: PlatformNetworkInterface + Debug> Interface
@@ -32,161 +28,63 @@ impl<const MTU: PayloadSize, H: PlatformNetworkInterface + Debug> Interface
     fn send(&self, vl: &VirtualLinkId, buf: &[u8]) -> Result<usize, Error> {
         NetworkInterface::send(self, vl, buf)
     }
-
-    /// Get encoded length.
-    fn get_encoded_len(&self, vl: &VirtualLinkId, buf: &[u8]) -> Result<usize, Error> {
-        NetworkInterface::get_encoded_len(self, vl, buf)
-    }
 }
 
 /// Forwards frames between the hypervisor and the network and between ports on the same hypervisor.
 #[derive(Debug)]
 pub struct Forwarder<'a> {
-    timestamp: Duration,
-    frame_buf: &'a mut [u8],
-    shaper: &'a mut dyn Shaper,
-    links: &'a mut [&'a mut dyn VirtualLink],
+    scheduler: &'a mut dyn Scheduler,
+    links: &'a mut [&'a dyn VirtualLink],
     interfaces: &'a mut [&'a dyn Interface],
 }
 
 impl<'a> Forwarder<'a> {
     /// Creates a new `Forwarder`.
     pub fn new(
-        frame_buf: &'a mut [u8],
-        shaper: &'a mut dyn Shaper,
-        links: &'a mut [&'a mut dyn VirtualLink],
+        scheduler: &'a mut dyn Scheduler,
+        links: &'a mut [&'a dyn VirtualLink],
         interfaces: &'a mut [&'a dyn Interface],
     ) -> Self {
         Self {
-            timestamp: Duration::ZERO,
-            frame_buf,
-            shaper,
+            scheduler,
             links,
             interfaces,
         }
     }
 
     /// Forwards messages between the hypervisor and the network.
-    pub fn forward<H: ApexTimeP4Ext>(&mut self) -> Result<(), Error> {
-        let mut last_err: Option<Error> = None;
-
-        trace!("Receiving messages from hypervisor");
-        if let Err(err) = self.receive_hypervisor() {
-            last_err = Some(err);
-        }
-
-        trace!("Receiving messages from the network");
-        if let Err(err) = self.receive_network() {
-            last_err = Some(err);
-        }
-
-        self.timestamp = <H as ApexTimeP4Ext>::get_time().unwrap_duration();
-
-        trace!("Sending messages to the network");
-        let (e, transmitted) = match self.send_network() {
-            Ok(transmitted) => (None, transmitted),
-            Err((transmitted, err)) => (Some(err), transmitted),
-        };
-
-        if e.is_some() {
-            last_err = e;
-        }
-
-        if !transmitted {
-            trace!(
-                "Restoring credit to queues, because there were no transmissions to the network."
-            );
-            // TODO get proper time to restore
-            let time_diff = Duration::from_millis(10);
-            if let Err(err) = self.shaper.restore_all(time_diff) {
-                last_err = Some(err);
-            }
-        }
-
-        match last_err {
-            Some(err) => Err(err),
-            None => Ok(()),
-        }
-    }
-
-    fn receive_hypervisor(&mut self) -> Result<(), Error> {
-        let mut err: Option<Error> = None;
-        for vl in self.links.iter_mut() {
-            // TODO should forward to *all* interfaces...
-            if let Err(e) = vl.receive_hypervisor(self.shaper, self.interfaces[0]) {
-                match e {
-                    Error::PortReceiveFail(ApexError::NoAction) => {
-                        warn!("No data available from port: {e}");
+    pub fn forward<H: ApexTimeP4Ext>(&mut self, buf: &mut [u8]) {
+        for intf in self.interfaces.iter() {
+            match intf.receive(buf) {
+                Ok((vl, data)) => {
+                    for vl in self.links.iter().filter(|l| l.vl_id() == vl) {
+                        if let Err(e) = vl.process_remote(data) {
+                            warn!("Failed to process message: {e}")
+                        }
                     }
-                    _ => {
-                        error!("Failed to receive from hypervisor: {e}");
-                        err = Some(e);
-                    }
+                }
+                Err(Error::InterfaceReceiveFail(InterfaceError::NoData)) => {
+                    trace!("No data from interface")
+                }
+                Err(e) => {
+                    warn!("Failed to read from interface: {e}");
                 }
             }
         }
-
-        match err {
-            Some(err) => Err(err),
-            None => Ok(()),
-        }
-    }
-
-    fn receive_network(&mut self) -> Result<(), Error> {
-        self.interfaces
-            .iter_mut()
-            .filter_map(|intf| {
-                let res = intf.receive(self.frame_buf);
-                match res {
-                    Ok((vl_id, buf)) => self
-                        .links
-                        .iter_mut()
-                        .find(|vl| vl.vl_id() == vl_id)
-                        .and_then(|vl| vl.receive_network(buf).err())
-                        .map(|e| Err(e)),
-                    Err(Error::InterfaceReceiveFail(InterfaceError::NoData)) => {
-                        trace!("{res:?}");
-                        None
+        if let SystemTime::Normal(time) = <H as ApexTimeP4Ext>::get_time() {
+            if let Some(next) = self.scheduler.next(time) {
+                trace!("Scheduled VL {next}");
+                if let Some(next) = self.links.iter().find(|l| l.vl_id() == next) {
+                    if let Ok(data) = next.read_local(buf) {
+                        // TODO only forward to the interfaces for the VL
+                        for i in self.interfaces.iter() {
+                            if let Err(e) = i.send(&next.vl_id(), data) {
+                                warn!("Failed to send to interface {e}")
+                            }
+                        }
                     }
-                    Err(e) => Some(Err(e)),
                 }
-            })
-            .last()
-            .unwrap_or(Ok(()))
-    }
-
-    fn send_network(&mut self) -> Result<bool, (bool, Error)> {
-        let mut transmitted = false;
-
-        let mut last: Option<Error> = None;
-        while let Some(q_id) = self.shaper.next_queue() {
-            trace!("Next queue is {}", q_id);
-            transmitted = true;
-            let error: Option<Error> = self
-                .links
-                .iter_mut()
-                .find(|vl| vl.queue_id() == Some(q_id))
-                .and_then(|vl| {
-                    // TODO Should not iterate over all interfaces, just the interfaces that were assigned to a virtual link.
-                    // TODO Shaper instance should be local to interface.
-                    self.interfaces
-                        .iter_mut()
-                        .filter_map(|intf| vl.send_network(*intf, self.shaper).err())
-                        .map(|e| {
-                            error!("{e}");
-                            e
-                        })
-                        .last()
-                });
-            if let Some(e) = error {
-                last = Some(e);
             }
-        }
-
-        if let Some(err) = last {
-            Err((transmitted, err))
-        } else {
-            Ok(transmitted)
         }
     }
 }

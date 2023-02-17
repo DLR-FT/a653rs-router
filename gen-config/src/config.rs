@@ -1,7 +1,7 @@
 use bytesize::ByteSize;
 use core::fmt::Display;
 use core::time::Duration;
-use network_partition::prelude::{DataRate, VirtualLinkId};
+use network_partition::prelude::{DataRate, NetworkInterfaceId, VirtualLinkId};
 use serde::{Deserialize, Deserializer, Serialize};
 
 /// The name of a channel.
@@ -14,6 +14,10 @@ struct DataRateDef(u64);
 #[derive(Serialize, Deserialize)]
 #[serde(remote = "VirtualLinkId")]
 struct VirtualLinkIdDef(u32);
+
+#[derive(Serialize, Deserialize)]
+#[serde(remote = "NetworkInterfaceId")]
+struct NetworkInterfaceIdDef(u32);
 
 /// Configuration of the network partition
 ///
@@ -31,7 +35,7 @@ struct VirtualLinkIdDef(u32);
 ///     virtual_links: vec![
 ///         VirtualLinkConfig {
 ///             id: VirtualLinkId::from(0),
-///             rate: DataRate::b(1000),
+///             rate: Duration::from_millis(1000),
 ///             msg_size: ByteSize::kb(1),
 ///             interfaces: vec![InterfaceName::from("veth0"), InterfaceName::from("veth1")],
 ///             ports: vec![
@@ -47,13 +51,13 @@ struct VirtualLinkIdDef(u32);
 ///         VirtualLinkConfig {
 ///             id: VirtualLinkId::from(1),
 ///             msg_size: ByteSize::kb(1),
-///             rate: DataRate::b(10000),
-///             interfaces: vec![],
+///             rate: Duration::from_millis(1000),
 ///             ports:  vec![],
 ///         }
 ///     ],
 ///     interfaces: vec![
 ///        InterfaceConfig {
+///            id: NetworkInterfaceId::from(1),
 ///            name: InterfaceName::from("veth0"),
 ///            rate: DataRate::b(10000000),
 ///            mtu: ByteSize::kb(1),
@@ -98,8 +102,8 @@ pub struct VirtualLinkConfig {
     pub id: VirtualLinkId,
 
     /// The maximum rate the link may transmit at.
-    #[serde(with = "DataRateDef")]
-    pub rate: DataRate,
+    #[serde(with = "humantime_serde")]
+    pub rate: Duration,
 
     /// The maximum size of a message that will be transmited using this virtual link.
     #[serde(deserialize_with = "de_size_str")]
@@ -109,7 +113,12 @@ pub struct VirtualLinkConfig {
     pub ports: Vec<Port>,
 
     /// The interfaces that are attached
+    #[serde(default = "default_interface_names")]
     pub interfaces: Vec<InterfaceName>,
+}
+
+fn default_interface_names() -> Vec<InterfaceName> {
+    Vec::default()
 }
 
 /// The name of an interface. The name is platform-dependent.
@@ -134,6 +143,10 @@ impl Display for InterfaceName {
 /// Interfaces are used to connect multiple hypervisors and transmit all virtual links.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct InterfaceConfig {
+    /// Id of the interface
+    #[serde(with = "NetworkInterfaceIdDef")]
+    pub id: NetworkInterfaceId,
+
     /// The unique ID of the virtual link
     pub name: InterfaceName,
 

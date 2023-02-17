@@ -43,8 +43,25 @@ pub enum Error {
     /// Invalid transmission.
     InvalidTransmission(Transmission),
 
+    /// An error that occured while processing a virtual link.
+    VirtualLinkError(VirtualLinkError),
+
     /// An unspecified error.
     Unknown,
+}
+
+#[derive(Clone, Debug)]
+pub enum VirtualLinkError {
+    /// A message was too long for this virtual link.
+    MtuMismatch,
+}
+
+impl core::fmt::Display for VirtualLinkError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::MtuMismatch => write!(f, "A message was too long for this virtual link."),
+        }
+    }
 }
 
 /// Inteface error type.
@@ -58,6 +75,8 @@ pub enum InterfaceError {
     InvalidData,
     /// Interface not found
     NotFound,
+    /// Sending failed
+    SendFailed,
 }
 
 impl core::fmt::Display for InterfaceError {
@@ -67,6 +86,7 @@ impl core::fmt::Display for InterfaceError {
             Self::InsufficientBuffer => write!(f, "Insufficient buffer space"),
             Self::InvalidData => write!(f, "Invalid data"),
             Self::NotFound => write!(f, "Interface not found"),
+            Self::SendFailed => write!(f, "Send failed"),
         }
     }
 }
@@ -93,6 +113,7 @@ impl core::fmt::Display for Error {
             Error::EnqueueFailed => write!(f, "Failed to enqueue a frame into queue"),
             Error::InvalidConfig => write!(f, "Invalid configuration"),
             Error::InterfaceSendFail(e) => write!(f, "Interface failed to send some data: {e}"),
+            Error::VirtualLinkError(e) => write!(f, "Virtual link encountered an error: {e}"),
             Error::Unknown => write!(f, "Unknown error"),
         }
     }

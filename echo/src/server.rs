@@ -10,7 +10,7 @@ where
 {
     sender: &'static OnceCell<SamplingPortSource<ECHO_SIZE, S>>,
     receiver: &'static OnceCell<SamplingPortDestination<ECHO_SIZE, S>>,
-    entry_point_periodic: extern "C" fn(),
+    entry_point_aperiodic: extern "C" fn(),
 }
 
 impl<const ECHO_SIZE: MessageSize, S> EchoServerPartition<ECHO_SIZE, S>
@@ -20,12 +20,12 @@ where
     pub fn new(
         sender: &'static OnceCell<SamplingPortSource<ECHO_SIZE, S>>,
         receiver: &'static OnceCell<SamplingPortDestination<ECHO_SIZE, S>>,
-        entry_point_periodic: extern "C" fn(),
+        entry_point_aperiodic: extern "C" fn(),
     ) -> Self {
         Self {
             sender,
             receiver,
-            entry_point_periodic,
+            entry_point_aperiodic,
         }
     }
 }
@@ -55,7 +55,7 @@ where
         ctx.create_process(ProcessAttribute {
             period: SystemTime::Infinite,
             time_capacity: SystemTime::Infinite,
-            entry_point: self.entry_point_periodic,
+            entry_point: self.entry_point_aperiodic,
             // TODO make configurable
             stack_size: 10000,
             base_priority: 5,
@@ -102,7 +102,7 @@ where
                     }
                 }
                 Err(Error::NotAvailable) | Err(Error::NoAction) => {
-                    trace!("No echo request available yet");
+                    warn!("No echo request available yet");
                 }
                 Err(e) => {
                     error!("Failed to receive echo: ${e:?}");

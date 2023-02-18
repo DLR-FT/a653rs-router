@@ -73,15 +73,16 @@ where
             let result = port.recv_type::<Echo>();
             match result {
                 Ok(data) => {
-                    let (valid, received) = data;
+                    trace!("Received reply: {data:?}");
+                    let (_, received) = data;
                     // Reset when client restarts
                     if received.sequence == 1 {
                         last = 0;
                     }
                     if received.sequence > last {
-                        last = received.sequence;
+                        last += 1;
                         info!(
-                            "EchoReply: seqnr = {:?}, time = {:?}, valid = {valid:?}",
+                            "EchoReply: seqnr = {:?}, time = {:?}",
                             received.sequence,
                             (now.as_millis() as u64) - received.when_ms
                         );
@@ -90,7 +91,7 @@ where
                     }
                 }
                 Err(SamplingRecvError::Apex(Error::NotAvailable)) => {
-                    trace!("No echo reply available");
+                    warn!("No echo reply available");
                 }
                 Err(e) => {
                     error!("Failed to receive reply: {e:?}");

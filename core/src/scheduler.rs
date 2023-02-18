@@ -1,7 +1,7 @@
 use crate::prelude::VirtualLinkId;
 use core::{fmt::Debug, time::Duration};
 use heapless::Vec;
-use log::info;
+use log::{info, trace};
 
 /// A scheduler for virtual links.
 pub trait Scheduler: Debug {
@@ -77,6 +77,7 @@ impl<const SLOTS: usize> Scheduler for DeadlineRrScheduler<SLOTS> {
                     .unwrap_or_else(|| current_time);
 
                 // Return the next window
+                trace!("Scheduled VL {}", window.vl);
                 return Some(window.vl);
             }
         }

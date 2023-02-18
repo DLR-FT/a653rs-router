@@ -24,12 +24,12 @@ pub extern "C" fn main() {
     let partition = EchoServerPartition::new(
         unsafe { &SENDER },
         unsafe { &RECEIVER },
-        entry_point_periodic,
+        entry_point_aperiodic,
     );
     partition.run()
 }
 
-extern "C" fn entry_point_periodic() {
+extern "C" fn entry_point_aperiodic() {
     EchoServerProcess::run(unsafe { SENDER.get_mut().unwrap() }, unsafe {
         RECEIVER.get_mut().unwrap()
     });

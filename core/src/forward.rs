@@ -7,7 +7,7 @@ use crate::{
     virtual_link::VirtualLink,
 };
 use apex_rs::prelude::{ApexTimeP4Ext, SystemTime};
-use log::{info, trace, warn};
+use log::{trace, warn};
 
 /// Trait that hides hypervisor and MTU.
 pub trait Interface: Debug {
@@ -63,9 +63,7 @@ impl<'a> Forwarder<'a> {
                         }
                     }
                 }
-                Err(Error::InterfaceReceiveFail(InterfaceError::NoData)) => {
-                    trace!("No data from interface")
-                }
+                Err(Error::InterfaceReceiveFail(InterfaceError::NoData)) => {}
                 Err(e) => {
                     warn!("Failed to read from interface: {e}");
                 }

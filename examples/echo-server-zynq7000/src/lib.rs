@@ -19,7 +19,7 @@ static LOGGER: XalLogger = XalLogger;
 #[no_mangle]
 pub extern "C" fn main() {
     unsafe { log::set_logger_racy(&XalLogger) };
-    log::set_max_level(log::LevelFilter::Error);
+    log::set_max_level(log::LevelFilter::Info);
     info!("Echo server main");
     let partition = EchoServerPartition::new(
         unsafe { &SENDER },

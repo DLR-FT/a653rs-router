@@ -1,7 +1,7 @@
 use crate::prelude::VirtualLinkId;
 use core::{fmt::Debug, time::Duration};
 use heapless::Vec;
-use log::{info, trace};
+use log::{trace, warn};
 
 /// A scheduler for virtual links.
 pub trait Scheduler: Debug {
@@ -71,10 +71,20 @@ impl<const SLOTS: usize> Scheduler for DeadlineRrScheduler<SLOTS> {
             let next_window = (self.last_window + i) % SLOTS;
             let window = self.windows[next_window];
             if window.is_due(current_time) {
+                // Check if clock skipped for some reason.
+                if let Some(t) = current_time.checked_sub(Duration::from_secs(10)) {
+                    if t > window.next {
+                        warn!("The system clock is {current_time:?} and this does not seem right. Ignoring this value.");
+                        return None;
+                    }
+                }
                 self.last_window = next_window;
-                self.windows[next_window].next = current_time
+                let next = current_time
                     .checked_add(window.period)
                     .unwrap_or_else(|| current_time);
+                self.windows[next_window].next = next;
+
+                trace!("Scheduled VL {}, next window at {:?}", window.vl, next);
 
                 // Return the next window
                 trace!("Scheduled VL {}", window.vl);

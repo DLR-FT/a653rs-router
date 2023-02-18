@@ -88,10 +88,11 @@ where
         loop {
             match recv.receive(&mut buf) {
                 Ok((val, data)) => {
+                    trace!("Received echo request");
                     if val == Validity::Valid {
                         match send.send(data) {
                             Ok(_) => {
-                                info!("Replied to echo");
+                                trace!("Replied to echo");
                             }
                             Err(err) => {
                                 error!("Failed to reply to echo: {:?}", err);

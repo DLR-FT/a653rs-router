@@ -7,7 +7,7 @@ use crate::{
     virtual_link::VirtualLink,
 };
 use apex_rs::prelude::{ApexTimeP4Ext, SystemTime};
-use log::{trace, warn};
+use log::{error, info, trace, warn};
 
 /// Trait that hides hypervisor and MTU.
 pub trait Interface: Debug {
@@ -57,6 +57,7 @@ impl<'a> Forwarder<'a> {
         for intf in self.interfaces.iter() {
             match intf.receive(buf) {
                 Ok((vl, data)) => {
+                    trace!("Received: {data:?}");
                     for vl in self.links.iter().filter(|l| l.vl_id() == vl) {
                         if let Err(e) = vl.process_remote(data) {
                             warn!("Failed to process message: {e}")
@@ -76,6 +77,7 @@ impl<'a> Forwarder<'a> {
                     if let Ok(data) = next.read_local(buf) {
                         // TODO only forward to the interfaces for the VL
                         for i in self.interfaces.iter() {
+                            trace!("Sending to network: {data:?}");
                             if let Err(e) = i.send(&next.vl_id(), data) {
                                 warn!("Failed to send to interface {e}")
                             }
@@ -83,6 +85,8 @@ impl<'a> Forwarder<'a> {
                     }
                 }
             }
+        } else {
+            error!("System time was not normal")
         }
     }
 }

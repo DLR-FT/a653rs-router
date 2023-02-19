@@ -5,5 +5,8 @@ edition = "2021"
 
 [dependencies]
 apex-rs = { git = "https://github.com/aeronautical-informatics/apex-rs.git", branch = "main"}
-heapless = { version = "0.7" }
+heapless = { version = "0.7", features = ["serde"] }
 log = "0"
+humantime-serde = "1"
+serde = { version = "1.0", features = ["derive"] }
+bytesize = { version = "1.1", features = ["serde"] }

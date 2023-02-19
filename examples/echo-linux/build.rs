@@ -1,5 +1,5 @@
-use network_partition_config::config::Config;
-use network_partition_config::generate::generate_network_partition;
+use network_partition::prelude::Config;
+use network_partition_config::generate::ConfigGenerator;
 use quote::quote;
 use std::env;
 use std::ffi::OsString;
@@ -28,10 +28,10 @@ fn main() {
 
 fn gen_config(config: &Path, dest: &Path, out_dir: &OsString) {
     let config = read_to_string(config).unwrap();
-    let config: Config = serde_yaml::from_str(&config).unwrap();
+    // TODO make configurable from env variables or use second config struct that uses alloc
+    let config: Config<20, 20, 20> = serde_yaml::from_str(&config).unwrap();
 
-    let network_partition = generate_network_partition(
-        &config,
+    let network_partition = ConfigGenerator::new(config).generate_network_partition(
         quote!(apex_rs_linux::partition::ApexLinuxPartition),
         quote!(network_partition_linux::network::LinuxNetworking),
     );

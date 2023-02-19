@@ -1,11 +1,14 @@
+use crate::prelude::{DataRate, NetworkInterfaceId, VirtualLinkId};
 use bytesize::ByteSize;
 use core::fmt::Display;
 use core::time::Duration;
-use network_partition::prelude::{DataRate, NetworkInterfaceId, VirtualLinkId};
+use heapless::{String, Vec};
 use serde::{Deserialize, Deserializer, Serialize};
 
+const MAX_NAME_LEN: usize = 20;
+
 /// The name of a channel.
-type ChannelName = String;
+type ChannelName = String<MAX_NAME_LEN>;
 
 #[derive(Serialize, Deserialize)]
 #[serde(remote = "DataRate")]
@@ -32,13 +35,13 @@ struct NetworkInterfaceIdDef(u32);
 ///     stack_size: StackSizeConfig {
 ///       periodic_process: ByteSize::kb(100),
 ///     },
-///     virtual_links: vec![
+///     virtual_links: Vec::from_slice(&[
 ///         VirtualLinkConfig {
 ///             id: VirtualLinkId::from(0),
 ///             rate: Duration::from_millis(1000),
 ///             msg_size: ByteSize::kb(1),
-///             interfaces: vec![InterfaceName::from("veth0"), InterfaceName::from("veth1")],
-///             ports: vec![
+///             interfaces: Vec::from_slice(&[InterfaceName::from("veth0"), InterfaceName::from("veth1")]).unwrap(),
+///             ports: Vec::from_slice(&[
 ///                 Port::SamplingPortDestination(SamplingPortDestinationConfig {
 ///                     channel: String::from("EchoRequest"),
 ///                     validity: Duration::from_secs(1),
@@ -46,16 +49,16 @@ struct NetworkInterfaceIdDef(u32);
 ///                 Port::SamplingPortSource(SamplingPortSourceConfig {
 ///                     channel: String::from("EchoReply"),
 ///                 }),
-///             ],
+///             ]).unwrap(),
 ///         },
 ///         VirtualLinkConfig {
 ///             id: VirtualLinkId::from(1),
 ///             msg_size: ByteSize::kb(1),
 ///             rate: Duration::from_millis(1000),
-///             ports:  vec![],
+///             ports:  Vec::default(),
 ///         }
-///     ],
-///     interfaces: vec![
+///     ]).unwrap(),
+///     interfaces: Vec::from_slice!(&[
 ///        InterfaceConfig {
 ///            id: NetworkInterfaceId::from(1),
 ///            name: InterfaceName::from("veth0"),
@@ -63,23 +66,23 @@ struct NetworkInterfaceIdDef(u32);
 ///            mtu: ByteSize::kb(1),
 ///            destination: String::from("127.0.0.1:8000"),
 ///        },
-///     ]
+///     ]).unwrap()
 /// };
 /// ```
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Config {
+pub struct Config<const VLS: usize, const PORTS: usize, const IFS: usize> {
     /// The amount of memory to reserve on the stack for the processes of the partition.
     pub stack_size: StackSizeConfig,
 
     /// The virtual links the partition is attached to.
-    pub virtual_links: Vec<VirtualLinkConfig>,
+    pub virtual_links: Vec<VirtualLinkConfig<PORTS, IFS>, VLS>,
 
     /// The interfaces that will be attached to the partition.
     #[serde(default = "default_interfaces")]
-    pub interfaces: Vec<InterfaceConfig>,
+    pub interfaces: Vec<InterfaceConfig, IFS>,
 }
 
-fn default_interfaces() -> Vec<InterfaceConfig> {
+fn default_interfaces<const IFS: usize>() -> Vec<InterfaceConfig, IFS> {
     Vec::new()
 }
 
@@ -96,7 +99,7 @@ pub struct StackSizeConfig {
 /// Virtual links are used to connect multiple network partitions.
 /// Each virtual link can have exactly one source and one or more destinations.
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct VirtualLinkConfig {
+pub struct VirtualLinkConfig<const PORTS: usize, const IFS: usize> {
     /// The unique ID of the virtual link
     #[serde(with = "VirtualLinkIdDef")]
     pub id: VirtualLinkId,
@@ -110,25 +113,25 @@ pub struct VirtualLinkConfig {
     pub msg_size: ByteSize,
 
     /// The ports the virtual link should create to connect to channels.
-    pub ports: Vec<Port>,
+    pub ports: Vec<Port, PORTS>,
 
     /// The interfaces that are attached
     #[serde(default = "default_interface_names")]
-    pub interfaces: Vec<InterfaceName>,
+    pub interfaces: Vec<InterfaceName, IFS>,
 }
 
-fn default_interface_names() -> Vec<InterfaceName> {
+fn default_interface_names<const IFS: usize>() -> Vec<InterfaceName, IFS> {
     Vec::default()
 }
 
 /// The name of an interface. The name is platform-dependent.
 #[derive(Debug, Serialize, Clone, Deserialize)]
-pub struct InterfaceName(pub String);
+pub struct InterfaceName(pub String<MAX_NAME_LEN>);
 
 impl From<&str> for InterfaceName {
     #[inline]
     fn from(s: &str) -> Self {
-        Self(s.to_owned())
+        Self(String::from(s))
     }
 }
 
@@ -160,7 +163,7 @@ pub struct InterfaceConfig {
 
     /// UDP destination peer
     /// TODO remove
-    pub destination: String,
+    pub destination: String<MAX_NAME_LEN>,
 }
 
 /// A port of a communication channel with the hypervisor.
@@ -197,11 +200,13 @@ pub struct SamplingPortSourceConfig {
     pub channel: ChannelName,
 }
 
+const MAX_BYTE_SIZE: usize = 20;
+
 fn de_size_str<'de, D>(de: D) -> Result<ByteSize, D::Error>
 where
     D: Deserializer<'de>,
 {
-    String::deserialize(de)?
+    String::<MAX_BYTE_SIZE>::deserialize(de)?
         .parse::<ByteSize>()
         .map_err(serde::de::Error::custom)
 }

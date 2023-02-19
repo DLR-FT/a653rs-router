@@ -348,6 +348,7 @@ dependencies = [
  "atomic-polyfill",
  "hash32",
  "rustc_version",
+ "serde",
  "spin",
  "stable_deref_trait",
 ]
@@ -556,8 +557,11 @@ name = "network-partition"
 version = "0.1.0"
 dependencies = [
  "apex-rs",
+ "bytesize",
  "heapless",
+ "humantime-serde",
  "log",
+ "serde",
 ]
 
 [[package]]

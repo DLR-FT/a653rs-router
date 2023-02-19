@@ -9,7 +9,6 @@ use apex_rs::prelude::SamplingPortSource;
 use apex_rs::prelude::{SamplingPortDestination, Validity};
 use core::fmt::{Debug, Display};
 use heapless::Vec;
-use log::info;
 use log::{trace, warn};
 
 /// An ID of a virtual link.

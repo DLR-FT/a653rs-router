@@ -1,5 +1,4 @@
 ///! Error types
-use crate::shaper::{QueueId, Transmission};
 use apex_rs::prelude::Error as ApexError;
 
 // TODO more precise errors
@@ -36,12 +35,6 @@ pub enum Error {
 
     /// Transmission is not allowed at the time.
     TransmitNotAllowed,
-
-    /// No such queue.
-    NoSuchQueue(QueueId),
-
-    /// Invalid transmission.
-    InvalidTransmission(Transmission),
 
     /// An error that occured while processing a virtual link.
     VirtualLinkError(VirtualLinkError),
@@ -106,10 +99,6 @@ impl core::fmt::Display for Error {
                 f,
                 "Transmissions from this queue are not allowed at the moment."
             ),
-            Error::InvalidTransmission(transmission) => {
-                write!(f, "Invalid transmission: {transmission:?}")
-            }
-            Error::NoSuchQueue(q_id) => write!(f, "No such queue: {q_id}"),
             Error::EnqueueFailed => write!(f, "Failed to enqueue a frame into queue"),
             Error::InvalidConfig => write!(f, "Invalid configuration"),
             Error::InterfaceSendFail(e) => write!(f, "Interface failed to send some data: {e}"),

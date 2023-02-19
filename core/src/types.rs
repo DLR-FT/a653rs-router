@@ -1,5 +1,8 @@
+// TODO feature for serde
+use serde::{Deserialize, Serialize};
+
 /// A data-rate in bit/s.
-#[derive(Debug, Copy, Clone, Ord, Eq, PartialEq, PartialOrd, Default)]
+#[derive(Debug, Copy, Clone, Ord, Eq, PartialEq, PartialOrd, Default, Serialize, Deserialize)]
 pub struct DataRate(pub u64);
 
 impl DataRate {

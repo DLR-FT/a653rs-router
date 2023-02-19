@@ -7,7 +7,7 @@ use crate::{
     virtual_link::VirtualLink,
 };
 use apex_rs::prelude::{ApexTimeP4Ext, SystemTime};
-use log::{error, info, trace, warn};
+use log::{error, trace, warn};
 
 /// Trait that hides hypervisor and MTU.
 pub trait Interface: Debug {

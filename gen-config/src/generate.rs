@@ -75,7 +75,7 @@ impl<const VLS: usize, const PORTS: usize, const IFS: usize> ConfigGenerator<VLS
                 let mut scheduler = DeadlineRrScheduler::<#num_links>::new();
                 let windows = [ #( #windows ),* ];
                 for (vl_id, period) in windows {
-                    scheduler.insert(VirtualLinkId(vl_id), period);
+                    _ = scheduler.insert(VirtualLinkId(vl_id), period);
                 }
 
                 let mut forwarder = Forwarder::new(&mut scheduler, &mut links, &mut interfaces);

@@ -10,6 +10,8 @@ use apex_rs::prelude::{SamplingPortDestination, Validity};
 use core::fmt::{Debug, Display};
 use heapless::Vec;
 use log::{trace, warn};
+use serde::Deserialize;
+use serde::Serialize;
 
 /// An ID of a virtual link.
 ///
@@ -20,7 +22,8 @@ use log::{trace, warn};
 /// smaller than the 32 Bit, care must be taken by the system integrator that no IDs larger than the maximum size
 /// are assigned. Implementations of the network interface layer should therefore cast this value to the desired
 /// size that // is required by the underlying network protocol.
-#[derive(Default, Debug, Clone, Copy, Eq, PartialEq)]
+// TODO hide serde behind feature
+#[derive(Default, Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 pub struct VirtualLinkId(pub u32);
 
 impl Display for VirtualLinkId {
@@ -58,8 +61,10 @@ pub trait VirtualLink: Debug {
     /// Gets the VirtualLinkId.
     fn vl_id(&self) -> VirtualLinkId;
 
+    /// Reads messages from local ports and writes them to local port and remote interfaces.
     fn read_local<'a>(&self, buffer: &'a mut [u8]) -> Result<&'a [u8], Error>;
 
+    /// Processes a message from a remote interface.
     fn process_remote(&self, buffer: &[u8]) -> Result<(), Error>;
 }
 
@@ -121,28 +126,6 @@ where
             .push(interface)
             .expect("Not enough free interface slots");
         trace!("Added interface to virtual link: {}", self.id);
-    }
-}
-
-fn receive_sampling_port_valid<'a, const MTU: PayloadSize, H: ApexSamplingPortP4>(
-    dst: &SamplingPortDestination<MTU, H>,
-    buf: &'a mut [u8],
-) -> Result<&'a [u8], Error> {
-    match dst.receive(buf) {
-        Ok((Validity::Invalid, _)) => Err(Error::InvalidData),
-        Err(e) => Err(Error::PortReceiveFail(e)),
-        Ok((Validity::Valid, pl)) => Ok(pl),
-    }
-}
-
-fn forward_to_sources<const MTU: PayloadSize, const PORTS: usize, H: ApexSamplingPortP4>(
-    srcs: &Vec<SamplingPortSource<MTU, H>, PORTS>,
-    buf: &[u8],
-) -> Result<(), Error> {
-    if let Err(err) = srcs.iter().try_for_each(|p| p.send(buf)) {
-        Err(Error::from(err))
-    } else {
-        Ok(())
     }
 }
 

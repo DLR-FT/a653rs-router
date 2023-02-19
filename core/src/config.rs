@@ -10,33 +10,21 @@ const MAX_NAME_LEN: usize = 20;
 /// The name of a channel.
 type ChannelName = String<MAX_NAME_LEN>;
 
-#[derive(Serialize, Deserialize)]
-#[serde(remote = "DataRate")]
-struct DataRateDef(u64);
-
-#[derive(Serialize, Deserialize)]
-#[serde(remote = "VirtualLinkId")]
-struct VirtualLinkIdDef(u32);
-
-#[derive(Serialize, Deserialize)]
-#[serde(remote = "NetworkInterfaceId")]
-struct NetworkInterfaceIdDef(u32);
-
 /// Configuration of the network partition
 ///
 /// # Examples
 /// ```rust
 /// use bytesize::ByteSize;
-/// use std::time::Duration;
-/// use network_partition_config::config::*;
+/// use core::time::Duration;
 /// use network_partition::prelude::*;
+/// use heapless::{String, Vec};
 ///
-/// let config = Config {
+/// let config = Config::<10, 10, 10> {
 ///     stack_size: StackSizeConfig {
 ///       periodic_process: ByteSize::kb(100),
 ///     },
 ///     virtual_links: Vec::from_slice(&[
-///         VirtualLinkConfig {
+///         VirtualLinkConfig::<10, 10> {
 ///             id: VirtualLinkId::from(0),
 ///             rate: Duration::from_millis(1000),
 ///             msg_size: ByteSize::kb(1),
@@ -56,9 +44,10 @@ struct NetworkInterfaceIdDef(u32);
 ///             msg_size: ByteSize::kb(1),
 ///             rate: Duration::from_millis(1000),
 ///             ports:  Vec::default(),
+///             interfaces: Vec::default(),
 ///         }
 ///     ]).unwrap(),
-///     interfaces: Vec::from_slice!(&[
+///     interfaces: Vec::from_slice(&[
 ///        InterfaceConfig {
 ///            id: NetworkInterfaceId::from(1),
 ///            name: InterfaceName::from("veth0"),
@@ -101,7 +90,6 @@ pub struct StackSizeConfig {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct VirtualLinkConfig<const PORTS: usize, const IFS: usize> {
     /// The unique ID of the virtual link
-    #[serde(with = "VirtualLinkIdDef")]
     pub id: VirtualLinkId,
 
     /// The maximum rate the link may transmit at.
@@ -147,14 +135,12 @@ impl Display for InterfaceName {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct InterfaceConfig {
     /// Id of the interface
-    #[serde(with = "NetworkInterfaceIdDef")]
     pub id: NetworkInterfaceId,
 
     /// The unique ID of the virtual link
     pub name: InterfaceName,
 
     /// The maximum rate the interface can transmit at.
-    #[serde(with = "DataRateDef")]
     pub rate: DataRate,
 
     /// The maximum size of a message that will be transmited using this virtual link.

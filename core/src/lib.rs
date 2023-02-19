@@ -20,7 +20,6 @@ mod forward;
 mod network;
 mod ports;
 mod scheduler;
-mod shaper;
 mod types;
 mod virtual_link;
 
@@ -31,7 +30,6 @@ pub mod prelude {
     pub use crate::forward::*;
     pub use crate::network::*;
     pub use crate::scheduler::*;
-    pub use crate::shaper::*;
     pub use crate::types::*;
     pub use crate::virtual_link::*;
 }

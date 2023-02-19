@@ -569,7 +569,6 @@ name = "network-partition-config"
 version = "0.1.0"
 dependencies = [
  "bytesize",
- "humantime-serde",
  "network-partition",
  "proc-macro2",
  "quote",

@@ -1,6 +1,6 @@
 //! Network partition for ARINC653 P1/P2/P4 based on apex-rs
 
-#![no_std]
+#![cfg_attr(not(feature = "std"), no_std)]
 #![allow(incomplete_features)]
 #![feature(generic_const_exprs)]
 #![warn(

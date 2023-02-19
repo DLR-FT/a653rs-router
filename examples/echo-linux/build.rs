@@ -1,5 +1,5 @@
 use network_partition::prelude::Config;
-use network_partition_config::generate::ConfigGenerator;
+use network_partition_config::ConfigGenerator;
 use quote::quote;
 use std::env;
 use std::ffi::OsString;

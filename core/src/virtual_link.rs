@@ -10,8 +10,9 @@ use apex_rs::prelude::{SamplingPortDestination, Validity};
 use core::fmt::{Debug, Display};
 use heapless::Vec;
 use log::{trace, warn};
-use serde::Deserialize;
-use serde::Serialize;
+
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 /// An ID of a virtual link.
 ///
@@ -22,8 +23,8 @@ use serde::Serialize;
 /// smaller than the 32 Bit, care must be taken by the system integrator that no IDs larger than the maximum size
 /// are assigned. Implementations of the network interface layer should therefore cast this value to the desired
 /// size that // is required by the underlying network protocol.
-// TODO hide serde behind feature
-#[derive(Default, Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Default, Debug, Clone, Copy, Eq, PartialEq)]
 pub struct VirtualLinkId(pub u32);
 
 impl Display for VirtualLinkId {

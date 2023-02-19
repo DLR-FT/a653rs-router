@@ -1,8 +1,9 @@
-// TODO feature for serde
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 /// A data-rate in bit/s.
-#[derive(Debug, Copy, Clone, Ord, Eq, PartialEq, PartialOrd, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Copy, Clone, Ord, Eq, PartialEq, PartialOrd, Default)]
 pub struct DataRate(pub u64);
 
 impl DataRate {

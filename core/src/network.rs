@@ -2,13 +2,16 @@ use core::marker::PhantomData;
 
 use crate::prelude::*;
 use log::trace;
+
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 /// Size of a frame payload.
 pub type PayloadSize = u32;
 
 /// Network interface ID.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct NetworkInterfaceId(pub u32);
 
 #[allow(clippy::from_over_into)]

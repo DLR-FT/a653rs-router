@@ -1,9 +1,9 @@
 stack_size:
-  periodic_process: 15000B
+  aperiodic_process: 15KB0
 virtual_links:
   - id: 2
     rate: 500ms
-    msg_size: 100B
+    msg_size: 100
     interfaces: [ "veth0" ]
     ports:
       - !SamplingPortDestination

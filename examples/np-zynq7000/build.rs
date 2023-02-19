@@ -1,5 +1,5 @@
-use network_partition_config::config::Config;
-use network_partition_config::generate::generate_network_partition;
+use network_partition::prelude::*;
+use network_partition_config::ConfigGenerator;
 use quote::quote;
 use std::env;
 use std::ffi::OsString;
@@ -19,10 +19,9 @@ fn main() {
 
 fn gen_config(config: &Path, dest: &Path, out_dir: &OsString) {
     let config = read_to_string(config).unwrap();
-    let config: Config = serde_yaml::from_str(&config).unwrap();
+    let config: Config<10, 10, 10> = serde_yaml::from_str(&config).unwrap();
 
-    let network_partition = generate_network_partition(
-        &config,
+    let network_partition = ConfigGenerator::new(config).generate_network_partition(
         quote!(apex_rs_xng::apex::XngHypervisor),
         quote!(network_partition_xng::network::UartSerial),
     );

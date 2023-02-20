@@ -1,5 +1,5 @@
 stack_size:
-  aperiodic_process: 15KB0
+  aperiodic_process: 15KB
 virtual_links:
   - id: 2
     rate: 500ms

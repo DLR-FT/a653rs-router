@@ -18,7 +18,6 @@ mod config;
 mod error;
 mod forward;
 mod network;
-mod ports;
 mod scheduler;
 mod types;
 mod virtual_link;

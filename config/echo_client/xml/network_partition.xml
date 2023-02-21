@@ -11,7 +11,7 @@
     </Device>
   </Devices>
   <Ports>
-    <SamplingPort name="EchoRequestCl" direction="destination" irq="166"/>
-    <SamplingPort name="EchoReplyCl" direction="source" irq="167"/>
+    <QueuingPort name="EchoRequestCl" direction="destination" irq="166"/>
+    <QueuingPort name="EchoReplyCl" direction="source" irq="167"/>
   </Ports>
 </Partition>

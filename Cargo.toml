@@ -24,4 +24,4 @@ default-members = [
 ]
 
 [patch."https://github.com/aeronautical-informatics/apex-rs.git"]
-apex-rs = { git = "https://github.com/dadada/apex-rs.git", branch = "dev/fix-refresh-period-magic-value" }
+apex-rs = { git = "https://github.com/dadada/apex-rs.git", branch = "dev/dadada" }

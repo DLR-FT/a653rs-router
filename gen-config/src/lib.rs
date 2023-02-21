@@ -22,8 +22,7 @@ impl<const VLS: usize, const PORTS: usize, const IFS: usize> ConfigGenerator<VLS
 
         let vl_names = self.get_vl_names();
 
-        let vl_sampling_port_destinations: Vec<TokenStream> = self.set_sampling_port_destinations();
-        let vl_sampling_port_sources: Vec<TokenStream> = self.set_sampling_port_sources();
+        let set_ports: Vec<TokenStream> = self.set_ports();
 
         let set_interfaces: Vec<TokenStream> = self.set_interfaces(&interface);
         let define_virtual_links: Vec<TokenStream> = self.define_virtual_links();
@@ -31,13 +30,10 @@ impl<const VLS: usize, const PORTS: usize, const IFS: usize> ConfigGenerator<VLS
 
         let interface_names = self.interface_names();
 
-        let add_sampling_port_sources_to_links = self.add_sampling_port_sources_to_links();
-        let add_sampling_port_destinations_to_links =
-            self.add_sampling_port_destinations_to_links();
+        let add_channels_to_links = self.add_channels_to_links();
         let add_interfaces_to_links = self.add_interfaces_to_links();
 
-        let define_port_sources = self.define_port_sources();
-        let define_port_destinations = self.define_port_destinations();
+        let define_ports = self.define_ports();
         let define_interfaces = self.define_interfaces(&interface);
         let windows = self.define_windows();
 
@@ -52,9 +48,7 @@ impl<const VLS: usize, const PORTS: usize, const IFS: usize> ConfigGenerator<VLS
 
             type Hypervisor = #hypervisor;
 
-            #( #define_port_sources )*
-
-            #( #define_port_destinations )*
+            #( #define_ports )*
 
             #( #define_interfaces )*
 
@@ -64,9 +58,7 @@ impl<const VLS: usize, const PORTS: usize, const IFS: usize> ConfigGenerator<VLS
 
                 #( #define_virtual_links )*
 
-                #( #add_sampling_port_sources_to_links )*
-
-                #( #add_sampling_port_destinations_to_links )*
+                #( #add_channels_to_links )*
 
                 #( #add_interfaces_to_links )*
 
@@ -91,11 +83,8 @@ impl<const VLS: usize, const PORTS: usize, const IFS: usize> ConfigGenerator<VLS
                 fn cold_start(&self, ctx: &mut StartContext<Hypervisor>) {
                     trace!("Cold start");
 
-                    trace!("Setting up sampling port destinations");
-                    #( #vl_sampling_port_destinations )*
-
-                    trace!("Setting up sampling port sources");
-                    #( #vl_sampling_port_sources )*
+                    trace!("Setting up ports");
+                    #( #set_ports )*
 
                     trace!("Setting up interfaces");
                     #( #set_interfaces )*
@@ -185,76 +174,87 @@ impl<const VLS: usize, const PORTS: usize, const IFS: usize> ConfigGenerator<VLS
         .collect()
     }
 
-    fn set_sampling_port_destination(
-        channel: &str,
-        name: &str,
-        mtu: u32,
-        refresh: u64,
-    ) -> TokenStream {
-        let channel = channel.to_uppercase();
-        let var = format_ident!("PORT_{channel}");
-        quote! { unsafe { #var.set(ctx.create_sampling_port_destination::<#mtu>(Name::from_str(#name).unwrap(), Duration::from_nanos(#refresh)).unwrap()).unwrap(); } }
-    }
-
-    fn set_sampling_port_source(channel: &str, name: &str, mtu: u32) -> TokenStream {
-        let channel = channel.to_uppercase();
-        let var = format_ident!("PORT_{channel}");
-        quote! {
-            let name = Name::from_str(#name).unwrap();
-            let src = match ctx.create_sampling_port_source::<#mtu>(name) {
-                Ok(src) => src,
-                Err(err) => {
-                    error!("{:?}", err);
-                    panic!("{:?}", err)
-                }
-            };
-            unsafe { #var.set(src).unwrap(); }
-        }
-    }
-
-    /// Generates TokenStreams that each initialize a sampling port.
-    /// The function generates all sampling port destinations for all virtual links.
-    /// The sampling port destinations must be named as static OnceCells.
-    /// The names of the sampling ports are VL<VL-ID>_<CHANNEL-NAME>.
-    fn set_sampling_port_destinations(&self) -> Vec<TokenStream> {
+    fn set_ports(&self) -> Vec<TokenStream> {
         self.config
             .virtual_links
             .iter()
-            .flat_map(|vl| {
-                vl.ports.iter().filter_map(|p| {
-                    if let Some(p) = p.sampling_port_destination() {
-                        Some(Self::set_sampling_port_destination(
-                            &p.channel,
-                            &p.channel,
-                            vl.msg_size,
-                            p.validity.as_nanos() as u64,
-                        ))
-                    } else {
-                        None
-                    }
-                })
-            })
-            .collect()
-    }
-
-    /// Generates TokenStreams that each initialize a sampling port source.
-    /// The function generates all sampling port sources for all virtual links.
-    /// The sampling port sources must be named as static OnceCells.
-    /// The names of the sampling ports are VL<VL-ID>_<CHANNEL-NAME>.
-    fn set_sampling_port_sources(&self) -> Vec<TokenStream> {
-        self.config
-            .virtual_links
-            .iter()
-            .flat_map(|vl| {
-                vl.ports.iter().filter_map(|p| {
-                    if let Some(p) = p.sampling_port_source() {
-                        Some(Self::set_sampling_port_source(
-                            &p.channel,
-                            &p.channel,
-                            vl.msg_size,
-                        ))
-                    } else {
-                        None
+            .flat_map(|l| {
+                l.ports.iter().map(|p| {
+                    let mtu = l.msg_size;
+                    let fifo_depth = l.fifo_depth;
+                    match p {
+                        Port::SamplingPortSource(p) => {
+                            let channel = p.channel.as_str();
+                            let name = p.channel.to_uppercase();
+                            let var = format_ident!("PORT_{name}");
+                            quote! {
+                                let name = Name::from_str(#channel).unwrap();
+                                let src = match ctx.create_sampling_port_source::<#mtu>(name) {
+                                    Ok(src) => src,
+                                    Err(err) => {
+                                        error!("{:?}", err);
+                                        panic!("{:?}", err)
+                                    }
+                                };
+                                unsafe { #var.set(src).unwrap(); }
+                            }
+                        }
+                        Port::SamplingPortDestination(p) => {
+                            let channel = p.channel.as_str();
+                            let name = p.channel.to_uppercase();
+                            let var = format_ident!("PORT_{name}");
+                            let validity = p.validity.as_nanos();
+                            quote! {
+                                let name = Name::from_str(#channel).unwrap();
+                                let validity = Duration::from_nanos(#validity as u64);
+                                let src = match ctx.create_sampling_port_destination::<#mtu>(name, validity) {
+                                    Ok(src) => src,
+                                    Err(err) => {
+                                        error!("{:?}", err);
+                                        panic!("{:?}", err)
+                                    }
+                                };
+                                unsafe { #var.set(src).unwrap(); }
+                            }
+                        }
+                        Port::QueuingPortSender(p) => {
+                            let channel = p.channel.as_str();
+                            let name = p.channel.to_uppercase();
+                            let var = format_ident!("PORT_{name}");
+                            let fifo_depth = fifo_depth.unwrap_or(1);
+                            quote! {
+                                // TODO make configurable
+                                let q_disc = QueuingDiscipline::FIFO;
+                                let name = Name::from_str(#channel).unwrap();
+                                let src = match ctx.create_queuing_port_sender::<#mtu, #fifo_depth>(name, q_disc, #fifo_depth) {
+                                    Ok(src) => src,
+                                    Err(err) => {
+                                        error!("{:?}", err);
+                                        panic!("{:?}", err)
+                                    }
+                                };
+                                unsafe { #var.set(src).unwrap(); }
+                            }
+                        }
+                        Port::QueuingPortReceiver(p) => {
+                            let channel = p.channel.as_str();
+                            let name = p.channel.to_uppercase();
+                            let var = format_ident!("PORT_{name}");
+                            let fifo_depth = fifo_depth.unwrap_or(1);
+                            quote! {
+                                // TODO make configurable
+                                let q_disc = QueuingDiscipline::FIFO;
+                                let name = Name::from_str(#channel).unwrap();
+                                let src = match ctx.create_queuing_port_receiver::<#mtu, #fifo_depth>(name, q_disc, #fifo_depth) {
+                                    Ok(src) => src,
+                                    Err(err) => {
+                                        error!("{:?}", err);
+                                        panic!("{:?}", err)
+                                    }
+                                };
+                                unsafe { #var.set(src).unwrap(); }
+                            }
+                        }
                     }
                 })
             })
@@ -284,18 +284,29 @@ impl<const VLS: usize, const PORTS: usize, const IFS: usize> ConfigGenerator<VLS
         self.config.virtual_links.iter().map(|vl| {
         let mtu = vl.msg_size;
         let id = vl.id.into_inner();
-        let ports = vl.ports.iter().filter(|p| p.sampling_port_source().is_some()).count();
+        let sampling = vl.ports.iter().any(|p| p.sampling_port_destination().is_some() || p.sampling_port_source().is_some());
+        let queuing = vl.ports.iter().any(|p| p.queuing_port_receiver().is_some() || p.queuing_port_sender().is_some());
         let name = format_ident!("vl_{id}");
-        // TODO make dynamic based on config?
-        let max_queue_len = 2usize;
+        let interfaces = vl.interfaces.len();
         // TODO does this work or do we need ConstParam for this?
-        quote! {
-            let mut #name = VirtualLinkData::<#mtu, #ports, #max_queue_len, Hypervisor>::new(VirtualLinkId::from(#id));
+        if sampling {
+            let sampling_port_sources = vl.ports.iter().filter(|p| p.sampling_port_source().is_some()).count();
+            quote! {
+                let mut #name = VirtualSamplingLink::<#mtu, #sampling_port_sources, #interfaces, Hypervisor>::new(VirtualLinkId::from(#id));
+            }
+        } else if queuing {
+            let queuing_port_senders = vl.ports.iter().filter(|p| p.queuing_port_sender().is_some()).count();
+            let depth = vl.fifo_depth.unwrap_or(1);
+            quote! {
+                let mut #name = VirtualQueuingLink::<#mtu, #depth, #queuing_port_senders, #interfaces, Hypervisor>::new(VirtualLinkId::from(#id));
+            }
+        } else {
+            panic!("Virtual link without attached ports is invalid.")
         }
     }).collect()
     }
 
-    fn add_sampling_port_sources_to_links(&self) -> Vec<TokenStream> {
+    fn add_channels_to_links(&self) -> Vec<TokenStream> {
         self.config
         .virtual_links
         .iter()
@@ -303,72 +314,66 @@ impl<const VLS: usize, const PORTS: usize, const IFS: usize> ConfigGenerator<VLS
             vl.ports.iter().filter_map(|port| {
                 let id = vl.id;
                 let vl_ident = format_ident!("vl_{id}");
-                if let Some(port) = port.sampling_port_source() {
-                    let port_id = port.channel.to_uppercase();
-                    let port_ident = format_ident!("PORT_{port_id}");
-                    Some(quote!(#vl_ident.add_port_src(unsafe { #port_ident.get().unwrap().clone() });))
-                } else {
-                    None
+                match port {
+                    Port::SamplingPortSource(port) => {
+                        let port_id = port.channel.to_uppercase();
+                        let port_ident = format_ident!("PORT_{port_id}");
+                        Some(quote!(#vl_ident.add_port_source(unsafe { #port_ident.get().unwrap().clone() });))
+                    },
+                    Port::SamplingPortDestination(port) => {
+                        let port_id = port.channel.to_uppercase();
+                        let port_ident = format_ident!("PORT_{port_id}");
+                        Some(quote!(#vl_ident.add_port_destination(unsafe { #port_ident.get().unwrap() }.clone());))
+                    },
+                    Port::QueuingPortReceiver(port) => {
+                        let port_id = port.channel.to_uppercase();
+                        let port_ident = format_ident!("PORT_{port_id}");
+                        Some(quote!(#vl_ident.add_port_destination(unsafe { #port_ident.get().unwrap() }.clone());))
+                    },
+                    Port::QueuingPortSender(port) => {
+                        let port_id = port.channel.to_uppercase();
+                        let port_ident = format_ident!("PORT_{port_id}");
+                        Some(quote!(#vl_ident.add_port_source(unsafe { #port_ident.get().unwrap() }.clone());))
+                    },
                 }
             })
         })
         .collect()
     }
 
-    fn add_sampling_port_destinations_to_links(&self) -> Vec<TokenStream> {
-        self.config
-        .virtual_links
-        .iter()
-        .flat_map(|vl| {
-            vl.ports.iter().filter_map(|port| {
-                let id = vl.id;
-                let vl_ident = format_ident!("vl_{id}");
-                if let Some(port) = port.sampling_port_destination() {
-                    let port_id = port.channel.to_uppercase();
-                    let port_ident = format_ident!("PORT_{port_id}");
-                    Some(quote!(#vl_ident.add_port_dst(unsafe { #port_ident.get().unwrap() }.clone());))
-                } else {
-                    None
-                }
-            })
-        })
-        .collect()
-    }
-
-    fn define_port_sources(&self) -> Vec<TokenStream> {
+    fn define_ports(&self) -> Vec<TokenStream> {
         self.config.virtual_links.iter().flat_map(|vl| {
-        vl.ports.iter().filter_map(|p| {
-        if let Some(port) = p.sampling_port_source() {
-            let channel = port.channel.to_uppercase();
-            let msg_size = vl.msg_size;
-            let port_ident = format_ident!("PORT_{channel}");
-            // TODO pass in Hypervisor as parameter
-            Some(
-                quote!(static mut #port_ident : OnceCell<SamplingPortSource<#msg_size, Hypervisor>> = OnceCell::new();)
-            )
-        } else {
-                None
-            }
-        })
+            vl.ports.iter().filter_map(|p| {
+                match p {
+                    Port::SamplingPortSource(port) => {
+                        let channel = port.channel.to_uppercase();
+                        let msg_size = vl.msg_size;
+                        let port_ident = format_ident!("PORT_{channel}");
+                        Some(quote!(static mut #port_ident : OnceCell<SamplingPortSource<#msg_size, Hypervisor>> = OnceCell::new();))
+                    },
+                    Port::SamplingPortDestination(port) => {
+                        let channel = port.channel.to_uppercase();
+                        let msg_size = vl.msg_size;
+                        let port_ident = format_ident!("PORT_{channel}");
+                        Some(quote!(static mut #port_ident : OnceCell<SamplingPortDestination<#msg_size, Hypervisor>> = OnceCell::new();))
+                    },
+                    Port::QueuingPortSender(port) => {
+                        let channel = port.channel.to_uppercase();
+                        let msg_size = vl.msg_size;
+                        let port_ident = format_ident!("PORT_{channel}");
+                        let depth = vl.fifo_depth;
+                        Some(quote!(static mut #port_ident : OnceCell<QueuingPortSender<#msg_size, #depth, Hypervisor>> = OnceCell::new();))
+                    }
+                    Port::QueuingPortReceiver(port) => {
+                        let channel = port.channel.to_uppercase();
+                        let msg_size = vl.msg_size;
+                        let port_ident = format_ident!("PORT_{channel}");
+                        let depth = vl.fifo_depth;
+                        Some(quote!(static mut #port_ident : OnceCell<QueuingPortReceiver<#msg_size, #depth, Hypervisor>> = OnceCell::new();))
+                    }
+                }
+            })
         }).collect()
-    }
-
-    fn define_port_destinations(&self) -> Vec<TokenStream> {
-        self.config.virtual_links.iter().flat_map(|vl| {
-        vl.ports.iter().filter_map(|p| {
-        if let Some(port) = p.sampling_port_destination() {
-            let channel = port.channel.to_uppercase();
-            let msg_size = vl.msg_size;
-            let port_ident = format_ident!("PORT_{channel}");
-            // TODO pass in Hypervisor as parameter
-            Some(
-                quote!(static mut #port_ident : OnceCell<SamplingPortDestination<#msg_size, Hypervisor>> = OnceCell::new();)
-            )
-        } else {
-                None
-            }
-        })
-    }).collect()
     }
 
     // TODO move getters to config module

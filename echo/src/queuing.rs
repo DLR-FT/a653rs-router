@@ -1,33 +1,23 @@
-use apex_rs::{bindings::MessageRange, prelude::*};
-use apex_rs_postcard::{
-    prelude::SamplingRecvError,
-    sampling::{SamplingPortDestinationExt, SamplingPortSourceExt},
-};
+use crate::client::Echo;
+
+use apex_rs::bindings::*;
+use apex_rs::prelude::*;
+use apex_rs_postcard::prelude::*;
 use core::str::FromStr;
 use core::time::Duration;
 use log::{error, info, trace, warn};
 use once_cell::unsync::OnceCell;
-use serde::{Deserialize, Serialize};
-
-#[derive(Serialize, Deserialize, Copy, Clone, Debug)]
-/// Echo message
-pub struct Echo {
-    /// A sequence number.
-    pub sequence: u32,
-
-    /// The time at which the message has been created.
-    pub when_ms: u64,
-}
 
 #[derive(Debug)]
-pub struct EchoSenderProcess<const ECHO_SIZE: MessageSize>;
+pub struct QueuingEchoSender<const ECHO_SIZE: MessageSize, const FIFO_DEPTH: MessageRange>;
 
-impl<const ECHO_SIZE: MessageSize> EchoSenderProcess<ECHO_SIZE>
+impl<const ECHO_SIZE: MessageSize, const FIFO_DEPTH: MessageRange>
+    QueuingEchoSender<ECHO_SIZE, FIFO_DEPTH>
 where
     [u8; ECHO_SIZE as usize]:,
 {
-    pub fn run<H: ApexSamplingPortP4 + ApexTimeP4Ext>(
-        port: &mut SamplingPortSource<ECHO_SIZE, H>,
+    pub fn run<H: ApexQueuingPortP4 + ApexTimeP4Ext>(
+        port: &mut QueuingPortSender<ECHO_SIZE, FIFO_DEPTH, H>,
     ) -> ! {
         info!("Running echo client periodic process");
         let mut i: u32 = 0;
@@ -38,14 +28,16 @@ where
                 sequence: i,
                 when_ms: now.as_millis() as u64,
             };
-            let result = port.send_type(data);
+            let result = port.send_type(data, SystemTime::Normal(Duration::from_micros(10)));
             match result {
                 Ok(_) => {
-                    trace!(
+                    info!(
                         "EchoRequest: seqnr = {:?}, time = {:?}",
-                        data.sequence,
-                        data.when_ms
+                        data.sequence, data.when_ms
                     );
+                }
+                Err(SendError::Apex(Error::TimedOut)) => {
+                    warn!("Timed out while trying to send echo request");
                 }
                 Err(_) => {
                     error!("Failed to send EchoRequest");
@@ -57,24 +49,25 @@ where
 }
 
 #[derive(Debug)]
-pub struct EchoReceiverProcess<const ECHO_SIZE: MessageSize>;
+pub struct QueuingEchoReceiver<const ECHO_SIZE: MessageSize, const FIFO_DEPTH: MessageRange>;
 
-impl<const ECHO_SIZE: MessageSize> EchoReceiverProcess<ECHO_SIZE>
+impl<const ECHO_SIZE: MessageSize, const FIFO_DEPTH: MessageRange>
+    QueuingEchoReceiver<ECHO_SIZE, FIFO_DEPTH>
 where
     [u8; ECHO_SIZE as usize]:,
 {
-    pub fn run<H: ApexSamplingPortP4 + ApexTimeP4Ext>(
-        port: &mut SamplingPortDestination<ECHO_SIZE, H>,
+    pub fn run<H: ApexQueuingPortP4 + ApexTimeP4Ext>(
+        port: &mut QueuingPortReceiver<ECHO_SIZE, FIFO_DEPTH, H>,
     ) -> ! {
         let mut last = 0;
         loop {
             trace!("Running echo client aperiodic process");
             let now = <H as ApexTimeP4Ext>::get_time().unwrap_duration();
-            let result = port.recv_type::<Echo>();
+            let result = port.recv_type::<Echo>(SystemTime::Normal(Duration::from_micros(10)));
             match result {
                 Ok(data) => {
                     trace!("Received reply: {data:?}");
-                    let (_, received) = data;
+                    let received = data;
                     // Reset when client restarts
                     if received.sequence == 1 {
                         last = 0;
@@ -90,7 +83,11 @@ where
                         trace!("Duplicate")
                     }
                 }
-                Err(SamplingRecvError::Apex(Error::NotAvailable)) => {
+                Err(QueuingRecvError::Apex(Error::InvalidConfig)) => {
+                    warn!("The queue overflowed");
+                }
+                Err(QueuingRecvError::Apex(Error::NotAvailable))
+                | Err(QueuingRecvError::Apex(Error::TimedOut)) => {
                     warn!("No echo reply available");
                 }
                 Err(e) => {
@@ -101,34 +98,44 @@ where
     }
 }
 
-pub struct PeriodicEchoPartition<const ECHO_SIZE: MessageSize, S>
-where
-    S: ApexSamplingPortP4 + 'static,
+pub struct QueuingPeriodicEchoPartition<
+    const ECHO_SIZE: MessageSize,
+    const FIFO_DEPTH: MessageRange,
+    S,
+> where
+    S: ApexQueuingPortP4 + 'static,
 {
-    sender: &'static OnceCell<SamplingPortSource<ECHO_SIZE, S>>,
-    receiver: &'static OnceCell<SamplingPortDestination<ECHO_SIZE, S>>,
+    sender: &'static OnceCell<QueuingPortSender<ECHO_SIZE, FIFO_DEPTH, S>>,
+    receiver: &'static OnceCell<QueuingPortReceiver<ECHO_SIZE, FIFO_DEPTH, S>>,
     entry_point_periodic: extern "C" fn(),
     entry_point_aperiodic: extern "C" fn(),
 }
 
-impl<const ECHO_SIZE: MessageSize, H> Partition<H> for PeriodicEchoPartition<ECHO_SIZE, H>
+impl<const ECHO_SIZE: MessageSize, const FIFO_DEPTH: MessageRange, H> Partition<H>
+    for QueuingPeriodicEchoPartition<ECHO_SIZE, FIFO_DEPTH, H>
 where
-    H: ApexPartitionP4 + ApexProcessP4 + ApexSamplingPortP4,
+    H: ApexPartitionP4 + ApexProcessP4 + ApexQueuingPortP4,
 {
     fn cold_start(&self, ctx: &mut StartContext<H>) {
         trace!("Cold start echo client");
 
         // Check if configured to use sampling port
         let send_port = ctx
-            .create_sampling_port_source(Name::from_str("EchoRequest").unwrap())
+            .create_queuing_port_sender(
+                Name::from_str("EchoRequest").unwrap(),
+                QueuingDiscipline::FIFO,
+                FIFO_DEPTH,
+            )
             .unwrap();
 
         _ = self.sender.set(send_port);
 
-        let echo_validity: Duration = Duration::from_secs(10);
-
         let receive_port = ctx
-            .create_sampling_port_destination(Name::from_str("EchoReply").unwrap(), echo_validity)
+            .create_queuing_port_receiver(
+                Name::from_str("EchoReply").unwrap(),
+                QueuingDiscipline::FIFO,
+                FIFO_DEPTH,
+            )
             .unwrap();
         _ = self.receiver.set(receive_port);
 
@@ -169,18 +176,19 @@ where
     }
 }
 
-impl<const ECHO_SIZE: MessageSize, H> PeriodicEchoPartition<ECHO_SIZE, H>
+impl<const ECHO_SIZE: MessageSize, const FIFO_DEPTH: MessageRange, H>
+    QueuingPeriodicEchoPartition<ECHO_SIZE, FIFO_DEPTH, H>
 where
-    H: ApexSamplingPortP4,
+    H: ApexQueuingPortP4,
     [u8; ECHO_SIZE as usize]:,
 {
     pub fn new(
-        sender: &'static OnceCell<SamplingPortSource<ECHO_SIZE, H>>,
-        receiver: &'static OnceCell<SamplingPortDestination<ECHO_SIZE, H>>,
+        sender: &'static OnceCell<QueuingPortSender<ECHO_SIZE, FIFO_DEPTH, H>>,
+        receiver: &'static OnceCell<QueuingPortReceiver<ECHO_SIZE, FIFO_DEPTH, H>>,
         entry_point_periodic: extern "C" fn(),
         entry_point_aperiodic: extern "C" fn(),
     ) -> Self {
-        PeriodicEchoPartition::<ECHO_SIZE, H> {
+        QueuingPeriodicEchoPartition::<ECHO_SIZE, FIFO_DEPTH, H> {
             sender,
             receiver,
             entry_point_periodic,

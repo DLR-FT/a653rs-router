@@ -3,18 +3,19 @@ stack_size:
 virtual_links:
   - id: 2
     rate: 500ms
+    fifo_depth: 10
     msg_size: 100
     ports:
-      - !SamplingPortSource
+      - !QueuingPortSender
         channel: EchoReplyCl
   - id: 1
     rate: 1s
     msg_size: 100B
+    fifo_depth: 10
     interfaces: [ "veth0" ]
-    ports:      
-      - !SamplingPortDestination
+    ports:
+      - !QueuingPortReceiver
         channel: EchoRequestCl
-        validity: 2s
 interfaces:
   - id: 1
     name: veth0

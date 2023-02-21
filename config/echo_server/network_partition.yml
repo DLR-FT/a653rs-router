@@ -12,7 +12,7 @@ virtual_links:
   - id: 1
     rate: 1s
     msg_size: 100B
-    ports:      
+    ports:
       - !SamplingPortSource
         channel: EchoRequestSrv
 interfaces:

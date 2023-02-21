@@ -3,4 +3,5 @@
 #![feature(generic_const_exprs)]
 
 pub mod client;
+pub mod queuing;
 pub mod server;

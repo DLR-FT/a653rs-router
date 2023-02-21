@@ -3,8 +3,6 @@
   <Schedule name="sched0" majorFrame="200ms">
     <Cpu id="0">
       <PartitionWindow partition="EchoClient" offset="0ms" duration="10ms" startPoint="true" />
-    </Cpu>
-    <Cpu id="1">
       <PartitionWindow partition="NetworkPartition" offset="10ms" duration="190ms" startPoint="true" />
     </Cpu>
   </Schedule>

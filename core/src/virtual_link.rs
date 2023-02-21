@@ -4,10 +4,17 @@ use crate::error::Error;
 use crate::error::VirtualLinkError;
 use crate::prelude::NetworkInterfaceId;
 use crate::prelude::PayloadSize;
+use apex_rs::bindings::MessageRange;
+use apex_rs::prelude::ApexQueuingPortP4;
 use apex_rs::prelude::ApexSamplingPortP4;
+use apex_rs::prelude::Error as ApexError;
+use apex_rs::prelude::QueuingPortReceiver;
+use apex_rs::prelude::QueuingPortSender;
 use apex_rs::prelude::SamplingPortSource;
+use apex_rs::prelude::SystemTime;
 use apex_rs::prelude::{SamplingPortDestination, Validity};
 use core::fmt::{Debug, Display};
+use core::time::Duration;
 use heapless::Vec;
 use log::{trace, warn};
 
@@ -69,9 +76,24 @@ pub trait VirtualLink: Debug {
     fn process_remote(&self, buffer: &[u8]) -> Result<(), Error>;
 }
 
-/// The data of a virtual link.
+/// Allows for modification of the ports and interfaces of a virtual link.
+pub trait VirtualLinkData {
+    /// Channel source / sender.
+    type Source;
+    /// Channel destination / receiver.
+    type Destination;
+
+    /// Adds a port destination / receiver.
+    fn add_port_destination(&mut self, dst: Self::Destination);
+    /// Adds a port source / sender.
+    fn add_port_source(&mut self, src: Self::Source);
+    /// Adds an interface as a destination of this virtual link.
+    fn add_interface(&mut self, src: NetworkInterfaceId);
+}
+
+/// The data of a virtual link that forwards sampling ports.
 #[derive(Debug)]
-pub struct VirtualLinkData<
+pub struct VirtualSamplingLink<
     const MTU: PayloadSize,
     const PORTS: usize,
     const IFS: usize,
@@ -90,7 +112,7 @@ impl<
         const PORTS: usize,
         const IFS: usize,
         H: ApexSamplingPortP4 + Debug,
-    > VirtualLinkData<MTU, PORTS, IFS, H>
+    > VirtualSamplingLink<MTU, PORTS, IFS, H>
 where
     [(); MTU as usize]:,
 {
@@ -104,43 +126,7 @@ where
         }
     }
 
-    /// Add a port destination.
-    pub fn add_port_dst(&mut self, port_dst: SamplingPortDestination<MTU, H>) {
-        if !self.interfaces.is_empty() {
-            panic!("A virtual link may not both receive things from the network and receive things from the hypervisor.")
-        }
-        trace!("Added port destination to virtual link {}", self.id);
-        self.port_dst = Some(port_dst);
-    }
-
-    /// Adds a sampling port.
-    pub fn add_port_src(&mut self, port_src: SamplingPortSource<MTU, H>) {
-        self.port_srcs
-            .push(port_src)
-            .expect("Not enough free source port slots.");
-        trace!("Added port sources to virtual link {}", self.id);
-    }
-
-    /// Adds an interface to the destinations of this virtual link.
-    pub fn add_interface(&mut self, interface: NetworkInterfaceId) {
-        self.interfaces
-            .push(interface)
-            .expect("Not enough free interface slots");
-        trace!("Added interface to virtual link: {}", self.id);
-    }
-}
-
-impl<
-        const MTU: PayloadSize,
-        const PORTS: usize,
-        const IFS: usize,
-        H: ApexSamplingPortP4 + Debug,
-    > VirtualLinkData<MTU, PORTS, IFS, H>
-where
-    [(); MTU as usize]:,
-{
     fn forward_to_local(&self, buffer: &[u8]) -> Result<(), Error> {
-        // TODO make sure only messages for this virtual link arrive here
         if buffer.len() > MTU as usize {
             return Err(Error::VirtualLinkError(VirtualLinkError::MtuMismatch));
         }
@@ -168,7 +154,43 @@ impl<
         const PORTS: usize,
         const IFS: usize,
         H: ApexSamplingPortP4 + Debug,
-    > VirtualLink for VirtualLinkData<MTU, PORTS, IFS, H>
+    > VirtualLinkData for VirtualSamplingLink<MTU, PORTS, IFS, H>
+where
+    [(); MTU as usize]:,
+{
+    type Source = SamplingPortSource<MTU, H>;
+    type Destination = SamplingPortDestination<MTU, H>;
+
+    fn add_port_destination(&mut self, dst: Self::Destination) {
+        if !self.interfaces.is_empty() {
+            panic!("A virtual link may not both receive things from the network and receive things from the hypervisor.")
+        }
+        trace!("Added port destination to virtual link {}", self.id);
+        self.port_dst = Some(dst);
+    }
+
+    fn add_port_source(&mut self, src: Self::Source) {
+        self.port_srcs
+            .push(src)
+            .expect("Not enough free source port slots.");
+        trace!("Added port sources to virtual link {}", self.id);
+    }
+
+    /// Adds an interface to the destinations of this virtual link.
+    fn add_interface(&mut self, interface: NetworkInterfaceId) {
+        self.interfaces
+            .push(interface)
+            .expect("Not enough free interface slots");
+        trace!("Added interface to virtual link: {}", self.id);
+    }
+}
+
+impl<
+        const MTU: PayloadSize,
+        const PORTS: usize,
+        const IFS: usize,
+        H: ApexSamplingPortP4 + Debug,
+    > VirtualLink for VirtualSamplingLink<MTU, PORTS, IFS, H>
 where
     [(); MTU as usize]:,
 {
@@ -198,6 +220,155 @@ where
             }
         }
 
+        Err(Error::InvalidConfig)
+    }
+}
+
+/// The data of a virtual link that forwards sampling ports.
+#[derive(Debug)]
+pub struct VirtualQueuingLink<
+    const MTU: PayloadSize,
+    const DEPTH: MessageRange,
+    const PORTS: usize,
+    const IFS: usize,
+    H: ApexQueuingPortP4 + Debug,
+> where
+    [(); MTU as usize]:,
+{
+    id: VirtualLinkId,
+    port_receiver: Option<QueuingPortReceiver<MTU, DEPTH, H>>,
+    port_senders: Vec<QueuingPortSender<MTU, DEPTH, H>, PORTS>,
+    interfaces: Vec<NetworkInterfaceId, IFS>,
+}
+
+impl<
+        const MTU: PayloadSize,
+        const DEPTH: MessageRange,
+        const PORTS: usize,
+        const IFS: usize,
+        H: ApexQueuingPortP4 + Debug,
+    > VirtualQueuingLink<MTU, DEPTH, PORTS, IFS, H>
+where
+    [(); MTU as usize]:,
+{
+    /// Creates a new virtual link.
+    pub const fn new(id: VirtualLinkId) -> Self {
+        Self {
+            id,
+            port_receiver: None,
+            port_senders: Vec::new(),
+            interfaces: Vec::new(),
+        }
+    }
+
+    fn forward_to_local(&self, buffer: &[u8]) -> Result<(), Error> {
+        if buffer.len() > MTU as usize {
+            return Err(Error::VirtualLinkError(VirtualLinkError::MtuMismatch));
+        }
+
+        let mut last_e: Option<Error> = None;
+
+        for src in self.port_senders.iter() {
+            // TODO make configurable
+            let timeout = SystemTime::Normal(Duration::from_micros(1));
+            // TODO buffer needs to be mutable because apex-rs needs a mutable buffer for sending to queuing ports.
+            // Is this a mistake in apex-rs?
+            let mut buf = [0u8; MTU as usize];
+            buf[0..buffer.len()].copy_from_slice(&buffer);
+            if let Err(e) = src.send(&mut buf, timeout) {
+                last_e = Some(Error::PortSendFail(e));
+                warn!("Failed to write to {src:?}");
+            } else {
+                trace!("Wrote to source: {buffer:?}")
+            }
+        }
+
+        match last_e {
+            None => Ok(()),
+            Some(e) => Err(e),
+        }
+    }
+}
+
+impl<
+        const MTU: PayloadSize,
+        const DEPTH: MessageRange,
+        const PORTS: usize,
+        const IFS: usize,
+        H: ApexQueuingPortP4 + Debug,
+    > VirtualLinkData for VirtualQueuingLink<MTU, DEPTH, PORTS, IFS, H>
+where
+    [(); MTU as usize]:,
+{
+    type Destination = QueuingPortReceiver<MTU, DEPTH, H>;
+    type Source = QueuingPortSender<MTU, DEPTH, H>;
+
+    /// Add a port destination.
+    fn add_port_destination(&mut self, dst: Self::Destination) {
+        if !self.interfaces.is_empty() {
+            panic!("A virtual link may not both receive things from the network and receive things from the hypervisor.")
+        }
+        trace!("Added port destination to virtual link {}", self.id);
+        self.port_receiver = Some(dst);
+    }
+
+    /// Adds a sampling port.
+    fn add_port_source(&mut self, src: Self::Source) {
+        self.port_senders
+            .push(src)
+            .expect("Not enough free source port slots.");
+        trace!("Added port sources to virtual link {}", self.id);
+    }
+
+    /// Adds an interface to the destinations of this virtual link.
+    fn add_interface(&mut self, interface: NetworkInterfaceId) {
+        self.interfaces
+            .push(interface)
+            .expect("Not enough free interface slots");
+        trace!("Added interface to virtual link: {}", self.id);
+    }
+}
+
+impl<
+        const MTU: PayloadSize,
+        const DEPTH: MessageRange,
+        const PORTS: usize,
+        const IFS: usize,
+        H: ApexQueuingPortP4 + Debug,
+    > VirtualLink for VirtualQueuingLink<MTU, DEPTH, PORTS, IFS, H>
+where
+    [(); MTU as usize]:,
+{
+    fn vl_id(&self) -> VirtualLinkId {
+        return self.id;
+    }
+
+    fn process_remote(&self, buffer: &[u8]) -> Result<(), Error> {
+        self.forward_to_local(buffer)
+    }
+
+    fn read_local<'a>(&self, buffer: &'a mut [u8]) -> Result<&'a [u8], Error> {
+        trace!("Reading from local queuing port");
+        if let Some(dst) = self.port_receiver.as_ref() {
+            // TODO make configurable
+            let timeout = SystemTime::Normal(Duration::from_millis(1));
+            match dst.receive(buffer, timeout) {
+                Ok(data) => {
+                    trace!("Received data from local queueing port");
+                    return Ok(data);
+                }
+                Err(ApexError::InvalidConfig) => {
+                    warn!("Echo reply queue overflowed");
+                }
+                Err(e) => {
+                    warn!("Failed to receive data from port: {e:?}");
+                }
+            }
+        } else {
+            trace!("No queuing port receivers for VL {}", self.id);
+        }
+
+        // TODO proper error
         Err(Error::InvalidConfig)
     }
 }

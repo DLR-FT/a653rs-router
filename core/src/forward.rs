@@ -84,6 +84,8 @@ impl<'a> Forwarder<'a> {
                         }
                     }
                 }
+            } else {
+                //trace!("Scheduled no VL");
             }
         } else {
             error!("System time was not normal")

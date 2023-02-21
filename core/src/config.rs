@@ -3,6 +3,7 @@ use crate::{
     prelude::{DataRate, NetworkInterfaceId, VirtualLinkId},
 };
 
+use apex_rs::bindings::MessageRange;
 use core::fmt::Display;
 use core::time::Duration;
 use heapless::{String, Vec};
@@ -36,6 +37,7 @@ type ChannelName = String<MAX_NAME_LEN>;
 ///             rate: Duration::from_millis(1000),
 ///             msg_size: 1000,
 ///             interfaces: Vec::from_slice(&[InterfaceName::from("veth0"), InterfaceName::from("veth1")]).unwrap(),
+///             fifo_depth: None,
 ///             ports: Vec::from_slice(&[
 ///                 Port::SamplingPortDestination(SamplingPortDestinationConfig {
 ///                     channel: String::from("EchoRequest"),
@@ -49,6 +51,7 @@ type ChannelName = String<MAX_NAME_LEN>;
 ///         VirtualLinkConfig {
 ///             id: VirtualLinkId::from(1),
 ///             msg_size: 1000,
+///             fifo_depth: None,
 ///             rate: Duration::from_millis(1000),
 ///             ports:  Vec::default(),
 ///             interfaces: Vec::default(),
@@ -96,6 +99,8 @@ pub struct StackSizeConfig {
     pub aperiodic_process: u32,
 }
 
+// TODO add enum for VirtualQueuingLink and VirtualSamplingLink
+
 /// Configuration for a virtual link.
 ///
 /// Virtual links are used to connect multiple network partitions.
@@ -116,6 +121,13 @@ pub struct VirtualLinkConfig<const PORTS: usize, const IFS: usize> {
         serde(deserialize_with = "de_size_str_u32")
     )]
     pub msg_size: PayloadSize,
+
+    /// The depth of the attached queueing channels.
+    /// This intentionally enforces that all queues have the same size.
+    /// Having larger receiver queues than sender queues would waste resources.
+    /// Having larger sender queues than receiver queues would not be safe (e.g. dropped messages).
+    /// APEX queueing channels only have one queue for sender / receiver. This is a translation of this concept to a virtual link.
+    pub fifo_depth: Option<MessageRange>,
 
     /// The ports the virtual link should create to connect to channels.
     pub ports: Vec<Port, PORTS>,
@@ -187,6 +199,20 @@ pub enum Port {
 
     /// Destination port of a sampling channel.
     SamplingPortDestination(SamplingPortDestinationConfig),
+
+    /// Source port of a queuing channel.
+    QueuingPortSender(QueuingPortConfig),
+
+    /// Destination port of a queuing channel.
+    QueuingPortReceiver(QueuingPortConfig),
+}
+
+/// Parameters of a port that is attached to a queuing channel, either the receiver or the sender.
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone)]
+pub struct QueuingPortConfig {
+    /// The name of the channel this sender is attached to.
+    pub channel: ChannelName,
 }
 
 /// Configuration for a sampling port destination.
@@ -223,6 +249,22 @@ impl Port {
     /// Tries to destructure the config of the source port.
     pub fn sampling_port_source(&self) -> Option<SamplingPortSourceConfig> {
         if let Self::SamplingPortSource(q) = self {
+            return Some(q.clone());
+        }
+        None
+    }
+
+    /// Tries to destructure the config of the sender port.
+    pub fn queuing_port_sender(&self) -> Option<QueuingPortConfig> {
+        if let Self::QueuingPortSender(q) = self {
+            return Some(q.clone());
+        }
+        None
+    }
+
+    /// Tries to destructure the config of the receiver port.
+    pub fn queuing_port_receiver(&self) -> Option<QueuingPortConfig> {
+        if let Self::QueuingPortReceiver(q) = self {
             return Some(q.clone());
         }
         None

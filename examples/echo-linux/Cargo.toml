@@ -13,6 +13,7 @@ apex-rs = { git = "https://github.com/aeronautical-informatics/apex-rs.git", bra
 apex-rs-linux = { git = "https://github.com/dadada/apex-linux.git", branch = "stable-for-master-thesis" }
 log = "0"
 once_cell = "1.17"
+postcard = "1.0"
 
 [build-dependencies]
 network-partition = { path = "../../core", features = [ "serde", "std" ] }

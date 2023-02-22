@@ -19,7 +19,7 @@ fn main() {
 
 fn gen_config(config: &Path, dest: &Path, out_dir: &OsString) {
     let config = read_to_string(config).unwrap();
-    let config: Config<10, 10, 10> = serde_yaml::from_str(&config).unwrap();
+    let config: Config<10, 10, 10, 10> = serde_yaml::from_str(&config).unwrap();
 
     let network_partition = ConfigGenerator::new(config)
         .generate_network_partition(quote!(apex_rs_xng::apex::XngHypervisor));

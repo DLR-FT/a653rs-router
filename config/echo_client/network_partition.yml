@@ -21,3 +21,10 @@ interfaces:
     id: 1
     mtu: 1500 
     name: "uart0"
+schedule:
+  !DeadlineRr
+  slots:
+    - vl: 1
+      period: 1s
+    - vl: 2
+      period: 500ms

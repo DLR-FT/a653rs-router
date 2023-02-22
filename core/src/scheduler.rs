@@ -1,13 +1,13 @@
-use crate::prelude::VirtualLinkId;
+use crate::prelude::*;
 use core::{fmt::Debug, time::Duration};
 use heapless::Vec;
 use log::{trace, warn};
 
-/// A scheduler for virtual links.
-pub trait Scheduler: Debug {
-    /// Gets the next virtual link that is allowed to transmit one message to the network.
-    // Returns None if no link is allowed to transmit a frame at the moment.
-    fn next(&mut self, current_time: Duration) -> Option<VirtualLinkId>;
+/// Gets the next virtual link that is scheduled.
+/// To be implemented by the concrete scheduler implementation.
+pub trait IoScheduler: Debug {
+    /// Get the next scheduled virtual link, if one is to be scheduled at the current time.
+    fn schedule_next(&mut self, current_time: &Duration) -> Option<VirtualLinkId>;
 }
 
 /// The deadline of a window in which a virtual link is to be scheduled next.
@@ -23,13 +23,14 @@ struct Window {
 }
 
 impl Window {
-    fn is_due(&self, current_time: Duration) -> bool {
-        self.next <= current_time
+    fn is_due(&self, current_time: &Duration) -> bool {
+        self.next <= *current_time
     }
 }
 
 /// A scheduler that uses simple round-robin scheduling together with dealines for every virtual link.
 /// A virtual link may be scheduled at multiple intervals, although this may not make much sense, depending on which requirements on jitter this has.
+// A schedule of the deadline-based round-robin scheduler.
 #[derive(Debug, Clone)]
 pub struct DeadlineRrScheduler<const SLOTS: usize> {
     /// The next window in the round-robin schedule.
@@ -40,35 +41,27 @@ pub struct DeadlineRrScheduler<const SLOTS: usize> {
 
 impl<const SLOTS: usize> DeadlineRrScheduler<SLOTS> {
     /// Creates a new scheduler.
-    pub fn new() -> Self {
+    pub fn new(cfg: &DeadlineRrSchedulerConfig<SLOTS>) -> Self {
         Self {
             last_window: usize::default(),
-            windows: Vec::default(),
+            windows: cfg
+                .slots
+                .iter()
+                .map(|s| Window {
+                    vl: s.vl,
+                    period: s.period,
+                    next: s.period,
+                })
+                .collect(),
         }
-    }
-
-    /// Add a new window.
-    pub fn insert(&mut self, vl: VirtualLinkId, period: Duration) -> Result<(), ()> {
-        self.windows
-            .push(Window {
-                vl,
-                period,
-                next: period,
-            })
-            .or(Err(()))
-    }
-
-    /// Clears the schedule.
-    pub fn clear(&mut self) {
-        self.windows.clear();
     }
 }
 
-impl<const SLOTS: usize> Scheduler for DeadlineRrScheduler<SLOTS> {
-    fn next(&mut self, current_time: Duration) -> Option<VirtualLinkId> {
+impl<const SLOTS: usize> IoScheduler for DeadlineRrScheduler<SLOTS> {
+    fn schedule_next(&mut self, current_time: &Duration) -> Option<VirtualLinkId> {
         // Try all windows of one round-robin and return None if none of them are past their deadline.
         for i in 1..=SLOTS {
-            let next_window = (self.last_window + i) % SLOTS;
+            let next_window = (self.last_window + i) % self.windows.len();
             let window = self.windows[next_window];
             if window.is_due(current_time) {
                 // Check if clock skipped for some reason.
@@ -81,7 +74,7 @@ impl<const SLOTS: usize> Scheduler for DeadlineRrScheduler<SLOTS> {
                 self.last_window = next_window;
                 let next = current_time
                     .checked_add(window.period)
-                    .unwrap_or_else(|| current_time);
+                    .unwrap_or_else(|| *current_time);
                 self.windows[next_window].next = next;
 
                 trace!("Scheduled VL {}, next window at {:?}", window.vl, next);

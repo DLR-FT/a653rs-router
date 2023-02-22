@@ -1,8 +1,7 @@
 stack_size:
-  aperiodic_process: 15KB
+  aperiodic_process: 15000
 virtual_links:
   - id: 2
-    rate: 500ms
     msg_size: 100
     interfaces: [ "uart0" ]
     ports:
@@ -10,8 +9,7 @@ virtual_links:
         channel: EchoReplySrv
         validity: 10s
   - id: 1
-    rate: 1s
-    msg_size: 100B
+    msg_size: 100
     ports:
       - !SamplingPortSource
         channel: EchoRequestSrv
@@ -19,4 +17,11 @@ interfaces:
   - !Uart
     id: 1
     name: "uart0"
-    mtu: 1.5KB
+    mtu: 1500
+schedule:
+  !DeadlineRr
+  slots:
+    - vl: 1
+      period: 1s
+    - vl: 2
+      period: 500ms

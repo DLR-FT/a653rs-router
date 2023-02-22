@@ -3,8 +3,8 @@ use core::fmt::Debug;
 use crate::{
     error::Error,
     prelude::{
-        InterfaceError, NetworkInterface, NetworkInterfaceId, PayloadSize,
-        PlatformNetworkInterface, Scheduler, VirtualLinkId,
+        InterfaceError, IoScheduler, NetworkInterface, NetworkInterfaceId, PayloadSize,
+        PlatformNetworkInterface, VirtualLinkId,
     },
     virtual_link::VirtualLink,
 };
@@ -42,7 +42,7 @@ impl<const MTU: PayloadSize, H: PlatformNetworkInterface + Debug> Interface
 /// Forwards frames between the hypervisor and the network and between ports on the same hypervisor.
 #[derive(Debug)]
 pub struct Forwarder<'a> {
-    scheduler: &'a mut dyn Scheduler,
+    scheduler: &'a mut dyn IoScheduler,
     links: &'a mut [&'a dyn VirtualLink],
     interfaces: &'a mut [&'a dyn Interface],
 }
@@ -50,7 +50,7 @@ pub struct Forwarder<'a> {
 impl<'a> Forwarder<'a> {
     /// Creates a new `Forwarder`.
     pub fn new(
-        scheduler: &'a mut dyn Scheduler,
+        scheduler: &'a mut dyn IoScheduler,
         links: &'a mut [&'a dyn VirtualLink],
         interfaces: &'a mut [&'a dyn Interface],
     ) -> Self {
@@ -80,7 +80,7 @@ impl<'a> Forwarder<'a> {
             }
         }
         if let SystemTime::Normal(time) = <H as ApexTimeP4Ext>::get_time() {
-            if let Some(next) = self.scheduler.next(time) {
+            if let Some(next) = self.scheduler.schedule_next(&time) {
                 trace!("Scheduled VL {next}");
                 if let Some(next) = self.links.iter().find(|l| l.vl_id() == next) {
                     if let Ok(data) = next.read_local(buf) {

@@ -8,14 +8,15 @@ edition = "2021"
 crate-type = [ "staticlib" ]
 
 [dependencies]
-network-partition = { path = "../../core" }
+network-partition = { path = "../../core", features = [ "serde" ] }
 network-partition-xng = { path = "../../xng" }
 apex-rs = { git = "https://github.com/aeronautical-informatics/apex-rs.git", branch = "main" }
 apex-rs-xng = { git = "https://github.com/dadada/apex-rs-xng.git", branch = "xng-hypervisor-debug" }
 log = { version = "0", default-features = false }
-heapless = { version = "0.7.16" }
+heapless = { version = "0.7" }
 once_cell = { version = "1.17", default-features = false }
 xng-rs-log = { path = "../../log" }
+postcard = "1.0"
 
 [build-dependencies]
 network-partition = { path = "../../core", feature = [ "serde" ] }

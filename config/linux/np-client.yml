@@ -2,7 +2,6 @@ stack_size:
   aperiodic_process: 1MB
 virtual_links:
   - id: 1
-    rate: 1s
     msg_size: 100B
     interfaces: [ "34255" ]
     ports:      
@@ -10,7 +9,6 @@ virtual_links:
         channel: EchoRequest
         validity: 2s
   - id: 2
-    rate: 500ms
     msg_size: 100B
     ports:
       - !SamplingPortSource
@@ -23,3 +21,10 @@ interfaces:
     mtu: 1.5KB
     # TODO remove. not needed for veth, only for UDP
     destination: "127.0.0.1:34256"
+schedule:
+  !DeadlineRr
+  slots:
+    - vl: 1
+      period: 1s
+    - vl: 2
+      period: 500ms

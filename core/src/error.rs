@@ -1,3 +1,5 @@
+use core::fmt::{Display, Formatter};
+
 ///! Error types
 use apex_rs::prelude::Error as ApexError;
 
@@ -39,8 +41,26 @@ pub enum Error {
     /// An error that occured while processing a virtual link.
     VirtualLinkError(VirtualLinkError),
 
+    /// Error while accessing the scheduler.
+    IoScheduleError(IoScheduleError),
+
     /// An unspecified error.
     Unknown,
+}
+
+/// An error occureed while scheduling a virtual link.
+#[derive(Clone, Debug)]
+pub enum IoScheduleError {
+    /// Failed to create a schedule
+    CreationFailed,
+}
+
+impl Display for IoScheduleError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::CreationFailed => write!(f, "Failed to create the interface."),
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -49,8 +69,8 @@ pub enum VirtualLinkError {
     MtuMismatch,
 }
 
-impl core::fmt::Display for VirtualLinkError {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+impl Display for VirtualLinkError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::MtuMismatch => write!(f, "A message was too long for this virtual link."),
         }
@@ -72,8 +92,8 @@ pub enum InterfaceError {
     SendFailed,
 }
 
-impl core::fmt::Display for InterfaceError {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+impl Display for InterfaceError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::NoData => write!(f, "No data available"),
             Self::InsufficientBuffer => write!(f, "Insufficient buffer space"),
@@ -84,9 +104,10 @@ impl core::fmt::Display for InterfaceError {
     }
 }
 
-impl core::fmt::Display for Error {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+impl Display for Error {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         match self {
+            Error::IoScheduleError(e) => write!(f, "Error while accessing the scheduler: {e}"),
             Error::InterfaceCreationError(e) => write!(f, "Failed to create interface: {e}"),
             Error::PortSendFail(source) => write!(f, "Failed to send data: {source:?}"),
             Error::PortReceiveFail(source) => write!(f, "Failed to receive data: {source:?}"),

@@ -34,7 +34,6 @@ type ChannelName = String<MAX_NAME_LEN>;
 ///     virtual_links: Vec::from_slice(&[
 ///         VirtualLinkConfig::<10, 10> {
 ///             id: VirtualLinkId::from(0),
-///             rate: Duration::from_millis(1000),
 ///             msg_size: 1000,
 ///             interfaces: Vec::from_slice(&[InterfaceName::from("veth0"), InterfaceName::from("veth1")]).unwrap(),
 ///             fifo_depth: None,
@@ -52,7 +51,6 @@ type ChannelName = String<MAX_NAME_LEN>;
 ///             id: VirtualLinkId::from(1),
 ///             msg_size: 1000,
 ///             fifo_depth: None,
-///             rate: Duration::from_millis(1000),
 ///             ports:  Vec::default(),
 ///             interfaces: Vec::default(),
 ///         }
@@ -66,12 +64,17 @@ type ChannelName = String<MAX_NAME_LEN>;
 ///            destination: String::from("127.0.0.1:8000"),
 ///        }),
 ///     ]).unwrap()
+// TODO add schedule config, see failing test
 /// };
 /// ```
-#[cfg(feature = "std")]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone)]
-pub struct Config<const PORTS: usize, const IFS: usize, const VLS: usize> {
+pub struct Config<
+    const PORTS: usize,
+    const IFS: usize,
+    const VLS: usize,
+    const SCHEDULE_SLOTS: usize,
+> {
     /// The amount of memory to reserve on the stack for the processes of the partition.
     pub stack_size: StackSizeConfig,
 
@@ -81,6 +84,9 @@ pub struct Config<const PORTS: usize, const IFS: usize, const VLS: usize> {
     /// The interfaces that will be attached to the partition.
     #[cfg_attr(feature = "serde", serde(default = "default_interfaces"))]
     pub interfaces: Vec<InterfaceConfig, IFS>,
+
+    /// Configuration for the scheduler.
+    pub schedule: ScheduleConfig<SCHEDULE_SLOTS>,
 }
 
 fn default_interfaces<const IFS: usize>() -> Vec<InterfaceConfig, IFS> {
@@ -110,10 +116,6 @@ pub struct StackSizeConfig {
 pub struct VirtualLinkConfig<const PORTS: usize, const IFS: usize> {
     /// The unique ID of the virtual link
     pub id: VirtualLinkId,
-
-    /// The maximum rate the link may transmit at.
-    #[cfg_attr(all(feature = "std"), serde(with = "humantime_serde"))]
-    pub rate: Duration,
 
     /// The maximum size of a message that will be transmited using this virtual link.
     #[cfg_attr(
@@ -319,4 +321,41 @@ where
     D: Deserializer<'de>,
 {
     de_size_str(de).and_then(|r| Ok(r.as_u64() as u32))
+}
+
+/// Scheduler confgiguration.
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone)]
+pub enum ScheduleConfig<const SCHEDULE_SLOTS: usize> {
+    /// This configuration requires the deadline-based round-robin scheduler.
+    DeadlineRr(DeadlineRrSchedulerConfig<SCHEDULE_SLOTS>),
+}
+
+impl<const SLOTS: usize> ScheduleConfig<SLOTS> {
+    /// Gets the deadline RR scheduler config.
+    pub fn deadline_rr(self) -> Option<DeadlineRrSchedulerConfig<SLOTS>> {
+        match self {
+            Self::DeadlineRr(cfg) => Some(cfg),
+        }
+    }
+}
+
+/// Configuration for the deadline-based round-robin scheduler.
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone)]
+pub struct DeadlineRrSchedulerConfig<const SCHEDULE_SLOTS: usize> {
+    /// Shedule slots.
+    pub slots: Vec<DeadlineRrSlot, SCHEDULE_SLOTS>,
+}
+
+/// A slot inside the round-robin scheduler.
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone)]
+pub struct DeadlineRrSlot {
+    /// Virtual link to schedule in this slot.
+    pub vl: VirtualLinkId,
+
+    /// Periodic after which to schedule this slot again after the last time it has been scheduled.
+    #[cfg_attr(all(feature = "std"), serde(with = "humantime_serde"))]
+    pub period: Duration,
 }

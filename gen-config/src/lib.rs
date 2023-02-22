@@ -2,12 +2,19 @@ use network_partition::prelude::*;
 use proc_macro2::{Ident, TokenStream};
 use quote::{format_ident, quote};
 
-pub struct ConfigGenerator<const VLS: usize, const PORTS: usize, const IFS: usize> {
-    config: Config<VLS, PORTS, IFS>,
+pub struct ConfigGenerator<
+    const VLS: usize,
+    const PORTS: usize,
+    const IFS: usize,
+    const SCHEDULE_SLOTS: usize,
+> {
+    config: Config<VLS, PORTS, IFS, SCHEDULE_SLOTS>,
 }
 
-impl<const VLS: usize, const PORTS: usize, const IFS: usize> ConfigGenerator<VLS, PORTS, IFS> {
-    pub fn new(config: Config<VLS, PORTS, IFS>) -> Self {
+impl<const VLS: usize, const PORTS: usize, const IFS: usize, const SCHEDULE_SLOTS: usize>
+    ConfigGenerator<VLS, PORTS, IFS, SCHEDULE_SLOTS>
+{
+    pub fn new(config: Config<VLS, PORTS, IFS, SCHEDULE_SLOTS>) -> Self {
         Self { config }
     }
 
@@ -31,7 +38,8 @@ impl<const VLS: usize, const PORTS: usize, const IFS: usize> ConfigGenerator<VLS
 
         let define_ports = self.define_ports();
         let define_interfaces = self.define_interfaces();
-        let windows = self.define_windows();
+
+        let init_scheduler = self.init_scheduler();
 
         quote! {
             use apex_rs::prelude::*;
@@ -41,6 +49,7 @@ impl<const VLS: usize, const PORTS: usize, const IFS: usize> ConfigGenerator<VLS
             use log::{error, trace, info};
             use network_partition::prelude::*;
             use once_cell::unsync::OnceCell;
+            use heapless::Vec;
 
             type Hypervisor = #hypervisor;
 
@@ -50,6 +59,7 @@ impl<const VLS: usize, const PORTS: usize, const IFS: usize> ConfigGenerator<VLS
 
             extern "C" fn entry_point() {
                 info!("Running network partition");
+
                 let mut interfaces: [&dyn Interface; #num_interfaces] = [ #( unsafe { #interface_names . get().unwrap() } ),* ];
 
                 #( #define_virtual_links )*
@@ -60,11 +70,7 @@ impl<const VLS: usize, const PORTS: usize, const IFS: usize> ConfigGenerator<VLS
 
                 let mut links: [&dyn VirtualLink; #num_links] = [ #( &#vl_names ),* ];
 
-                let mut scheduler = DeadlineRrScheduler::<#num_links>::new();
-                let windows = [ #( #windows ),* ];
-                for (vl_id, period) in windows {
-                    _ = scheduler.insert(VirtualLinkId(vl_id), period);
-                }
+                #init_scheduler
 
                 let mut forwarder = Forwarder::new(&mut scheduler, &mut links, &mut interfaces);
                 loop {
@@ -138,18 +144,6 @@ impl<const VLS: usize, const PORTS: usize, const IFS: usize> ConfigGenerator<VLS
             })
         })
         .collect()
-    }
-
-    fn define_windows(&self) -> Vec<TokenStream> {
-        self.config
-            .virtual_links
-            .iter()
-            .map(|l| {
-                let id = l.id.0;
-                let rate = l.rate.as_nanos() as u64;
-                quote! { (#id, Duration::from_nanos(#rate)) }
-            })
-            .collect()
     }
 
     // TODO write functions for names of variables
@@ -447,5 +441,24 @@ impl<const VLS: usize, const PORTS: usize, const IFS: usize> ConfigGenerator<VLS
                 format_ident!("vl_{id}")
             })
             .collect()
+    }
+
+    fn init_scheduler(&self) -> TokenStream {
+        let scheduler = self.config.schedule.clone();
+        match scheduler {
+            ScheduleConfig::DeadlineRr(cfg) => {
+                let slots = cfg.slots.iter().map(|s| {
+                    let vl = s.vl.0;
+                    let period = s.period.as_nanos() as u64;
+                    quote! { slots.push(DeadlineRrSlot { vl: VirtualLinkId(#vl), period: Duration::from_nanos(#period) }); }
+                });
+                quote! {
+                    let mut slots = Vec::<DeadlineRrSlot, #SCHEDULE_SLOTS>::new();
+                    #( #slots )*
+                    let schedule = DeadlineRrSchedulerConfig { slots };
+                    let mut scheduler = DeadlineRrScheduler::<#SCHEDULE_SLOTS>::new(&schedule);
+                }
+            }
+        }
     }
 }

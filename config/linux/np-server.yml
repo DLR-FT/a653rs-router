@@ -2,14 +2,12 @@ stack_size:
   aperiodic_process: 1MB
 virtual_links:
   - id: 1
-    rate: 1s
     msg_size: 100B
     interfaces: [ "34255" ]
     ports:      
       - !SamplingPortSource
         channel: EchoRequest
   - id: 2
-    rate: 500ms
     msg_size: 100B
     interfaces: [ "34255" ]
     ports:
@@ -23,3 +21,10 @@ interfaces:
     rate: 10000000
     mtu: 1.5KB
     destination: "127.0.0.1:34254"
+schedule:
+  !DeadlineRr
+  slots:
+    - vl: 1
+      period: 1s
+    - vl: 2
+      period: 500ms

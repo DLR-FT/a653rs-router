@@ -31,10 +31,8 @@ fn gen_config(config: &Path, dest: &Path, out_dir: &OsString) {
     // TODO make configurable from env variables or use second config struct that uses alloc
     let config: Config<20, 20, 20> = serde_yaml::from_str(&config).unwrap();
 
-    let network_partition = ConfigGenerator::new(config).generate_network_partition(
-        quote!(apex_rs_linux::partition::ApexLinuxPartition),
-        quote!(network_partition_linux::network::LinuxNetworking),
-    );
+    let network_partition = ConfigGenerator::new(config)
+        .generate_network_partition(quote!(apex_rs_linux::partition::ApexLinuxPartition));
 
     let network_partition = quote! {
         use apex_rs_linux::partition::ApexLogger;

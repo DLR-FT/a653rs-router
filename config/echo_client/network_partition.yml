@@ -12,14 +12,12 @@ virtual_links:
     rate: 1s
     msg_size: 100B
     fifo_depth: 10
-    interfaces: [ "veth0" ]
+    interfaces: [ "uart0" ]
     ports:
       - !QueuingPortReceiver
         channel: EchoRequestCl
 interfaces:
-  - id: 1
-    name: veth0
-    rate: 1000
-    mtu: 1500
-    # TODO remove. not needed for veth, only for UDP
-    destination: "127.0.0.1:34256"
+  - !Uart
+    id: 1
+    mtu: 1500 
+    name: "uart0"

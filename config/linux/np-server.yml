@@ -4,21 +4,22 @@ virtual_links:
   - id: 1
     rate: 1s
     msg_size: 100B
-    interfaces: [ "veth0" ]
+    interfaces: [ "34255" ]
     ports:      
       - !SamplingPortSource
         channel: EchoRequest
   - id: 2
     rate: 500ms
     msg_size: 100B
-    interfaces: [ "veth0" ]
+    interfaces: [ "34255" ]
     ports:
       - !SamplingPortDestination
         channel: EchoReply
         validity: 2s
 interfaces:
-  - id: 1
-    name: veth0
+  - !Udp
+    id: 1
+    name: "34255"
     rate: 10000000
     mtu: 1.5KB
     destination: "127.0.0.1:34254"

@@ -6,12 +6,12 @@ use apex_rs_linux::partition::ApexLinuxPartition;
 use log::{error, trace, warn};
 use network_partition::prelude::{
     CreateNetworkInterfaceId, DataRate, InterfaceError, NetworkInterfaceId,
-    PlatformNetworkInterface, VirtualLinkId,
+    PlatformNetworkInterface, UdpInterfaceConfig, VirtualLinkId,
 };
 use once_cell::sync::Lazy;
 
 #[derive(Debug)]
-pub struct LinuxNetworking;
+pub struct UdpNetworkInterface;
 
 static SOCKETS: Lazy<Arc<Mutex<Vec<UdpSocket>>>> =
     Lazy::new(|| Arc::new(Mutex::new(ApexLinuxPartition::receive_udp_sockets())));
@@ -19,7 +19,9 @@ static SOCKETS: Lazy<Arc<Mutex<Vec<UdpSocket>>>> =
 static INTERFACES: Lazy<Arc<Mutex<Vec<LimitedUdpSocket>>>> =
     Lazy::new(|| Arc::new(Mutex::new(Vec::new())));
 
-impl PlatformNetworkInterface for LinuxNetworking {
+impl PlatformNetworkInterface for UdpNetworkInterface {
+    type Configuration = UdpInterfaceConfig;
+
     fn platform_interface_receive_unchecked(
         id: NetworkInterfaceId,
         buffer: &'_ mut [u8],
@@ -76,19 +78,20 @@ struct LimitedUdpSocket {
     _rate: DataRate,
 }
 
-impl CreateNetworkInterfaceId<LinuxNetworking> for LinuxNetworking {
+impl CreateNetworkInterfaceId<UdpNetworkInterface> for UdpNetworkInterface {
     fn create_network_interface_id(
-        _name: &str, // TODO use network_partition_config::config::InterfaceName ?
-        destination: &str,
-        rate: DataRate,
+        cfg: UdpInterfaceConfig,
     ) -> Result<NetworkInterfaceId, InterfaceError> {
         let mut interfaces = INTERFACES.lock().unwrap(); // TODO wrap error
         let sock = SOCKETS.lock().unwrap().pop().unwrap(); // TODO wrap error
         sock.set_nonblocking(true).unwrap();
-        sock.connect(destination).unwrap();
-        let sock = LimitedUdpSocket { sock, _rate: rate };
+        sock.connect(cfg.destination.as_str()).unwrap();
+        let sock = LimitedUdpSocket {
+            sock,
+            _rate: cfg.rate,
+        };
         interfaces.push(sock);
-        let id = interfaces.len() - 1;
+        let id = cfg.id;
 
         Ok(NetworkInterfaceId::from(id))
     }

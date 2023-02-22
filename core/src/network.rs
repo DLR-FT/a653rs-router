@@ -35,6 +35,7 @@ pub struct NetworkInterface<const MTU: PayloadSize, H: PlatformNetworkInterface>
 }
 
 impl<const MTU: PayloadSize, H: PlatformNetworkInterface> NetworkInterface<MTU, H> {
+    /// ID of this interface.
     pub fn id(&self) -> NetworkInterfaceId {
         self.id
     }
@@ -69,6 +70,9 @@ impl<const MTU: PayloadSize, H: PlatformNetworkInterface> NetworkInterface<MTU, 
 
 /// Platform-specific network interface type.
 pub trait PlatformNetworkInterface {
+    /// The configuration for this interface. May be any struct.
+    type Configuration;
+
     /// Send something to the network and report how long it took.
     fn platform_interface_send_unchecked(
         id: NetworkInterfaceId,
@@ -87,9 +91,7 @@ pub trait PlatformNetworkInterface {
 pub trait CreateNetworkInterfaceId<H: PlatformNetworkInterface> {
     /// Creates a network interface id.
     fn create_network_interface_id(
-        _name: &str, // TODO use network_partition_config::config::InterfaceName ?
-        destination: &str,
-        rate: DataRate,
+        cfg: H::Configuration,
     ) -> Result<NetworkInterfaceId, InterfaceError>;
 }
 
@@ -97,9 +99,7 @@ pub trait CreateNetworkInterfaceId<H: PlatformNetworkInterface> {
 pub trait CreateNetworkInterface<H: PlatformNetworkInterface> {
     /// Creates a network interface id.
     fn create_network_interface<const MTU: PayloadSize>(
-        _name: &str, // TODO use network_partition_config::config::InterfaceName ?
-        destination: &str,
-        rate: DataRate,
+        cfg: H::Configuration,
     ) -> Result<NetworkInterface<MTU, H>, Error>;
 }
 
@@ -108,11 +108,9 @@ where
     T: CreateNetworkInterfaceId<H>,
 {
     fn create_network_interface<const MTU: PayloadSize>(
-        name: &str, // TODO use network_partition_config::config::InterfaceName ?
-        destination: &str,
-        rate: DataRate,
+        cfg: H::Configuration,
     ) -> Result<NetworkInterface<MTU, H>, Error> {
-        let id = match T::create_network_interface_id(name, destination, rate) {
+        let id = match T::create_network_interface_id(cfg) {
             Ok(id) => id,
             Err(e) => return Err(Error::InterfaceCreationError(e)),
         };

@@ -58,13 +58,13 @@ type ChannelName = String<MAX_NAME_LEN>;
 ///         }
 ///     ]).unwrap(),
 ///     interfaces: Vec::from_slice(&[
-///        InterfaceConfig {
+///        InterfaceConfig::Udp(UdpInterfaceConfig {
 ///            id: NetworkInterfaceId::from(1),
-///            name: InterfaceName::from("veth0"),
+///            name: 8081,
 ///            rate: DataRate::b(10000000),
 ///            mtu: 1000,
 ///            destination: String::from("127.0.0.1:8000"),
-///        },
+///        }),
 ///     ]).unwrap()
 /// };
 /// ```
@@ -143,7 +143,7 @@ fn default_interface_names<const IFS: usize>() -> Vec<InterfaceName, IFS> {
 
 /// The name of an interface. The name is platform-dependent.
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct InterfaceName(pub String<MAX_NAME_LEN>);
 
 impl From<&str> for InterfaceName {
@@ -159,16 +159,46 @@ impl Display for InterfaceName {
     }
 }
 
-/// Configuration for an interface.
+/// Interface configuration.
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone)]
+pub enum InterfaceConfig {
+    /// An interface implementation that is attached to a UDP socket on linux.
+    Udp(UdpInterfaceConfig),
+    /// An interface that is attached to a UART PL on a Zynq 7000.
+    Uart(UartInterfaceConfig),
+}
+
+/// UART interfacew configuration.
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone)]
+pub struct UartInterfaceConfig {
+    /// Id of the interface
+    pub id: NetworkInterfaceId,
+
+    /// Name of the interface. Used in virtual link config.
+    pub name: InterfaceName,
+
+    /// The maximum size of a message that will be transmited using this virtual link.
+    #[cfg_attr(
+        all(feature = "serde", feature = "std"),
+        serde(deserialize_with = "de_size_str_u32")
+    )]
+    pub mtu: PayloadSize,
+}
+
+// TODO move Linux networking into network-partitin crate and hide behind std feature, likewise for xng networking
+
+/// Configuration for an UDP "interface".
 ///
 /// Interfaces are used to connect multiple hypervisors and transmit all virtual links.
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone)]
-pub struct InterfaceConfig {
+pub struct UdpInterfaceConfig {
     /// Id of the interface
     pub id: NetworkInterfaceId,
 
-    /// The unique ID of the virtual link
+    /// The unique ID of the interface.
     pub name: InterfaceName,
 
     /// The maximum rate the interface can transmit at.

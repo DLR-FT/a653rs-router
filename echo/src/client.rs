@@ -1,4 +1,4 @@
-use apex_rs::{bindings::MessageRange, prelude::*};
+use apex_rs::prelude::*;
 use apex_rs_postcard::{
     prelude::SamplingRecvError,
     sampling::{SamplingPortDestinationExt, SamplingPortSourceExt},

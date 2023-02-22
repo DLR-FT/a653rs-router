@@ -11,11 +11,7 @@ impl<const VLS: usize, const PORTS: usize, const IFS: usize> ConfigGenerator<VLS
         Self { config }
     }
 
-    pub fn generate_network_partition(
-        &self,
-        hypervisor: TokenStream,
-        interface: TokenStream,
-    ) -> TokenStream {
+    pub fn generate_network_partition(&self, hypervisor: TokenStream) -> TokenStream {
         let process_stack_size = self.config.stack_size.aperiodic_process;
         let max_mtu = self.get_max_mtu() as usize;
         let num_links = self.get_num_links();
@@ -24,7 +20,7 @@ impl<const VLS: usize, const PORTS: usize, const IFS: usize> ConfigGenerator<VLS
 
         let set_ports: Vec<TokenStream> = self.set_ports();
 
-        let set_interfaces: Vec<TokenStream> = self.set_interfaces(&interface);
+        let set_interfaces: Vec<TokenStream> = self.set_interfaces();
         let define_virtual_links: Vec<TokenStream> = self.define_virtual_links();
         let num_interfaces = self.get_num_interfaces();
 
@@ -34,7 +30,7 @@ impl<const VLS: usize, const PORTS: usize, const IFS: usize> ConfigGenerator<VLS
         let add_interfaces_to_links = self.add_interfaces_to_links();
 
         let define_ports = self.define_ports();
-        let define_interfaces = self.define_interfaces(&interface);
+        let define_interfaces = self.define_interfaces();
         let windows = self.define_windows();
 
         quote! {
@@ -121,15 +117,24 @@ impl<const VLS: usize, const PORTS: usize, const IFS: usize> ConfigGenerator<VLS
         .iter()
         .flat_map(|vl| {
             vl.interfaces.iter().map(|i| {
-                let id = vl.id;
-                let vl_ident = format_ident!("vl_{id}");
-                let if_id = self.config
+                let vl_id = vl.id;
+                let intf = self.config
                     .interfaces
                     .iter()
-                    .find(|intf| *i.0 == intf.name.0)
-                    .unwrap()
-                    .id.0;
-                quote! { #vl_ident.add_interface(NetworkInterfaceId::from(NetworkInterfaceId(#if_id))); }
+                    .find(|intf| {
+                        let intf = match intf {
+                            InterfaceConfig::Uart(intf) => intf.name.clone(),
+                            InterfaceConfig::Udp(intf) => intf.name.clone(),
+                        };
+                        *i == intf
+                    }).expect(format!("Unable to find an interface with name {}", i.0.as_str()).as_str());
+                let intf_id = match intf {
+                    InterfaceConfig::Uart(intf) => intf.id.0,
+                    InterfaceConfig::Udp(intf) => intf.id.0,
+                };
+
+                let vl_ident = format_ident!("vl_{vl_id}");
+                quote! { #vl_ident.add_interface(NetworkInterfaceId::from(NetworkInterfaceId(#intf_id))); }
             })
         })
         .collect()
@@ -148,28 +153,47 @@ impl<const VLS: usize, const PORTS: usize, const IFS: usize> ConfigGenerator<VLS
     }
 
     // TODO write functions for names of variables
-
     fn interface_names(&self) -> Vec<Ident> {
         self.config
             .interfaces
             .iter()
             .map(|i| {
-                let i = i.name.clone().0.to_uppercase();
-                format_ident!("IF_{i}")
+                let id = match i {
+                    InterfaceConfig::Udp(i) => i.name.clone().0.to_uppercase(),
+                    InterfaceConfig::Uart(i) => i.name.clone().0.to_uppercase(),
+                };
+                format_ident!("IF_{id}")
             })
             .collect()
     }
 
-    fn define_interfaces(&self, interface: &TokenStream) -> Vec<TokenStream> {
+    fn define_interfaces(&self) -> Vec<TokenStream> {
         self.config
         .interfaces
         .iter()
-        .map(|i| {
-            let mtu = i.mtu;
-            let name = i.name.to_string();
-            let var = name.to_uppercase();
-            let var = format_ident!("IF_{var}");
-            quote! { static mut #var: OnceCell<NetworkInterface<#mtu, #interface>> = OnceCell::new(); }
+        .map(|i| match i {
+            InterfaceConfig::Udp(i) => {
+                let interface = quote! { network_partition_linux::UdpNetworkInterface };
+                let name = i.name.clone().0.to_uppercase();
+                let mtu = i.mtu;
+                let var = format_ident!("IF_{name}");
+                quote! {
+                    use #interface;
+
+                    static mut #var: OnceCell<NetworkInterface<#mtu, #interface>> = OnceCell::new();
+                }
+            }
+            InterfaceConfig::Uart(i) => {
+                let interface = quote! { network_partition_xng::UartNetworkInterface };
+                let name = i.name.clone().0.to_uppercase();
+                let mtu = i.mtu;
+                let var = format_ident!("IF_{name}");
+                quote! {
+                    use #interface;
+
+                    static mut #var: OnceCell<NetworkInterface<#mtu, #interface>> = OnceCell::new();
+                }
+            }
         })
         .collect()
     }
@@ -261,20 +285,37 @@ impl<const VLS: usize, const PORTS: usize, const IFS: usize> ConfigGenerator<VLS
             .collect()
     }
 
-    fn set_interfaces(&self, nil: &TokenStream) -> Vec<TokenStream> {
+    fn set_interfaces(&self) -> Vec<TokenStream> {
         self.config
         .interfaces
         .iter()
         .map(|i| {
-            let name = i.name.to_string();
-            let var = i.name.to_string().to_uppercase();
-            let var = format_ident!("IF_{var}");
-            let mtu = i.mtu;
-            let destination = i.destination.to_string();
-            let rate = i.rate.as_u64();
-            quote! {
-                let intf = #nil::create_network_interface::<#mtu>(#name, #destination, DataRate::b(#rate)).unwrap();
-                unsafe { #var.set(intf).unwrap(); }
+            match i {
+                // TODO recreating the config struct should be obsolete when passing the config (for reconfiguration) directly to the partition.
+                InterfaceConfig::Udp(i) => {
+                    let name = i.name.to_string();
+                    let var = i.name.to_string().to_uppercase();
+                    let var = format_ident!("IF_{var}");
+                    let destination = i.destination.to_string();
+                    let rate = i.rate.0;
+                    let mtu = i.mtu;
+                    let id = i.id.0;
+                    quote! {
+                        let intf = UdpNetworkInterface::create_network_interface::<#mtu>(UdpInterfaceConfig { id: NetworkInterfaceId(#id), name: InterfaceName::from(#name), destination: #destination .into(), rate: DataRate::b(#rate), mtu: #mtu }).unwrap();
+                        unsafe { #var.set(intf).unwrap(); }
+                    }
+                },
+                InterfaceConfig::Uart(i) => {
+                    let name = i.name.to_string();
+                    let var = i.name.to_string().to_uppercase();
+                    let var = format_ident!("IF_{var}");
+                    let mtu = i.mtu;
+                    let id = i.id.0;
+                    quote! {
+                        let intf = UartNetworkInterface::create_network_interface::<#mtu>(UartInterfaceConfig { id: NetworkInterfaceId(#id), name: InterfaceName::from(#name), mtu: #mtu }).unwrap();
+                        unsafe { #var.set(intf).unwrap(); }
+                    }
+                }
             }
         })
         .collect()
@@ -385,7 +426,10 @@ impl<const VLS: usize, const PORTS: usize, const IFS: usize> ConfigGenerator<VLS
         self.config
             .interfaces
             .iter()
-            .map(|i| i.mtu)
+            .map(|i| match i {
+                InterfaceConfig::Uart(i) => i.mtu,
+                InterfaceConfig::Udp(i) => i.mtu,
+            })
             .max()
             .unwrap_or_default()
     }

@@ -4,14 +4,14 @@ use corncobs::{decode_in_place, encode_buf, max_encoded_len};
 use heapless::spsc::Queue;
 use network_partition::prelude::{
     CreateNetworkInterfaceId, InterfaceError, NetworkInterfaceId, PlatformNetworkInterface,
-    VirtualLinkId,
+    UartInterfaceConfig, VirtualLinkId,
 };
 use once_cell::unsync::Lazy;
 use uart_xilinx::MmioUartAxi16550;
 
 /// Networking on XNG.
 #[derive(Debug)]
-pub struct UartSerial;
+pub struct UartNetworkInterface;
 
 mod config {
     pub const BASE_ADDRESS: usize = 0x43C0_0000;
@@ -156,7 +156,9 @@ static mut UART: Lazy<BufferedUart<{ config::FRAME_BUFFER_LEN }>> = Lazy::new(||
     b
 });
 
-impl PlatformNetworkInterface for UartSerial {
+impl PlatformNetworkInterface for UartNetworkInterface {
+    type Configuration = UartInterfaceConfig;
+
     fn platform_interface_receive_unchecked(
         _id: NetworkInterfaceId,
         buffer: &'_ mut [u8],
@@ -234,12 +236,10 @@ impl PlatformNetworkInterface for UartSerial {
     }
 }
 
-impl<H: PlatformNetworkInterface> CreateNetworkInterfaceId<H> for UartSerial {
+impl CreateNetworkInterfaceId<UartNetworkInterface> for UartNetworkInterface {
     fn create_network_interface_id(
-        _name: &str, // TODO use network_partition_config::config::InterfaceName ?
-        _destination: &str,
-        _rate: network_partition::prelude::DataRate,
+        cfg: UartInterfaceConfig,
     ) -> Result<NetworkInterfaceId, InterfaceError> {
-        Ok(NetworkInterfaceId(1))
+        Ok(cfg.id)
     }
 }

@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 pub type PayloadSize = u32;
 
 /// Network interface ID.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct NetworkInterfaceId(pub u32);
 
@@ -35,6 +35,10 @@ pub struct NetworkInterface<const MTU: PayloadSize, H: PlatformNetworkInterface>
 }
 
 impl<const MTU: PayloadSize, H: PlatformNetworkInterface> NetworkInterface<MTU, H> {
+    pub fn id(&self) -> NetworkInterfaceId {
+        self.id
+    }
+
     /// Sends data to the interface.
     pub fn send(&self, vl: &VirtualLinkId, buf: &[u8]) -> Result<usize, Error> {
         if buf.len() > MTU as usize {

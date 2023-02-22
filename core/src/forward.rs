@@ -2,8 +2,10 @@ use core::fmt::Debug;
 
 use crate::{
     error::Error,
-    network::NetworkInterface,
-    prelude::{InterfaceError, PayloadSize, PlatformNetworkInterface, Scheduler, VirtualLinkId},
+    prelude::{
+        InterfaceError, NetworkInterface, NetworkInterfaceId, PayloadSize,
+        PlatformNetworkInterface, Scheduler, VirtualLinkId,
+    },
     virtual_link::VirtualLink,
 };
 use apex_rs::prelude::{ApexTimeP4Ext, SystemTime};
@@ -11,6 +13,9 @@ use log::{error, trace, warn};
 
 /// Trait that hides hypervisor and MTU.
 pub trait Interface: Debug {
+    /// Returns the ID of the network interface.
+    fn id(&self) -> NetworkInterfaceId;
+
     /// Send data.
     fn send(&self, vl: &VirtualLinkId, buf: &[u8]) -> Result<usize, Error>;
 
@@ -21,6 +26,10 @@ pub trait Interface: Debug {
 impl<const MTU: PayloadSize, H: PlatformNetworkInterface + Debug> Interface
     for NetworkInterface<MTU, H>
 {
+    fn id(&self) -> NetworkInterfaceId {
+        NetworkInterface::id(self)
+    }
+
     fn receive<'a>(&self, buf: &'a mut [u8]) -> Result<(VirtualLinkId, &'a [u8]), Error> {
         NetworkInterface::receive(self, buf)
     }
@@ -76,7 +85,7 @@ impl<'a> Forwarder<'a> {
                 if let Some(next) = self.links.iter().find(|l| l.vl_id() == next) {
                     if let Ok(data) = next.read_local(buf) {
                         // TODO only forward to the interfaces for the VL
-                        for i in self.interfaces.iter() {
+                        for i in self.interfaces.iter().filter(|i| next.connects_to(&i.id())) {
                             trace!("Sending to network: {data:?}");
                             if let Err(e) = i.send(&next.vl_id(), data) {
                                 warn!("Failed to send to interface {e}")

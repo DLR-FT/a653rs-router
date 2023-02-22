@@ -74,6 +74,9 @@ pub trait VirtualLink: Debug {
 
     /// Processes a message from a remote interface.
     fn process_remote(&self, buffer: &[u8]) -> Result<(), Error>;
+
+    /// Checks if this virtual link connects to an interface.
+    fn connects_to(&self, intf: &NetworkInterfaceId) -> bool;
 }
 
 /// Allows for modification of the ports and interfaces of a virtual link.
@@ -221,6 +224,10 @@ where
         }
 
         Err(Error::InvalidConfig)
+    }
+
+    fn connects_to(&self, intf: &NetworkInterfaceId) -> bool {
+        self.interfaces.contains(intf)
     }
 }
 
@@ -370,5 +377,9 @@ where
 
         // TODO proper error
         Err(Error::InvalidConfig)
+    }
+
+    fn connects_to(&self, intf: &NetworkInterfaceId) -> bool {
+        self.interfaces.contains(intf)
     }
 }

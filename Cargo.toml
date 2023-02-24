@@ -10,9 +10,11 @@ members = [
   "examples/echo-linux",
   "examples/np-zynq7000",
   "examples/echo-client-zynq7000",
-  "examples/echo-server-zynq7000"
+  "examples/echo-server-zynq7000",
+  "trace"
 ]
 default-members = [  
+  "trace",
   "log",
   "echo",
   "gen-config",

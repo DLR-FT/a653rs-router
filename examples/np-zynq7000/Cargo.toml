@@ -17,6 +17,7 @@ heapless = { version = "0.7" }
 once_cell = { version = "1.17", default-features = false }
 xng-rs-log = { path = "../../log" }
 postcard = "1.0"
+one-byte-trace = { path = "../../trace" }
 
 [build-dependencies]
 network-partition = { path = "../../core", feature = [ "serde" ] }

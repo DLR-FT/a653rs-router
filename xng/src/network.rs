@@ -7,6 +7,7 @@ use network_partition::prelude::{
     UartInterfaceConfig, VirtualLinkId,
 };
 use once_cell::unsync::Lazy;
+use one_byte_trace::gpio_trace;
 use uart_xilinx::MmioUartAxi16550;
 
 /// Networking on XNG.
@@ -209,6 +210,7 @@ impl PlatformNetworkInterface for UartNetworkInterface {
         vl: VirtualLinkId,
         buffer: &[u8],
     ) -> Result<usize, InterfaceError> {
+        gpio_trace!(0xFF);
         let mut buf = [0u8; { UartFrame::max_encoded_len() + 1 }];
         let frame = UartFrame { vl, pl: buffer };
 

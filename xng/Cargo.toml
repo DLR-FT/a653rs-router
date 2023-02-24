@@ -13,3 +13,5 @@ uart_xilinx = { version = "0.1.0" }
 heapless = { version = "0.7" }
 corncobs = { version = "0.1" }
 crc16 = { version = "0.4.0", default-features = false }
+volatile-register = "0.2"
+one-byte-trace = { path = "../trace" }

@@ -1,6 +1,8 @@
 #![no_std]
 #![feature(let_chains)]
 
+pub use crate::log::XalLogger;
+
 extern "C" {
     pub fn XalPutchar(c: i32) -> i32;
 }

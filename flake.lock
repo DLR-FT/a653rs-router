@@ -156,11 +156,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1677323986,
-        "narHash": "sha256-S/nvcuwzLwowLvxHaNE44FQdtHx62ujKTlwY6eiHqT8=",
+        "lastModified": 1677354492,
+        "narHash": "sha256-3VPD67H+HHKZ5ZclMzh9miCxrTlPRG3/SQAPU+UDg+w=",
         "ref": "main",
-        "rev": "d9826cabef5a20c11b0c16168705b21524a117ec",
-        "revCount": 10,
+        "rev": "922bb99998e72fc7c27f48f32eb8757763842420",
+        "revCount": 17,
         "type": "git",
         "url": "ssh://git@github.com/dadada/vivado-coraz7-uart.git"
       },

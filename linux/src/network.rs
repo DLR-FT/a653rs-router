@@ -9,6 +9,7 @@ use network_partition::prelude::{
     PlatformNetworkInterface, UdpInterfaceConfig, VirtualLinkId,
 };
 use once_cell::sync::Lazy;
+use small_trace::*;
 
 #[derive(Debug)]
 pub struct UdpNetworkInterface;
@@ -31,6 +32,7 @@ impl PlatformNetworkInterface for UdpNetworkInterface {
         let sock = interfaces.get(index).ok_or(InterfaceError::NotFound)?;
         match sock.sock.recv(buffer) {
             Ok(read) => {
+                gpio_trace!(TraceEvent::NetworkReceive(id.0 as u16));
                 let vl_id_len = size_of::<VirtualLinkId>();
                 let vl_id = &buffer[0..vl_id_len];
                 let mut vl_id_buf = [0u8; size_of::<VirtualLinkId>()];
@@ -49,11 +51,11 @@ impl PlatformNetworkInterface for UdpNetworkInterface {
     }
 
     fn platform_interface_send_unchecked(
-        id: network_partition::prelude::NetworkInterfaceId,
+        netid: NetworkInterfaceId,
         vl: VirtualLinkId,
         buffer: &[u8],
     ) -> Result<usize, InterfaceError> {
-        let index: usize = id.into();
+        let index: usize = netid.into();
         let interfaces = INTERFACES.lock().unwrap();
         let sock = interfaces.get(index).ok_or(InterfaceError::NotFound)?;
         let id = vl.into_inner();
@@ -61,6 +63,7 @@ impl PlatformNetworkInterface for UdpNetworkInterface {
         let udp_buf = [id.as_slice(), buffer].concat();
         match sock.sock.send(&udp_buf) {
             Ok(trans) => {
+                gpio_trace!(TraceEvent::NetworkSend(netid.0 as u16));
                 trace!("Send {} bytes to UDP socket", udp_buf.len());
                 Ok(trans)
             }

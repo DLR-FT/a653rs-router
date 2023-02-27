@@ -18,7 +18,7 @@ static TRACER: GpioTracer = GpioTracer::new();
 pub extern "C" fn main() {
     unsafe { log::set_logger_racy(&LOGGER).unwrap() };
     TRACER.init();
-    unsafe { one_byte_trace::set_tracer(&TRACER) }
+    unsafe { small_trace::set_tracer(&TRACER) }
     log::set_max_level(log::LevelFilter::Trace);
     NetworkPartition.run();
 }

@@ -7,7 +7,7 @@ use network_partition::prelude::{
     UartInterfaceConfig, VirtualLinkId,
 };
 use once_cell::unsync::Lazy;
-use one_byte_trace::gpio_trace;
+use small_trace::{gpio_trace, TraceEvent};
 use uart_xilinx::MmioUartAxi16550;
 
 /// Networking on XNG.
@@ -161,12 +161,13 @@ impl PlatformNetworkInterface for UartNetworkInterface {
     type Configuration = UartInterfaceConfig;
 
     fn platform_interface_receive_unchecked(
-        _id: NetworkInterfaceId,
+        id: NetworkInterfaceId,
         buffer: &'_ mut [u8],
     ) -> Result<(VirtualLinkId, &'_ [u8]), InterfaceError> {
         if unsafe { !UART.uart.is_data_ready() } {
             return Err(InterfaceError::NoData);
         }
+        gpio_trace!(TraceEvent::NetworkReceive(id.0 as u16));
         // TODO Get rid of one buffer. Should be possible to decode directly inside RX-Buffer.
         let mut limit = 0;
         let mut queue_has_eof = false;
@@ -206,17 +207,17 @@ impl PlatformNetworkInterface for UartNetworkInterface {
     }
 
     fn platform_interface_send_unchecked(
-        _id: NetworkInterfaceId,
+        id: NetworkInterfaceId,
         vl: VirtualLinkId,
         buffer: &[u8],
     ) -> Result<usize, InterfaceError> {
-        gpio_trace!(0xFF);
         let mut buf = [0u8; { UartFrame::max_encoded_len() + 1 }];
         let frame = UartFrame { vl, pl: buffer };
 
         // TODO Time it takes to do this should be accounted for if line is not used.
         let encoded = UartFrame::encode(&frame, &mut buf).or(Err(InterfaceError::InvalidData))?;
 
+        gpio_trace!(TraceEvent::NetworkSend(id.0 as u16));
         unsafe {
             let mut index: usize = 0;
             while index < encoded.len() {

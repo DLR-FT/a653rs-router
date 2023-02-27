@@ -17,6 +17,7 @@ use core::fmt::{Debug, Display};
 use core::time::Duration;
 use heapless::Vec;
 use log::{trace, warn};
+use small_trace::*;
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -133,18 +134,17 @@ where
         if buffer.len() > MTU as usize {
             return Err(Error::VirtualLinkError(VirtualLinkError::MtuMismatch));
         }
-
+        gpio_trace!(TraceEvent::ForwardToApex(self.id.0 as u16));
         let mut last_e: Option<Error> = None;
-
         for src in self.port_srcs.iter() {
             if let Err(e) = src.send(&buffer) {
                 last_e = Some(Error::PortSendFail(e));
                 warn!("Failed to write to {src:?}");
             } else {
+                gpio_trace!(TraceEvent::ApexSend(self.id.0 as u16));
                 trace!("Wrote to source: {buffer:?}")
             }
         }
-
         match last_e {
             None => Ok(()),
             Some(e) => Err(e),
@@ -211,9 +211,11 @@ where
         if let Some(dst) = self.port_dst.as_ref() {
             match dst.receive(buf) {
                 Ok((val, data)) => {
+                    gpio_trace!(TraceEvent::ApexReceive(self.id.0 as u16));
                     if val == Validity::Invalid {
                         warn!("Reading invalid data from port");
                     } else {
+                        self.forward_to_local(data)?;
                         return Ok(data);
                     }
                 }
@@ -272,9 +274,8 @@ where
         if buffer.len() > MTU as usize {
             return Err(Error::VirtualLinkError(VirtualLinkError::MtuMismatch));
         }
-
+        gpio_trace!(TraceEvent::ForwardToApex(self.id.0 as u16));
         let mut last_e: Option<Error> = None;
-
         for src in self.port_senders.iter() {
             // TODO make configurable
             let timeout = SystemTime::Normal(Duration::from_micros(1));
@@ -286,10 +287,10 @@ where
                 last_e = Some(Error::PortSendFail(e));
                 warn!("Failed to write to {src:?}");
             } else {
+                gpio_trace!(TraceEvent::ApexSend(self.id.0 as u16));
                 trace!("Wrote to source: {buffer:?}")
             }
         }
-
         match last_e {
             None => Ok(()),
             Some(e) => Err(e),
@@ -361,7 +362,9 @@ where
             let timeout = SystemTime::Normal(Duration::from_millis(1));
             match dst.receive(buffer, timeout) {
                 Ok(data) => {
+                    gpio_trace!(TraceEvent::ApexReceive(self.id.0 as u16));
                     trace!("Received data from local queueing port");
+                    self.forward_to_local(data)?;
                     return Ok(data);
                 }
                 Err(ApexError::InvalidConfig) => {

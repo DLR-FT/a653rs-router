@@ -1,11 +1,10 @@
-use log::trace;
 ///! A small tracer that writes 8 bit GPIO. See https://docs.xilinx.com/v/u/en-US/pg144-axi-gpio
 ///!
 ///! Only the first of two GPIO channels is enabled. It is set to output only with a width of 8 bit.
 ///! The bits are mapped to ports IO 26 to 33 on the CoraZ7.
 ///!
 ///! The fpga design files are at https://github.com/dadada/vivado-coraz7-uart
-use one_byte_trace::Tracer;
+use small_trace::Tracer;
 use volatile_register::{RO, RW};
 
 /// From board config
@@ -42,16 +41,13 @@ impl GpioTracer {
 
     /// Initializes the GPIOs by writing the reset value to the control registers.
     pub fn init(&self) {
-        trace!("Initializing tracer");
         self.set_output(0x0);
     }
 
     /// Writes a value to GPIO pins 0..8
     pub fn write(&self, val: u32) {
-        trace!("Writing {val} to GPIOs");
         unsafe { (*self.gpio).gpio_data.write(val) };
-        trace!("Resetting GPIOs");
-        unsafe { (*self.gpio).gpio_data.write(0x0) }
+        //unsafe { (*self.gpio).gpio_data.write(0x0) }
     }
 
     fn set_output(&self, mask: u32) {
@@ -60,8 +56,8 @@ impl GpioTracer {
 }
 
 impl Tracer for GpioTracer {
-    /// Writes the bits of the value to IO pins 0 to 7. Then resets the traced value to 0.
-    fn trace(&self, val: u8) {
+    /// Writes the bits of the value to IO pins 26 to 41. Then resets the traced value to 0.
+    fn trace(&self, val: u16) {
         self.write(val as u32);
     }
 }

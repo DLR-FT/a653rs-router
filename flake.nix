@@ -37,8 +37,6 @@
 
     fpga-project = {
       url = "git+ssh://git@github.com/dadada/vivado-coraz7-uart.git?ref=main";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-utils.follows = "utils";
       inputs.xilinx-flake-utils.follows = "xilinx-flake-utils";
     };
 
@@ -54,7 +52,7 @@
         pkgs = import nixpkgs {
           inherit system;
           overlays = [
-            devshell.overlay
+            devshell.overlays.default
           ];
         };
         formatter = pkgs.nixpkgs-fmt;

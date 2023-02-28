@@ -1,7 +1,5 @@
 #![no_std]
 
-use core::debug_assert_eq;
-
 pub enum TraceEvent {
     Noop,
     NetworkSend(u16),
@@ -17,7 +15,8 @@ pub enum TraceEvent {
 
 impl From<TraceEvent> for u16 {
     fn from(value: TraceEvent) -> Self {
-        // First 6 bit are for event type. Remaining 10 bit are for data
+        // First 4 bits for event, second 4 bits for data.
+        // There are 16 GPIOs, but only so many probes.
         let (event, data) = match value {
             TraceEvent::Noop => (0, 0x0),
             TraceEvent::NetworkSend(network_interface) => (1, network_interface),
@@ -30,12 +29,12 @@ impl From<TraceEvent> for u16 {
             TraceEvent::ForwardToApex(virtual_link) => (8, virtual_link),
             TraceEvent::VirtualLinkScheduled(virtual_link) => (9, virtual_link),
         };
-        debug_assert_eq!(
-            0,
-            (0b111111 << 10) & (data as u16),
-            "Data was wider than 10 bit"
-        );
-        (event << 10) | data as u16
+        //debug_assert_eq!(
+        //    0,
+        //    ((0b11_1111 << 10) | 0b11) & data,
+        //    "Data was wider than 6 bit"
+        //);
+        (event << 4) | data
     }
 }
 

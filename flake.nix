@@ -2,8 +2,6 @@
   description = "network-partition";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-22.11";
-
     utils.url = "github:numtide/flake-utils";
 
     devshell = {
@@ -14,20 +12,14 @@
 
     fenix = {
       url = "github:nix-community/fenix";
-      #inputs.nixpkgs.follows = "nixpkgs";
     };
 
     naersk = {
       url = "github:nix-community/naersk";
-      #inputs.nixpkgs.follows = "nixpkgs";
     };
 
     hypervisor = {
       url = "github:dadada/apex-linux/stable-for-master-thesis";
-      inputs.utils.follows = "utils";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.fenix.follows = "fenix";
-      inputs.naersk.follows = "naersk";
     };
 
     xng-utils = {
@@ -37,11 +29,10 @@
 
     fpga-project = {
       url = "git+ssh://git@github.com/dadada/vivado-coraz7-uart.git?ref=main";
-      inputs.xilinx-flake-utils.follows = "xilinx-flake-utils";
     };
 
     xilinx-flake-utils = {
-      url = "github:aeronautical-informatics/xilinx-flake-utils/dev/add-devshell";
+      url = "github:aeronautical-informatics/xilinx-flake-utils";
       # do not override any inputs here to not have to rebuild Xilinx Vitis
     };
   };

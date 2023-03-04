@@ -5,8 +5,8 @@
 
 use apex_rs::prelude::ApexTimeP1Ext;
 use apex_rs_xng::apex::XngHypervisor;
+use coraz7::GpioTracer;
 use log::LevelFilter;
-use network_partition_xng::GpioTracer;
 use xng_rs_log::log::XalLogger;
 
 include!(concat!(env!("OUT_DIR"), "/np.rs"));

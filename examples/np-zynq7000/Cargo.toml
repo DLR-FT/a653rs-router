@@ -18,6 +18,7 @@ once_cell = { version = "1.17", default-features = false }
 xng-rs-log = { path = "../../log" }
 postcard = "1.0"
 small-trace = { path = "../../trace" }
+coraz7 = { path = "../../coraz7" }
 
 [build-dependencies]
 network-partition = { path = "../../core", feature = [ "serde" ] }

@@ -181,6 +181,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "coraz7"
+version = "0.1.0"
+dependencies = [
+ "small-trace",
+ "volatile-register",
+]
+
+[[package]]
 name = "core-foundation-sys"
 version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -602,7 +610,6 @@ dependencies = [
  "once_cell",
  "small-trace",
  "uart_xilinx",
- "volatile-register",
 ]
 
 [[package]]
@@ -643,6 +650,7 @@ version = "0.1.0"
 dependencies = [
  "apex-rs",
  "apex-rs-xng",
+ "coraz7",
  "heapless",
  "log",
  "network-partition",

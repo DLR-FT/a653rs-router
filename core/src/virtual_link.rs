@@ -137,7 +137,7 @@ where
         gpio_trace!(TraceEvent::ForwardToApex(self.id.0 as u16));
         let mut last_e: Option<Error> = None;
         for src in self.port_srcs.iter() {
-            if let Err(e) = src.send(&buffer) {
+            if let Err(e) = src.send(buffer) {
                 last_e = Some(Error::PortSendFail(e));
                 warn!("Failed to write to {src:?}");
             } else {
@@ -279,11 +279,7 @@ where
         for src in self.port_senders.iter() {
             // TODO make configurable
             let timeout = SystemTime::Normal(Duration::from_micros(1));
-            // TODO buffer needs to be mutable because apex-rs needs a mutable buffer for sending to queuing ports.
-            // Is this a mistake in apex-rs?
-            let mut buf = [0u8; MTU as usize];
-            buf[0..buffer.len()].copy_from_slice(&buffer);
-            if let Err(e) = src.send(&mut buf, timeout) {
+            if let Err(e) = src.send(buffer, timeout) {
                 last_e = Some(Error::PortSendFail(e));
                 warn!("Failed to write to {src:?}");
             } else {
@@ -348,7 +344,7 @@ where
     [(); MTU as usize]:,
 {
     fn vl_id(&self) -> VirtualLinkId {
-        return self.id;
+        self.id
     }
 
     fn process_remote(&self, buffer: &[u8]) -> Result<(), Error> {

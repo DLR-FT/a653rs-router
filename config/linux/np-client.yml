@@ -7,7 +7,7 @@ virtual_links:
     ports:      
       - !SamplingPortDestination
         channel: EchoRequest
-        validity: 2s
+        validity: 4s
   - id: 2
     msg_size: 100B
     ports:
@@ -19,12 +19,11 @@ interfaces:
     name: "34254"
     rate: 10000000
     mtu: 1.5KB
-    # TODO remove. not needed for veth, only for UDP
     destination: "127.0.0.1:34256"
 schedule:
   !DeadlineRr
   slots:
     - vl: 1
-      period: 1s
+      period: 100ms
     - vl: 2
-      period: 500ms
+      period: 100ms

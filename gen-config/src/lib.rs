@@ -58,7 +58,7 @@ impl<const VLS: usize, const PORTS: usize, const IFS: usize, const SCHEDULE_SLOT
             #( #define_interfaces )*
 
             extern "C" fn entry_point() {
-                info!("Running network partition");
+                info!("Running network partition aperiodic process");
 
                 let mut interfaces: [&dyn Interface; #num_interfaces] = [ #( unsafe { #interface_names . get().unwrap() } ),* ];
 
@@ -100,7 +100,7 @@ impl<const VLS: usize, const PORTS: usize, const IFS: usize, const SCHEDULE_SLOT
                         stack_size: #process_stack_size,
                         base_priority: 5,
                         deadline: Deadline::Soft,
-                        name: Name::from_str("np").unwrap(),
+                        name: Name::from_str("network_p").unwrap(),
                     }) {
                         Ok(process) => process,
                         Err(err) => {

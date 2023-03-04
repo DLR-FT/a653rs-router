@@ -14,19 +14,19 @@ import "${nixpkgs}/nixos/tests/make-test-python.nix"
       environment.etc."hypervisor_config_client.yml" =
         {
           text = ''
-            major_frame: 10s
+            major_frame: 2s
             partitions:
               - id: 0
                 name: Echo
-                duration: 100ms
-                offset: 0ms
-                period: 1s
+                duration: 1s
+                offset: 0s
+                period: 2s
                 image: ${echo-linux}/bin/echo
               - id: 1
                 name: Network
-                duration: 100ms
-                offset: 100ms
-                period: 200ms
+                duration: 1s
+                offset: 0s
+                period: 2s
                 image: ${echo-linux}/bin/np-client
                 udp_ports:
                   - "127.0.0.1:34254"
@@ -49,20 +49,20 @@ import "${nixpkgs}/nixos/tests/make-test-python.nix"
       environment.etc."hypervisor_config_server.yml" =
         {
           text = ''
-            major_frame: 1s
+            major_frame: 2s
             partitions:
               - id: 0
                 name: Echo
-                duration: 100ms
+                duration: 1s
                 offset: 0ms
-                period: 200ms
-                image: ${echo-linux}/echo-server
+                period: 2s
+                image: ${echo-linux}/bin/echo-server
               - id: 1
                 name: Network
-                duration: 100ms
-                offset: 100ms
-                period: 200ms
-                image: ${echo-linux}/np-server
+                duration: 1s
+                offset: 1s
+                period: 2s
+                image: ${echo-linux}/bin/np-server
                 udp_ports:
                   - "127.0.0.1:34256"
             channel:
@@ -85,7 +85,7 @@ import "${nixpkgs}/nixos/tests/make-test-python.nix"
 
     testScript = ''
       system1.wait_for_unit("multi-user.target")
-      system1.succeed("RUST_LOG=trace linux-apex-hypervisor --duration 10s /etc/hypervisor_config_server.yml & RUST_LOG=trace linux-apex-hypervisor --duration 10s /etc/hypervisor_config_client.yml")
+      system1.succeed("RUST_LOG=trace linux-apex-hypervisor --duration 30s /etc/hypervisor_config_server.yml & RUST_LOG=trace linux-apex-hypervisor --duration 30s /etc/hypervisor_config_client.yml")
     '';
   })
   args

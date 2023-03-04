@@ -88,7 +88,6 @@ impl<'a> Forwarder<'a> {
                 if let Some(next) = self.links.iter().find(|l| l.vl_id() == next) {
                     if let Ok(data) = next.read_local(buf) {
                         gpio_trace!(TraceEvent::ForwardFromApex(next.vl_id().0 as u16));
-                        // TODO only forward to the interfaces for the VL
                         for i in self.interfaces.iter().filter(|i| next.connects_to(&i.id())) {
                             trace!("Sending to network: {data:?}");
                             gpio_trace!(TraceEvent::ForwardToNetwork(next.vl_id().0 as u16));
@@ -99,7 +98,7 @@ impl<'a> Forwarder<'a> {
                     }
                 }
             } else {
-                //trace!("Scheduled no VL");
+                //info!("Scheduled no VL");
             }
         } else {
             error!("System time was not normal")

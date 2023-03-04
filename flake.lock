@@ -244,16 +244,16 @@
         "utils": "utils"
       },
       "locked": {
-        "lastModified": 1672500788,
-        "narHash": "sha256-GVHT8dzza4R5zvsPLv5ZFVJP2DwBVORLIxt8oWqhdGk=",
+        "lastModified": 1677957286,
+        "narHash": "sha256-VMYi+i0xBMPD5y0IvfsqKtEm+nqbDNl/x2tliVev3bA=",
         "owner": "dadada",
         "repo": "apex-linux",
-        "rev": "2c1f4a7dfaa604acb9aa7243ed0a75e5ca5ced62",
+        "rev": "a50059673c68d04c0f47f46ecf8f444bf0dd56f2",
         "type": "github"
       },
       "original": {
         "owner": "dadada",
-        "ref": "stable-for-master-thesis",
+        "ref": "udp-network-driver",
         "repo": "apex-linux",
         "type": "github"
       }

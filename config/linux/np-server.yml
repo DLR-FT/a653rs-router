@@ -12,7 +12,7 @@ virtual_links:
     ports:
       - !SamplingPortDestination
         channel: EchoReply
-        validity: 2s
+        validity: 4s
 interfaces:
   - !Udp
     id: 1
@@ -24,6 +24,6 @@ schedule:
   !DeadlineRr
   slots:
     - vl: 1
-      period: 1s
+      period: 200ms
     - vl: 2
-      period: 500ms
+      period: 200ms

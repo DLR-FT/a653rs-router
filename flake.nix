@@ -19,7 +19,7 @@
     };
 
     hypervisor = {
-      url = "github:dadada/apex-linux/stable-for-master-thesis";
+      url = "github:dadada/apex-linux/udp-network-driver";
     };
 
     xng-utils = {
@@ -132,8 +132,8 @@
               name = "test-run-echo";
               command = ''
                 cargo build --release --target x86_64-unknown-linux-musl
-                RUST_LOG=''${RUST_LOG:=trace} linux-apex-hypervisor --duration 10s config/linux/hv-client.yml 2> hv-client.log & \
-                RUST_LOG=''${RUST_LOG:=trace} linux-apex-hypervisor --duration 10s config/linux/hv-server.yml 2> hv-server.log
+                RUST_LOG=''${RUST_LOG:=info} linux-apex-hypervisor --duration 30s config/linux/hv-server.yml 2> hv-server.log & \
+                RUST_LOG=''${RUST_LOG:=info} linux-apex-hypervisor --duration 30s config/linux/hv-client.yml 2> hv-client.log &
               '';
               help = "Run echo example using systemd scope and exit after 10 seconds";
             }

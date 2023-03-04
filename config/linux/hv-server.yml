@@ -1,16 +1,16 @@
-major_frame: 1s
+major_frame: 100ms
 partitions:
   - id: 0
     name: Echo
-    duration: 100ms
-    offset: 0ms
-    period: 200ms
+    duration: 50ms
+    offset: 50ms
+    period: 100ms
     image: target/x86_64-unknown-linux-musl/release/echo-server
   - id: 1
     name: Network
-    duration: 100ms
-    offset: 100ms
-    period: 200ms
+    duration: 50ms
+    offset: 0s
+    period: 100ms
     image: target/x86_64-unknown-linux-musl/release/np-server
     udp_ports:
       - "127.0.0.1:34256"

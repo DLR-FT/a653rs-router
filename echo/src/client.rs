@@ -33,22 +33,27 @@ where
         let mut i: u32 = 0;
         loop {
             i += 1;
-            let now = <H as ApexTimeP4Ext>::get_time().unwrap_duration();
-            let data = Echo {
-                sequence: i,
-                when_ms: now.as_millis() as u64,
-            };
-            let result = port.send_type(data);
-            match result {
-                Ok(_) => {
-                    trace!(
-                        "EchoRequest: seqnr = {:?}, time = {:?}",
-                        data.sequence,
-                        data.when_ms
-                    );
+            match <H as ApexTimeP4Ext>::get_time() {
+                SystemTime::Normal(now) => {
+                    let data = Echo {
+                        sequence: i,
+                        when_ms: now.as_millis() as u64,
+                    };
+                    let result = port.send_type(data);
+                    match result {
+                        Ok(_) => {
+                            info!(
+                                "EchoRequest: seqnr = {:?}, time = {:?}",
+                                data.sequence, data.when_ms
+                            );
+                        }
+                        Err(_) => {
+                            error!("Failed to send EchoRequest");
+                        }
+                    }
                 }
-                Err(_) => {
-                    error!("Failed to send EchoRequest");
+                _ => {
+                    warn!("Failed to get time from hypervisor")
                 }
             }
             <H as ApexTimeP4Ext>::periodic_wait().unwrap();
@@ -66,10 +71,9 @@ where
     pub fn run<H: ApexSamplingPortP4 + ApexTimeP4Ext>(
         port: &mut SamplingPortDestination<ECHO_SIZE, H>,
     ) -> ! {
+        info!("Running echo client aperiodic process");
         let mut last = 0;
         loop {
-            trace!("Running echo client aperiodic process");
-            let now = <H as ApexTimeP4Ext>::get_time().unwrap_duration();
             let result = port.recv_type::<Echo>();
             match result {
                 Ok(data) => {
@@ -81,11 +85,20 @@ where
                     }
                     if received.sequence > last {
                         last += 1;
-                        info!(
-                            "EchoReply: seqnr = {:?}, time = {:?}",
-                            received.sequence,
-                            (now.as_millis() as u64) - received.when_ms
-                        );
+
+                        match <H as ApexTimeP4Ext>::get_time() {
+                            SystemTime::Normal(now) => {
+                                let now: Duration = now;
+                                info!(
+                                    "EchoReply: seqnr = {:?}, time = {:?}",
+                                    received.sequence,
+                                    (now.as_millis() as u64) - received.when_ms
+                                );
+                            }
+                            _ => {
+                                warn!("Failed to get time from hypervisor");
+                            }
+                        }
                     } else {
                         trace!("Duplicate")
                     }
@@ -93,8 +106,11 @@ where
                 Err(SamplingRecvError::Apex(Error::NotAvailable)) => {
                     warn!("No echo reply available");
                 }
-                Err(e) => {
-                    error!("Failed to receive reply: {e:?}");
+                Err(SamplingRecvError::Postcard(e, _, _)) => {
+                    trace!("Failed to decode echo reply: {e:?}");
+                }
+                _ => {
+                    error!("Failed to receive echo reply");
                 }
             }
         }
@@ -125,7 +141,7 @@ where
 
         _ = self.sender.set(send_port);
 
-        let echo_validity: Duration = Duration::from_secs(10);
+        let echo_validity: Duration = Duration::from_secs(2);
 
         let receive_port = ctx
             .create_sampling_port_destination(Name::from_str("EchoReply").unwrap(), echo_validity)

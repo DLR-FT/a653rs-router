@@ -1,7 +1,7 @@
 use apex_rs::prelude::*;
 use core::str::FromStr;
 use core::time::Duration;
-use log::{error, info, trace, warn};
+use log::{debug, error, info, trace, warn};
 use once_cell::unsync::OnceCell;
 
 pub struct EchoServerPartition<const ECHO_SIZE: MessageSize, S>
@@ -88,14 +88,18 @@ where
         loop {
             match recv.receive(&mut buf) {
                 Ok((val, data)) => {
-                    trace!("Received echo request");
+                    trace!("Received echo request: ${data:?}");
+                    if data.is_empty() {
+                        debug!("Skipping empty data");
+                        continue;
+                    }
                     if val == Validity::Valid {
                         match send.send(data) {
                             Ok(_) => {
                                 trace!("Replied to echo");
                             }
                             Err(err) => {
-                                error!("Failed to reply to echo: {:?}", err);
+                                warn!("Failed to reply to echo: {err:?}");
                             }
                         }
                     } else {

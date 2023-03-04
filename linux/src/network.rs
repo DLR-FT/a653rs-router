@@ -3,7 +3,7 @@ use std::{mem::size_of, net::UdpSocket};
 
 use apex_rs_linux::partition::ApexLinuxPartition;
 
-use log::{error, trace, warn};
+use log::{error, info, trace, warn};
 use network_partition::prelude::{
     CreateNetworkInterfaceId, DataRate, InterfaceError, NetworkInterfaceId,
     PlatformNetworkInterface, UdpInterfaceConfig, VirtualLinkId,
@@ -27,9 +27,11 @@ impl PlatformNetworkInterface for UdpNetworkInterface {
         id: NetworkInterfaceId,
         buffer: &'_ mut [u8],
     ) -> Result<(VirtualLinkId, &'_ [u8]), InterfaceError> {
-        let index: usize = id.into();
         let interfaces = INTERFACES.lock().unwrap();
-        let sock = interfaces.get(index).ok_or(InterfaceError::NotFound)?;
+        let sock = interfaces
+            .iter()
+            .find(|i| i.id == id)
+            .ok_or(InterfaceError::NotFound)?;
         match sock.sock.recv(buffer) {
             Ok(read) => {
                 gpio_trace!(TraceEvent::NetworkReceive(id.0 as u16));
@@ -43,27 +45,25 @@ impl PlatformNetworkInterface for UdpNetworkInterface {
                 trace!("Received message from UDP socket for VL {vl_id}: {:?}", msg);
                 Ok((vl_id, msg))
             }
-            Err(err) => {
-                warn!("Failed to receive from UDP socket: {err:?}");
-                Err(InterfaceError::NoData)
-            }
+            Err(err) => Err(InterfaceError::NoData),
         }
     }
 
     fn platform_interface_send_unchecked(
-        netid: NetworkInterfaceId,
+        id: NetworkInterfaceId,
         vl: VirtualLinkId,
         buffer: &[u8],
     ) -> Result<usize, InterfaceError> {
-        let index: usize = netid.into();
         let interfaces = INTERFACES.lock().unwrap();
-        let sock = interfaces.get(index).ok_or(InterfaceError::NotFound)?;
-        let id = vl.into_inner();
-        let id = id.to_be_bytes();
-        let udp_buf = [id.as_slice(), buffer].concat();
+        let sock = interfaces
+            .iter()
+            .find(|i| i.id == id)
+            .ok_or(InterfaceError::NotFound)?;
+        let vlid = vl.into_inner().to_be_bytes();
+        let udp_buf = [vlid.as_slice(), buffer].concat();
         match sock.sock.send(&udp_buf) {
             Ok(trans) => {
-                gpio_trace!(TraceEvent::NetworkSend(netid.0 as u16));
+                gpio_trace!(TraceEvent::NetworkSend(id.0 as u16));
                 trace!("Send {} bytes to UDP socket", udp_buf.len());
                 Ok(trans)
             }
@@ -77,6 +77,7 @@ impl PlatformNetworkInterface for UdpNetworkInterface {
 
 #[derive(Debug)]
 struct LimitedUdpSocket {
+    id: NetworkInterfaceId,
     sock: UdpSocket,
     _rate: DataRate,
 }
@@ -94,6 +95,7 @@ impl CreateNetworkInterfaceId<UdpNetworkInterface> for UdpNetworkInterface {
         sock.set_nonblocking(true).unwrap();
         sock.connect(cfg.destination.as_str()).unwrap();
         let sock = LimitedUdpSocket {
+            id: cfg.id,
             sock,
             _rate: cfg.rate,
         };

@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
-  "log",
+  "coraz7",
   "echo",
   "gen-config",
   "core",
@@ -15,7 +15,7 @@ members = [
 ]
 default-members = [  
   "trace",
-  "log",
+  "coraz7",
   "echo",
   "gen-config",
   "core",

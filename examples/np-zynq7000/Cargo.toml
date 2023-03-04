@@ -15,7 +15,6 @@ apex-rs-xng = { git = "https://github.com/dadada/apex-rs-xng.git", branch = "xng
 log = { version = "0", default-features = false }
 heapless = { version = "0.7" }
 once_cell = { version = "1.17", default-features = false }
-xng-rs-log = { path = "../../log" }
 postcard = "1.0"
 small-trace = { path = "../../trace" }
 coraz7 = { path = "../../coraz7" }

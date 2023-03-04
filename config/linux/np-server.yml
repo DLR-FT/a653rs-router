@@ -3,13 +3,12 @@ stack_size:
 virtual_links:
   - id: 1
     msg_size: 100B
-    interfaces: [ "34255" ]
     ports:      
       - !SamplingPortSource
         channel: EchoRequest
   - id: 2
     msg_size: 100B
-    interfaces: [ "34255" ]
+    interfaces: [ "34256" ]
     ports:
       - !SamplingPortDestination
         channel: EchoReply
@@ -17,7 +16,7 @@ virtual_links:
 interfaces:
   - !Udp
     id: 1
-    name: "34255"
+    name: "34256"
     rate: 10000000
     mtu: 1.5KB
     destination: "127.0.0.1:34254"

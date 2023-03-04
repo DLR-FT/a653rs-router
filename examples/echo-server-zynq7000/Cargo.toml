@@ -14,4 +14,5 @@ apex-rs = { git = "https://github.com/aeronautical-informatics/apex-rs.git", bra
 apex-rs-xng = { git = "https://github.com/dadada/apex-rs-xng.git", branch = "xng-hypervisor-debug" }
 once_cell = { version = "1.17", default-features = false }
 log = "0"
-xng-rs-log = { path = "../../log" }
+coraz7 = { path = "../../coraz7" }
+small-trace = { path = "../..//trace" }

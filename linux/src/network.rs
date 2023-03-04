@@ -86,7 +86,11 @@ impl CreateNetworkInterfaceId<UdpNetworkInterface> for UdpNetworkInterface {
         cfg: UdpInterfaceConfig,
     ) -> Result<NetworkInterfaceId, InterfaceError> {
         let mut interfaces = INTERFACES.lock().unwrap(); // TODO wrap error
-        let sock = SOCKETS.lock().unwrap().pop().unwrap(); // TODO wrap error
+        let sock = SOCKETS
+            .lock()
+            .or(Err(InterfaceError::NotFound))?
+            .pop()
+            .ok_or(InterfaceError::NotFound)?;
         sock.set_nonblocking(true).unwrap();
         sock.connect(cfg.destination.as_str()).unwrap();
         let sock = LimitedUdpSocket {

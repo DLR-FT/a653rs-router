@@ -77,7 +77,7 @@
             sha256 = "1b73d6x3galw3bhj5nac7ifgp15zrsyipn4imwknr24gp1l14sc8";
           };
         };
-        xng-sys-img-local_echo = self.packages.${system}.xng-sys-image-local_echo;
+        xng-sys-img-local_echo = self.packages.${system}.xng-sys-img-local_echo;
       in
       {
         inherit formatter;
@@ -246,11 +246,9 @@
               nativeBuildInputs = [ rust-toolchain ];
             } "cd ${./.} && cargo fmt --check && touch $out";
           run-echo-with-timeout = import ./test/integration.nix {
-            inherit nixpkgs system;
-            pkgs = nixpkgs.legacyPackages.${system};
+            inherit nixpkgs pkgs system;
             linux-apex-hypervisor = hypervisorPackage;
-            network-partition-echo = self.packages.${system}.echo;
-            echo-partition = self.packages.${system}.echo;
+            echo-linux = self.packages.${system}.echo-linux;
           };
         };
         packages = {
@@ -309,6 +307,15 @@
             doCheck = false;
             copyLibs = true;
             copyBins = false;
+            #doDoc = true;
+          };
+          echo-linux = naerskLib.buildPackage rec {
+            pname = "echo-linux";
+            CONFIG_DIR = ./config/linux;
+            root = ./.;
+            cargoBuildOptions = x: x ++ [ "-p" pname "--target" "x86_64-unknown-linux-musl" ];
+            cargoTestOptions = x: x ++ [ "-p" pname "--target" "x86_64-unknown-linux-musl" ];
+            doCheck = true;
             #doDoc = true;
           };
           xng-ops = xng-utils.lib.buildXngOps {

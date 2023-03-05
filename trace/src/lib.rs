@@ -11,6 +11,47 @@ pub enum TraceEvent {
     ForwardToNetwork(u16),
     ForwardToApex(u16),
     VirtualLinkScheduled(u16),
+    Echo(EchoEvent),
+}
+
+impl TraceEvent {
+    /// `Self::Echo(EchoEvent::EchoReplySend)`
+    pub fn echo_req_send() -> Self {
+        Self::Echo(EchoEvent::EchoReplySend)
+    }
+
+    /// `Self::Echo(EchoEvent::EchoRequestReceived`
+    pub fn echo_req_rcvd() -> Self {
+        Self::Echo(EchoEvent::EchoRequestReceived)
+    }
+
+    /// `Self::Echo(EchoEvent::EchoReplySend`
+    pub fn echo_repl_send() -> Self {
+        Self::Echo(EchoEvent::EchoReplySend)
+    }
+
+    /// `Self::Echo(EchoEvent::EchoReplyReceived)`
+    pub fn echo_repl_rcvd() -> Self {
+        Self::Echo(EchoEvent::EchoReplyReceived)
+    }
+}
+
+pub enum EchoEvent {
+    EchoRequestSend,
+    EchoRequestReceived,
+    EchoReplySend,
+    EchoReplyReceived,
+}
+
+impl From<EchoEvent> for u16 {
+    fn from(value: EchoEvent) -> Self {
+        match value {
+            EchoEvent::EchoRequestSend => 0,
+            EchoEvent::EchoRequestReceived => 1,
+            EchoEvent::EchoReplySend => 2,
+            EchoEvent::EchoReplyReceived => 3,
+        }
+    }
 }
 
 impl From<TraceEvent> for u16 {
@@ -28,6 +69,7 @@ impl From<TraceEvent> for u16 {
             TraceEvent::ForwardToNetwork(virtual_link) => (7, virtual_link),
             TraceEvent::ForwardToApex(virtual_link) => (8, virtual_link),
             TraceEvent::VirtualLinkScheduled(virtual_link) => (9, virtual_link),
+            TraceEvent::Echo(echo) => (10, u16::from(echo)),
         };
         //debug_assert_eq!(
         //    0,

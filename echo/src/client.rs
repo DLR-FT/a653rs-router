@@ -8,6 +8,7 @@ use core::time::Duration;
 use log::{error, info, trace, warn};
 use once_cell::unsync::OnceCell;
 use serde::{Deserialize, Serialize};
+use small_trace::{gpio_trace, TraceEvent};
 
 #[derive(Serialize, Deserialize, Copy, Clone, Debug)]
 /// Echo message
@@ -39,6 +40,7 @@ where
                         sequence: i,
                         when_ms: now.as_millis() as u64,
                     };
+                    gpio_trace!(TraceEvent::echo_req_send());
                     let result = port.send_type(data);
                     match result {
                         Ok(_) => {
@@ -75,6 +77,7 @@ where
         let mut last = 0;
         loop {
             let result = port.recv_type::<Echo>();
+            gpio_trace!(TraceEvent::echo_repl_rcvd());
             match result {
                 Ok(data) => {
                     trace!("Received reply: {data:?}");

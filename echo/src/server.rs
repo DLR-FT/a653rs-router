@@ -3,6 +3,7 @@ use core::str::FromStr;
 use core::time::Duration;
 use log::{debug, error, info, trace, warn};
 use once_cell::unsync::OnceCell;
+use small_trace::{gpio_trace, TraceEvent};
 
 pub struct EchoServerPartition<const ECHO_SIZE: MessageSize, S>
 where
@@ -88,12 +89,14 @@ where
         loop {
             match recv.receive(&mut buf) {
                 Ok((val, data)) => {
+                    gpio_trace!(TraceEvent::echo_req_rcvd());
                     trace!("Received echo request: ${data:?}");
                     if data.is_empty() {
                         debug!("Skipping empty data");
                         continue;
                     }
                     if val == Validity::Valid {
+                        gpio_trace!(TraceEvent::echo_repl_send());
                         match send.send(data) {
                             Ok(_) => {
                                 trace!("Replied to echo");

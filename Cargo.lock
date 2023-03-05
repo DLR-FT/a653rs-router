@@ -32,6 +32,7 @@ dependencies = [
  "log",
  "once_cell",
  "serde",
+ "small-trace",
 ]
 
 [[package]]

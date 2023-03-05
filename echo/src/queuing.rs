@@ -7,6 +7,7 @@ use core::str::FromStr;
 use core::time::Duration;
 use log::{error, info, trace, warn};
 use once_cell::unsync::OnceCell;
+use small_trace::{gpio_trace, TraceEvent};
 
 #[derive(Debug)]
 pub struct QueuingEchoSender<const ECHO_SIZE: MessageSize, const FIFO_DEPTH: MessageRange>;
@@ -28,6 +29,7 @@ where
                 sequence: i,
                 when_ms: now.as_millis() as u64,
             };
+            gpio_trace!(TraceEvent::echo_req_send());
             let result = port.send_type(data, SystemTime::Normal(Duration::from_micros(10)));
             match result {
                 Ok(_) => {
@@ -64,6 +66,7 @@ where
             trace!("Running echo client aperiodic process");
             let now = <H as ApexTimeP4Ext>::get_time().unwrap_duration();
             let result = port.recv_type::<Echo>(SystemTime::Normal(Duration::from_micros(10)));
+            gpio_trace!(TraceEvent::echo_repl_rcvd());
             match result {
                 Ok(data) => {
                     trace!("Received reply: {data:?}");

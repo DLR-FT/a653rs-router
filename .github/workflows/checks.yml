@@ -7,7 +7,7 @@ on:
 
 jobs:
   nix-checks:
-    name: Run nix flake check
+    name: Checks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -15,7 +15,7 @@ jobs:
         with:
           nix_path: nixpkgs=channel:nixos-stable
           extra_nix_config: |
-            experimental-features = nix-command flakes
+            experimental-features = nix-command flakes kvm nixos-test
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
       - name: Cache Nix store
         uses: actions/cache@v3
@@ -26,9 +26,13 @@ jobs:
       - name: Import Nix store cache
         if: "steps.nix-cache.outputs.cache-hit == 'true'"
         run: nix copy --no-check-sigs --from /tmp/nixcache --all
-      - name: Checks
-        run: nix build --print-build-logs .#checks.x86_64-linux.cargo-fmt .#checks.x86_64-linux.nixpkgs-fmt .#checks.x86_64-linux.run-echo-with-timeout
+      - name: cargo-fmt
+        run: nix build .#checks.x86_64-linux.cargo-fmt
+      - name: nixpkgs-fmt
+        run: nix build .#checks.x86_64-linux.nixpkgs-fmt
+      - name: test-run-echo-scoped
+        run: nix develop -c test-run-echo-scoped
       - name: Export Nix store cache
         if: "steps.nix-cache.outputs.cache-hit != 'true'"
         run: |
-          list-nix-store.sh | xargs nix copy --no-check-sigs --to /tmp/nixcache
+          nix copy --no-check-sigs --to /tmp/nixcache .#devShells.x86_64-linux.default

@@ -450,7 +450,7 @@ impl<const VLS: usize, const PORTS: usize, const IFS: usize, const SCHEDULE_SLOT
                 let slots = cfg.slots.iter().map(|s| {
                     let vl = s.vl.0;
                     let period = s.period.as_nanos() as u64;
-                    quote! { slots.push(DeadlineRrSlot { vl: VirtualLinkId(#vl), period: Duration::from_nanos(#period) }); }
+                    quote! { slots.push(DeadlineRrSlot { vl: VirtualLinkId(#vl), period: Duration::from_nanos(#period) }).unwrap(); }
                 });
                 quote! {
                     let mut slots = Vec::<DeadlineRrSlot, #SCHEDULE_SLOTS>::new();

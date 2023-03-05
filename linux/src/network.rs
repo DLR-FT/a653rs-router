@@ -3,7 +3,7 @@ use std::{mem::size_of, net::UdpSocket};
 
 use apex_rs_linux::partition::ApexLinuxPartition;
 
-use log::{error, info, trace, warn};
+use log::{error, trace};
 use network_partition::prelude::{
     CreateNetworkInterfaceId, DataRate, InterfaceError, NetworkInterfaceId,
     PlatformNetworkInterface, UdpInterfaceConfig, VirtualLinkId,
@@ -45,7 +45,7 @@ impl PlatformNetworkInterface for UdpNetworkInterface {
                 trace!("Received message from UDP socket for VL {vl_id}: {:?}", msg);
                 Ok((vl_id, msg))
             }
-            Err(err) => Err(InterfaceError::NoData),
+            Err(_) => Err(InterfaceError::NoData),
         }
     }
 

@@ -9,7 +9,8 @@ edition = "2021"
 network-partition = { path = "../core" }
 log = "0"
 once_cell = { version = "1.17", default-features = false }
-uart_xilinx = { version = "0.1.0" }
+# Seems a bit newer than what is on crates.io
+uart_xilinx = { git = "https://github.com/duskmoon314/uart-rs.git", branch = "main"}
 heapless = { version = "0.7" }
 corncobs = { version = "0.1" }
 crc16 = { version = "0.4.0", default-features = false }

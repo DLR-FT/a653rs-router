@@ -16,7 +16,6 @@ use apex_rs::prelude::{SamplingPortDestination, Validity};
 use core::fmt::{Debug, Display};
 use core::time::Duration;
 use heapless::Vec;
-use log::info;
 use log::{trace, warn};
 use small_trace::*;
 

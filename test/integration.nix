@@ -4,7 +4,6 @@
 , linux-apex-hypervisor
 , echo-linux
 } @args:
-
 import "${nixpkgs}/nixos/tests/make-test-python.nix"
   ({ pkgs, ... }: {
     name = "network-partition-integration";
@@ -14,19 +13,19 @@ import "${nixpkgs}/nixos/tests/make-test-python.nix"
       environment.etc."hypervisor_config_client.yml" =
         {
           text = ''
-            major_frame: 2s
+            major_frame: 1s
             partitions:
-              - id: 0
-                name: Echo
-                duration: 1s
-                offset: 0s
-                period: 2s
-                image: ${echo-linux}/bin/echo
               - id: 1
+                name: Echo
+                duration: 100ms
+                offset: 0ms
+                period: 1s
+                image: ${echo-linux}/bin/echo
+              - id: 2
                 name: Network
-                duration: 1s
-                offset: 0s
-                period: 2s
+                duration: 100ms
+                offset: 500ms
+                period: 1s
                 image: ${echo-linux}/bin/np-client
                 udp_ports:
                   - "127.0.0.1:34254"
@@ -49,19 +48,19 @@ import "${nixpkgs}/nixos/tests/make-test-python.nix"
       environment.etc."hypervisor_config_server.yml" =
         {
           text = ''
-            major_frame: 2s
+            major_frame: 100ms
             partitions:
               - id: 0
                 name: Echo
-                duration: 1s
-                offset: 0ms
-                period: 2s
+                duration: 50ms
+                offset: 50ms
+                period: 100ms
                 image: ${echo-linux}/bin/echo-server
               - id: 1
                 name: Network
-                duration: 1s
-                offset: 1s
-                period: 2s
+                duration: 50ms
+                offset: 0s
+                period: 100ms
                 image: ${echo-linux}/bin/np-server
                 udp_ports:
                   - "127.0.0.1:34256"
@@ -85,7 +84,7 @@ import "${nixpkgs}/nixos/tests/make-test-python.nix"
 
     testScript = ''
       system1.wait_for_unit("multi-user.target")
-      system1.succeed("RUST_LOG=trace linux-apex-hypervisor --duration 30s /etc/hypervisor_config_server.yml & RUST_LOG=trace linux-apex-hypervisor --duration 30s /etc/hypervisor_config_client.yml")
+      system1.succeed("linux-apex-hypervisor --duration 10s /etc/hypervisor_config_server.yml & linux-apex-hypervisor --duration 10s /etc/hypervisor_config_client.yml")
     '';
   })
   args

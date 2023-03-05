@@ -81,11 +81,10 @@ where
                     let (_, received) = data;
                     // Reset when client restarts
                     if received.sequence == 1 {
-                        last = 0;
+                        last = 1;
                     }
                     if received.sequence > last {
                         last += 1;
-
                         match <H as ApexTimeP4Ext>::get_time() {
                             SystemTime::Normal(now) => {
                                 let now: Duration = now;

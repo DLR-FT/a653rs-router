@@ -103,5 +103,6 @@ impl<'a> Forwarder<'a> {
         } else {
             error!("System time was not normal")
         }
+        gpio_trace!(TraceEvent::Done);
     }
 }

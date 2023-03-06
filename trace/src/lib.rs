@@ -12,6 +12,7 @@ pub enum TraceEvent {
     ForwardToApex(u16),
     VirtualLinkScheduled(u16),
     Echo(EchoEvent),
+    Done,
 }
 
 impl TraceEvent {
@@ -70,6 +71,7 @@ impl From<TraceEvent> for u16 {
             TraceEvent::ForwardToApex(virtual_link) => (8, virtual_link),
             TraceEvent::VirtualLinkScheduled(virtual_link) => (9, virtual_link),
             TraceEvent::Echo(echo) => (10, u16::from(echo)),
+            TraceEvent::Done => (11, 0x0),
         };
         //debug_assert_eq!(
         //    0,

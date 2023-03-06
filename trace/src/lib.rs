@@ -1,5 +1,6 @@
 #![no_std]
 
+#[derive(Debug)]
 pub enum TraceEvent {
     Begin(TraceType),
     End(TraceType),
@@ -115,6 +116,7 @@ impl TraceEvent {
     }
 }
 
+#[derive(Debug)]
 pub enum TraceType {
     Noop,
     NetworkSend(u16),
@@ -129,6 +131,7 @@ pub enum TraceType {
     Echo(EchoEvent),
 }
 
+#[derive(Debug)]
 pub enum EchoEvent {
     RequestSend,
     RequestReceived,
@@ -184,11 +187,11 @@ macro_rules! small_trace {
 
 #[doc(hidden)]
 pub fn __private_api_trace(arg0: TraceEvent) {
-    tracer().trace(u16::from(arg0))
+    tracer().trace(arg0)
 }
 
 pub trait Tracer: Send + Sync {
-    fn trace(&self, val: u16);
+    fn trace(&self, val: TraceEvent);
 }
 
 pub static mut TRACER: &dyn Tracer = &NoopTracer;
@@ -196,7 +199,7 @@ pub static mut TRACER: &dyn Tracer = &NoopTracer;
 pub struct NoopTracer;
 
 impl Tracer for NoopTracer {
-    fn trace(&self, _val: u16) {}
+    fn trace(&self, _val: TraceEvent) {}
 }
 
 pub fn tracer() -> &'static dyn Tracer {

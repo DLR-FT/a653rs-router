@@ -5,7 +5,7 @@
 ///!
 ///! The fpga design files are at https://github.com/dadada/vivado-coraz7-uart
 use core::marker::{Send, Sync};
-use small_trace::Tracer;
+use small_trace::{TraceEvent, Tracer};
 use volatile_register::{RO, RW};
 
 /// From board config
@@ -58,8 +58,8 @@ impl GpioTracer {
 
 impl Tracer for GpioTracer {
     /// Writes the bits of the value to IO pins 26 to 41. Then resets the traced value to 0.
-    fn trace(&self, val: u16) {
-        self.write(val as u32);
+    fn trace(&self, val: TraceEvent) {
+        self.write(u16::from(val) as u32);
     }
 }
 

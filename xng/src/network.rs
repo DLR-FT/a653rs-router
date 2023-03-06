@@ -7,7 +7,7 @@ use network_partition::prelude::{
     UartInterfaceConfig, VirtualLinkId,
 };
 use once_cell::unsync::Lazy;
-use small_trace::{gpio_trace, TraceEvent};
+use small_trace::gpio_trace;
 use uart_xilinx::MmioUartAxi16550;
 
 /// Networking on XNG.
@@ -167,7 +167,7 @@ impl PlatformNetworkInterface for UartNetworkInterface {
         if unsafe { !UART.uart.is_data_ready() } {
             return Err(InterfaceError::NoData);
         }
-        gpio_trace!(TraceEvent::NetworkReceive(id.0 as u16));
+        gpio_trace!(begin_network_receive, id.0 as u16);
         // TODO Get rid of one buffer. Should be possible to decode directly inside RX-Buffer.
         let mut limit = 0;
         let mut queue_has_eof = false;
@@ -183,6 +183,7 @@ impl PlatformNetworkInterface for UartNetworkInterface {
             }
         }
         if !queue_has_eof {
+            gpio_trace!(end_network_receive, id.0 as u16);
             return Err(InterfaceError::NoData);
         }
         let mut buf = [0u8; { UartFrame::max_encoded_len() + 1 }];
@@ -200,9 +201,14 @@ impl PlatformNetworkInterface for UartNetworkInterface {
             Ok((vl, pl)) => {
                 let rpl = &mut buffer[0..pl.len()];
                 rpl.copy_from_slice(pl);
+
+                gpio_trace!(end_network_receive, id.0 as u16);
                 Ok((vl, rpl))
             }
-            _ => Err(InterfaceError::InvalidData),
+            _ => {
+                gpio_trace!(end_network_receive, id.0 as u16);
+                Err(InterfaceError::InvalidData)
+            }
         }
     }
 
@@ -217,7 +223,7 @@ impl PlatformNetworkInterface for UartNetworkInterface {
         // TODO Time it takes to do this should be accounted for if line is not used.
         let encoded = UartFrame::encode(&frame, &mut buf).or(Err(InterfaceError::InvalidData))?;
 
-        gpio_trace!(TraceEvent::NetworkSend(id.0 as u16));
+        gpio_trace!(begin_network_send, id.0 as u16);
         unsafe {
             let mut index: usize = 0;
             while index < encoded.len() {
@@ -234,6 +240,7 @@ impl PlatformNetworkInterface for UartNetworkInterface {
             // Wait for transmission to finish
             while !UART.uart.is_transmitter_holding_register_empty() {}
         }
+        gpio_trace!(end_network_send, id.0 as u16);
 
         Ok(encoded.len())
     }

@@ -3,7 +3,7 @@ use core::str::FromStr;
 use core::time::Duration;
 use log::{debug, error, info, trace, warn};
 use once_cell::unsync::OnceCell;
-use small_trace::gpio_trace;
+use small_trace::small_trace;
 
 pub struct EchoServerPartition<const ECHO_SIZE: MessageSize, S>
 where
@@ -89,14 +89,14 @@ where
         loop {
             match recv.receive(&mut buf) {
                 Ok((val, data)) => {
-                    gpio_trace!(begin_echo_request_received);
+                    small_trace!(begin_echo_request_received);
                     trace!("Received echo request: ${data:?}");
                     if data.is_empty() {
                         debug!("Skipping empty data");
                         continue;
                     }
                     if val == Validity::Valid {
-                        gpio_trace!(begin_echo_reply_send);
+                        small_trace!(begin_echo_reply_send);
                         match send.send(data) {
                             Ok(_) => {
                                 trace!("Replied to echo");
@@ -105,11 +105,11 @@ where
                                 warn!("Failed to reply to echo: {err:?}");
                             }
                         }
-                        gpio_trace!(end_echo_reply_send);
+                        small_trace!(end_echo_reply_send);
                     } else {
                         warn!("Ignoring invalid data");
                     }
-                    gpio_trace!(end_echo_request_received);
+                    small_trace!(end_echo_request_received);
                 }
                 Err(Error::NotAvailable) | Err(Error::NoAction) => {
                     warn!("No echo request available yet");

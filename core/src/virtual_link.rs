@@ -134,12 +134,12 @@ where
         if buffer.len() > MTU as usize {
             return Err(Error::VirtualLinkError(VirtualLinkError::MtuMismatch));
         }
-        gpio_trace!(begin_forward_to_apex, self.id.0 as u16);
+        small_trace!(begin_forward_to_apex, self.id.0 as u16);
         let mut last_e: Option<Error> = None;
         for src in self.port_srcs.iter() {
-            gpio_trace!(begin_apex_send, self.id.0 as u16);
+            small_trace!(begin_apex_send, self.id.0 as u16);
             let res = src.send(buffer);
-            gpio_trace!(end_apex_send, self.id.0 as u16);
+            small_trace!(end_apex_send, self.id.0 as u16);
             if let Err(e) = res {
                 last_e = Some(Error::PortSendFail(e));
                 warn!("Failed to write to {src:?}");
@@ -147,7 +147,7 @@ where
                 trace!("Wrote to source: {buffer:?}")
             }
         }
-        gpio_trace!(end_forward_to_apex, self.id.0 as u16);
+        small_trace!(end_forward_to_apex, self.id.0 as u16);
         match last_e {
             None => Ok(()),
             Some(e) => Err(e),
@@ -212,9 +212,9 @@ where
     fn read_local<'a>(&self, buf: &'a mut [u8]) -> Result<&'a [u8], Error> {
         // Take the first data that is available
         if let Some(dst) = self.port_dst.as_ref() {
-            gpio_trace!(begin_apex_receive, self.id.0 as u16);
+            small_trace!(begin_apex_receive, self.id.0 as u16);
             let res = dst.receive(buf);
-            gpio_trace!(end_apex_receive, self.id.0 as u16);
+            small_trace!(end_apex_receive, self.id.0 as u16);
             match res {
                 Ok((val, data)) => {
                     if val == Validity::Invalid {
@@ -279,14 +279,14 @@ where
         if buffer.len() > MTU as usize {
             return Err(Error::VirtualLinkError(VirtualLinkError::MtuMismatch));
         }
-        gpio_trace!(begin_forward_to_apex, self.id.0 as u16);
+        small_trace!(begin_forward_to_apex, self.id.0 as u16);
         let mut last_e: Option<Error> = None;
         for src in self.port_senders.iter() {
             // TODO make configurable
             let timeout = SystemTime::Normal(Duration::from_micros(1));
-            gpio_trace!(begin_apex_send, self.id.0 as u16);
+            small_trace!(begin_apex_send, self.id.0 as u16);
             let res = src.send(buffer, timeout);
-            gpio_trace!(end_apex_send, self.id.0 as u16);
+            small_trace!(end_apex_send, self.id.0 as u16);
             if let Err(e) = res {
                 last_e = Some(Error::PortSendFail(e));
                 warn!("Failed to write to {src:?}");
@@ -294,7 +294,7 @@ where
                 trace!("Wrote to source: {buffer:?}")
             }
         }
-        gpio_trace!(end_forward_to_apex, self.id.0 as u16);
+        small_trace!(end_forward_to_apex, self.id.0 as u16);
         match last_e {
             None => Ok(()),
             Some(e) => Err(e),
@@ -364,9 +364,9 @@ where
         if let Some(dst) = self.port_receiver.as_ref() {
             // TODO make configurable
             let timeout = SystemTime::Normal(Duration::from_millis(1));
-            gpio_trace!(begin_apex_receive, self.id.0 as u16);
+            small_trace!(begin_apex_receive, self.id.0 as u16);
             let res = dst.receive(buffer, timeout);
-            gpio_trace!(end_apex_receive, self.id.0 as u16);
+            small_trace!(end_apex_receive, self.id.0 as u16);
             match res {
                 Ok(data) => {
                     trace!("Received data from local queueing port");

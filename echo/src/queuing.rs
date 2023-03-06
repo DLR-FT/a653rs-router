@@ -7,7 +7,7 @@ use core::str::FromStr;
 use core::time::Duration;
 use log::{error, info, trace, warn};
 use once_cell::unsync::OnceCell;
-use small_trace::gpio_trace;
+use small_trace::small_trace;
 
 #[derive(Debug)]
 pub struct QueuingEchoSender<const ECHO_SIZE: MessageSize, const FIFO_DEPTH: MessageRange>;
@@ -29,9 +29,9 @@ where
                 sequence: i,
                 when_ms: now.as_millis() as u64,
             };
-            gpio_trace!(begin_echo_request_send);
+            small_trace!(begin_echo_request_send);
             let result = port.send_type(data, SystemTime::Normal(Duration::from_micros(10)));
-            gpio_trace!(end_echo_request_send);
+            small_trace!(end_echo_request_send);
             match result {
                 Ok(_) => {
                     info!(
@@ -70,7 +70,7 @@ where
 
             match result {
                 Ok(data) => {
-                    gpio_trace!(begin_echo_reply_received);
+                    small_trace!(begin_echo_reply_received);
                     trace!("Received reply: {data:?}");
                     let received = data;
                     // Reset when client restarts
@@ -87,7 +87,7 @@ where
                     } else {
                         trace!("Duplicate")
                     }
-                    gpio_trace!(end_echo_reply_received);
+                    small_trace!(end_echo_reply_received);
                 }
                 Err(QueuingRecvError::Apex(Error::InvalidConfig)) => {
                     warn!("The queue overflowed");

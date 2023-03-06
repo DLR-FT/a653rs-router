@@ -10,7 +10,7 @@ use crate::{
 };
 use apex_rs::prelude::{ApexTimeP4Ext, SystemTime};
 use log::{error, trace, warn};
-use small_trace::gpio_trace;
+use small_trace::small_trace;
 
 /// Trait that hides hypervisor and MTU.
 pub trait Interface: Debug {
@@ -67,14 +67,14 @@ impl<'a> Forwarder<'a> {
         for intf in self.interfaces.iter() {
             match intf.receive(buf) {
                 Ok((vl, data)) => {
-                    gpio_trace!(begin_forward_from_network, vl.0 as u16);
+                    small_trace!(begin_forward_from_network, vl.0 as u16);
                     trace!("Received: {data:?}");
                     for vl in self.links.iter().filter(|l| l.vl_id() == vl) {
                         if let Err(e) = vl.process_remote(data) {
                             warn!("Failed to process message: {e}")
                         }
                     }
-                    gpio_trace!(end_forward_from_network, vl.0 as u16);
+                    small_trace!(end_forward_from_network, vl.0 as u16);
                 }
                 Err(Error::InterfaceReceiveFail(InterfaceError::NoData)) => {}
                 Err(e) => {
@@ -84,23 +84,23 @@ impl<'a> Forwarder<'a> {
         }
         if let SystemTime::Normal(time) = <H as ApexTimeP4Ext>::get_time() {
             if let Some(next) = self.scheduler.schedule_next(&time) {
-                gpio_trace!(begin_virtual_link_scheduled, next.0 as u16);
+                small_trace!(begin_virtual_link_scheduled, next.0 as u16);
                 trace!("Scheduled VL {next}");
                 if let Some(next) = self.links.iter().find(|l| l.vl_id() == next) {
                     if let Ok(data) = next.read_local(buf) {
-                        gpio_trace!(begin_forward_from_apex, next.vl_id().0 as u16);
+                        small_trace!(begin_forward_from_apex, next.vl_id().0 as u16);
                         for i in self.interfaces.iter().filter(|i| next.connects_to(&i.id())) {
                             trace!("Sending to network: {data:?}");
-                            gpio_trace!(begin_forward_to_network, next.vl_id().0 as u16);
+                            small_trace!(begin_forward_to_network, next.vl_id().0 as u16);
                             if let Err(e) = i.send(&next.vl_id(), data) {
                                 warn!("Failed to send to interface {e}")
                             }
-                            gpio_trace!(end_forward_to_network, next.vl_id().0 as u16);
+                            small_trace!(end_forward_to_network, next.vl_id().0 as u16);
                         }
-                        gpio_trace!(end_forward_from_apex, next.vl_id().0 as u16);
+                        small_trace!(end_forward_from_apex, next.vl_id().0 as u16);
                     }
                 }
-                gpio_trace!(end_virtual_link_scheduled, next.0 as u16);
+                small_trace!(end_virtual_link_scheduled, next.0 as u16);
             } else {
                 //info!("Scheduled no VL");
             }

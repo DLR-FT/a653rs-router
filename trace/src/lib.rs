@@ -173,7 +173,7 @@ impl From<TraceEvent> for u16 {
 }
 
 #[macro_export]
-macro_rules! gpio_trace {
+macro_rules! small_trace {
     ( $arg0:ident ) => {{
         $crate::__private_api_trace($crate::TraceEvent::$arg0())
     }};

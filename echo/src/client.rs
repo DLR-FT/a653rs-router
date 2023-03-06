@@ -8,7 +8,7 @@ use core::time::Duration;
 use log::{error, info, trace, warn};
 use once_cell::unsync::OnceCell;
 use serde::{Deserialize, Serialize};
-use small_trace::gpio_trace;
+use small_trace::small_trace;
 
 #[derive(Serialize, Deserialize, Copy, Clone, Debug)]
 /// Echo message
@@ -40,9 +40,9 @@ where
                         sequence: i,
                         when_ms: now.as_millis() as u64,
                     };
-                    gpio_trace!(begin_echo_request_send);
+                    small_trace!(begin_echo_request_send);
                     let result = port.send_type(data);
-                    gpio_trace!(end_echo_request_send);
+                    small_trace!(end_echo_request_send);
                     match result {
                         Ok(_) => {
                             info!(
@@ -80,7 +80,7 @@ where
             let result = port.recv_type::<Echo>();
             match result {
                 Ok(data) => {
-                    gpio_trace!(begin_echo_reply_received);
+                    small_trace!(begin_echo_reply_received);
                     trace!("Received reply: {data:?}");
                     let (_, received) = data;
                     // Reset when client restarts
@@ -105,7 +105,7 @@ where
                     } else {
                         trace!("Duplicate")
                     }
-                    gpio_trace!(end_echo_reply_received);
+                    small_trace!(end_echo_reply_received);
                 }
                 Err(SamplingRecvError::Apex(Error::NotAvailable)) => {
                     warn!("No echo reply available");

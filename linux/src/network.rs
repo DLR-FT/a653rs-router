@@ -102,6 +102,6 @@ impl CreateNetworkInterfaceId<UdpNetworkInterface> for UdpNetworkInterface {
         interfaces.push(sock);
         let id = cfg.id;
 
-        Ok(NetworkInterfaceId::from(id))
+        Ok(id)
     }
 }

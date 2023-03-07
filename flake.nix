@@ -128,7 +128,7 @@
               help = "Verify that the library builds for no_std without std-features";
             }
             {
-              name = "test-run-echo";
+              name = "test-run-echo-linux";
               command = ''
                 cargo build --release --target x86_64-unknown-linux-musl
                 RUST_LOG=''${RUST_LOG:=info} linux-apex-hypervisor --duration 10s config/linux/hv-server.yml 2> hv-server.log & \
@@ -143,7 +143,14 @@
                 RUST_LOG=''${RUST_LOG:=info} systemd-run --user --scope -- linux-apex-hypervisor --duration 10s config/linux/hv-server.yml & \
                 RUST_LOG=''${RUST_LOG:=info} systemd-run --user --scope -- linux-apex-hypervisor --duration 10s config/linux/hv-client.yml
               '';
-              help = "Run echo example using systemd scope and exit after 10 seconds";
+              help = "Run echo example using apex-linux inside systemd scope and exit after 10 seconds";
+            }
+            {
+              name = "test-run-echo-cora";
+              command = ''
+                nix develop .#deploy -c flash-echo-server & nix develop .#deploy -c flash-echo-client
+              '';
+              help = "Run echo example on two CoraZ7";
             }
           ];
         };

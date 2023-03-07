@@ -1,11 +1,14 @@
 # IO-Partition
 
 This is a prototype of an IO-partition for an ARINC 653P4 compliant hypervisor.
-The goal was to explore possiblilties for the network-transparency of APEX
-inter-partition channels. It is developed in the memory-safe Rust programming
-language and uses [apex-rs](https://github.com/aeronautical-informatics/apex-rs)
-to communicate with the hypervisor. Keep in mind that this is a research project
-and it has not been developed and tested according to DO-178C.
+The project goal is to explore the possiblilties for network-transparent
+inter-partition APEX channels in the context of redundancy management and
+dynamic reconfiguration of IMA systems. It is developed in the memory-safe
+Rust programming language and uses [apex-rs](https://github.com/aeronautical-
+informatics/apex-rs) to communicate with the hypervisor.
+
+Keep in mind that this is a research project and it has not been developed and
+tested according to DO-178C.
 
 ## Virtual Links
 

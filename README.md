@@ -35,16 +35,19 @@ be allowed to use platform-dependent features, while the IO-partition remains
 portable to other hypervisors and platforms. The driver can be specified at
 compile time and there are two implementations available:
 
-- `Udp`: This driver sends and receives virtual links via one or more UDP
-network sockets. It requires the [apex-linux](https://github.com/aeronautical-
-informatics/apex-linux) hypervisor, which can create these sockets and pass them
-to the IO-partition.   This way, the otherwise strictly sandboxed IO-partition
-gains limited network-access.
+### `Udp`
 
-- `Uart`: Communicates via memory-mapped IO with an UART FGPA-core. The framing
-is done in software using COBS encoding and a checksum for error detection. It
-requires a hypervisor that can delegate additional memory regions to the IO-
-partition.
+This driver sends and receives virtual links via one or more UDP network
+sockets. It requires the [apex-linux](https://github.com/aeronautical-informatics/apex-linux)
+hypervisor, which can create these sockets and pass them to the IO-partition.
+This way, the otherwise strictly sandboxed IO-partition gains limited
+network-access.
+
+### `Uart`
+
+Communicates via memory-mapped IO with an UART FGPA-core. The framing  is done
+in software using COBS encoding and a checksum for error detection. It requires
+a hypervisor that can delegate additional memory regions to the IO-partition.
 
 ## Scheduling
 
@@ -55,9 +58,11 @@ scheduler can also be exchanged at compile time without requiring changes to
 the IO-partition's code. The scheduler may use any method of determining which
 virtual link shall be sampled next. The available implementations are:
 
-- `DeadlineRR`: A deadline-based round-robin scheduler, that attempts to limit
-the jitter of the messages transmitted on each virtual link and restrict the
-utilisation of the attached network interfaces.
+### `DeadlineRR`
+
+A deadline-based round-robin scheduler, that attempts to limit the jitter of
+the messages transmitted on each virtual link and restrict the utilisation of
+the attached network interfaces.
 
 ## Configuration
 
@@ -93,11 +98,11 @@ debugging purposes), a platform-dependent logger implementation needs to be
 provided. Both apex-linux and this repo provide loggers that are targeted for
 use with specific hypervisors:
 
-- `apex_rs_linux::partition::ApexLogger`: Logs message to the health manager
+`apex_rs_linux::partition::ApexLogger` logs message to the health manager
 of apex-linux, which will print them to the standard output, together with the
 output of the hypervisor and the output of the other partitions.
 
-- `coraz7::XalLogger`: Logs messages to the XNG console using XalPutChar. Using
+`coraz7::XalLogger` logs messages to the XNG console using XalPutChar. Using
 this logger requires that the XAL is linked into the final partition image in
 addition LithOS.
 

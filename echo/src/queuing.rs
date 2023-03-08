@@ -96,7 +96,7 @@ where
                 | Err(QueuingRecvError::Apex(Error::TimedOut)) => {
                     debug!("No echo reply available");
                 }
-                Err(SamplingRecvError::Postcard(e, _, _)) => {
+                Err(QueuingRecvError::Postcard(e, _)) => {
                     trace!("Failed to decode echo reply: {e:?}");
                 }
                 Err(e) => {

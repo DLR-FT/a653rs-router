@@ -5,7 +5,7 @@ use apex_rs::prelude::*;
 use apex_rs_postcard::prelude::*;
 use core::str::FromStr;
 use core::time::Duration;
-use log::{error, info, trace, warn};
+use log::{debug, error, info, trace, warn};
 use once_cell::unsync::OnceCell;
 use small_trace::small_trace;
 
@@ -94,7 +94,10 @@ where
                 }
                 Err(QueuingRecvError::Apex(Error::NotAvailable))
                 | Err(QueuingRecvError::Apex(Error::TimedOut)) => {
-                    warn!("No echo reply available");
+                    debug!("No echo reply available");
+                }
+                Err(SamplingRecvError::Postcard(e, _, _)) => {
+                    trace!("Failed to decode echo reply: {e:?}");
                 }
                 Err(e) => {
                     error!("Failed to receive reply: {e:?}");

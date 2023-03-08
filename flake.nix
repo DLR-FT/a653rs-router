@@ -148,7 +148,7 @@
             {
               name = "test-run-echo-cora";
               command = ''
-                nix develop .#deploy -c flash-echo-server & nix develop .#deploy -c flash-echo-client
+                nix develop .#deploy -c flash-echo-server && nix develop .#deploy -c flash-echo-client
               '';
               help = "Run echo example on two CoraZ7";
             }

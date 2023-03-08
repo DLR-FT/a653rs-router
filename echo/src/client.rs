@@ -5,7 +5,7 @@ use apex_rs_postcard::{
 };
 use core::str::FromStr;
 use core::time::Duration;
-use log::{error, info, trace, warn};
+use log::{debug, error, info, trace, warn};
 use once_cell::unsync::OnceCell;
 use serde::{Deserialize, Serialize};
 use small_trace::small_trace;
@@ -108,7 +108,7 @@ where
                     small_trace!(end_echo_reply_received);
                 }
                 Err(SamplingRecvError::Apex(Error::NotAvailable)) => {
-                    warn!("No echo reply available");
+                    debug!("No echo reply available");
                 }
                 Err(SamplingRecvError::Postcard(e, _, _)) => {
                     trace!("Failed to decode echo reply: {e:?}");

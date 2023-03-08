@@ -45,7 +45,7 @@ where
                     small_trace!(end_echo_request_send);
                     match result {
                         Ok(_) => {
-                            info!(
+                            debug!(
                                 "EchoRequest: seqnr = {:?}, time = {:?}",
                                 data.sequence, data.when_ms
                             );

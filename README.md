@@ -86,9 +86,9 @@ use two IO partition on distributed hypervisors to communicate a partition
 running an echo client and one running an echo server. The client will send an
 echo request using virtual link 1 and the server, after processing the message,
 will respond with an echo reply using virtual link 2. Run either `test-run-
-echo-scoped` to run the example using apex-linux and UDP sockets, or `test-run-
-echo-cora` to run the example using LithOS on XNG on two CoraZ7 boards that are
-connected using UART.
+echo-scoped` to run the example using apex-linux and UDP sockets, or `test-run-echo-cora`
+to run the example using LithOS on XNG on two CoraZ7 boards that are connected
+using UART.
 
 ## Logging
 

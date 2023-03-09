@@ -17,12 +17,12 @@ impl TraceEvent {
         Self::Begin(TraceType::NetworkReceive(network_interface))
     }
 
-    pub const fn begin_apex_send(network_interface: u16) -> Self {
-        Self::Begin(TraceType::NetworkReceive(network_interface))
+    pub const fn begin_apex_send(virtual_link: u16) -> Self {
+        Self::Begin(TraceType::ApexSend(virtual_link))
     }
 
     pub const fn begin_apex_receive(virtual_link: u16) -> Self {
-        Self::Begin(TraceType::NetworkReceive(virtual_link))
+        Self::Begin(TraceType::ApexReceive(virtual_link))
     }
 
     pub const fn begin_forward_from_network(virtual_link: u16) -> Self {
@@ -71,12 +71,12 @@ impl TraceEvent {
         Self::End(TraceType::NetworkReceive(network_interface))
     }
 
-    pub const fn end_apex_send(network_interface: u16) -> Self {
-        Self::End(TraceType::NetworkReceive(network_interface))
+    pub const fn end_apex_send(virtual_link: u16) -> Self {
+        Self::End(TraceType::ApexSend(virtual_link))
     }
 
     pub const fn end_apex_receive(virtual_link: u16) -> Self {
-        Self::End(TraceType::NetworkReceive(virtual_link))
+        Self::End(TraceType::ApexReceive(virtual_link))
     }
 
     pub const fn end_forward_from_network(virtual_link: u16) -> Self {
@@ -171,7 +171,7 @@ impl From<TraceEvent> for u16 {
             TraceType::VirtualLinkScheduled(virtual_link) => (9, virtual_link),
             TraceType::Echo(echo) => (10, u16::from(echo)),
         };
-        begin_end << 7 | (event << 3) | data >> 1
+        (begin_end << 7) | (event << 3) | (0b0111 & data)
     }
 }
 

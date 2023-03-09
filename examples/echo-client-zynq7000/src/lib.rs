@@ -25,8 +25,8 @@ pub extern "C" fn main() {
     TRACER.init();
     unsafe { small_trace::set_tracer(&TRACER) }
     // The logger should be disabled during measurements
-    unsafe { log::set_logger_racy(&XalLogger) };
-    log::set_max_level(log::LevelFilter::Info);
+    //unsafe { log::set_logger_racy(&XalLogger) };
+    //log::set_max_level(log::LevelFilter::Info);
     info!("Echo client main");
     let partition = QueuingPeriodicEchoPartition::new(
         unsafe { &SENDER },

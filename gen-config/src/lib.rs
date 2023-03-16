@@ -455,7 +455,7 @@ impl<const VLS: usize, const PORTS: usize, const IFS: usize, const SCHEDULE_SLOT
                 quote! {
                     let mut slots = Vec::<DeadlineRrSlot, #SCHEDULE_SLOTS>::new();
                     #( #slots )*
-                    let schedule = DeadlineRrSchedulerConfig { slots };
+                    let schedule = DeadlineRrScheduleConfig { slots };
                     let mut scheduler = DeadlineRrScheduler::<#SCHEDULE_SLOTS>::new(&schedule);
                 }
             }

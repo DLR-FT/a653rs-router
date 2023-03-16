@@ -27,7 +27,7 @@ type ChannelName = String<MAX_NAME_LEN>;
 /// use network_partition::prelude::*;
 /// use heapless::{String, Vec};
 ///
-/// let config = Config::<10, 10, 10> {
+/// let config = Config::<10, 10, 10, 2> {
 ///     stack_size: StackSizeConfig {
 ///       aperiodic_process: 100000,
 ///     },
@@ -56,15 +56,18 @@ type ChannelName = String<MAX_NAME_LEN>;
 ///         }
 ///     ]).unwrap(),
 ///     interfaces: Vec::from_slice(&[
-///        InterfaceConfig::Udp(UdpInterfaceConfig {
-///            id: NetworkInterfaceId::from(1),
-///            name: 8081,
-///            rate: DataRate::b(10000000),
-///            mtu: 1000,
-///            destination: String::from("127.0.0.1:8000"),
-///        }),
-///     ]).unwrap()
-// TODO add schedule config, see failing test
+///         InterfaceConfig::Udp(UdpInterfaceConfig {
+///             id: NetworkInterfaceId::from(1),
+///             name: InterfaceName::from("8081"),
+///             rate: DataRate::b(10000000),
+///             mtu: 1000,
+///             destination: String::from("127.0.0.1:8000"),
+///         }),
+///     ]).unwrap(),
+///     schedule: ScheduleConfig::DeadlineRr(DeadlineRrScheduleConfig::<2> { slots: Vec::from_slice(&[
+///         DeadlineRrSlot { vl: VirtualLinkId::from(0), period: Duration::from_millis(100)},
+///         DeadlineRrSlot { vl: VirtualLinkId::from(1), period: Duration::from_millis(50)},
+///     ]).unwrap()}),
 /// };
 /// ```
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -320,7 +323,7 @@ fn de_size_str_u32<'de, D>(de: D) -> Result<u32, D::Error>
 where
     D: Deserializer<'de>,
 {
-    de_size_str(de).and_then(|r| Ok(r.as_u64() as u32))
+    de_size_str(de).map(|r| r.as_u64() as u32)
 }
 
 /// Scheduler confgiguration.
@@ -328,12 +331,12 @@ where
 #[derive(Debug, Clone)]
 pub enum ScheduleConfig<const SCHEDULE_SLOTS: usize> {
     /// This configuration requires the deadline-based round-robin scheduler.
-    DeadlineRr(DeadlineRrSchedulerConfig<SCHEDULE_SLOTS>),
+    DeadlineRr(DeadlineRrScheduleConfig<SCHEDULE_SLOTS>),
 }
 
 impl<const SLOTS: usize> ScheduleConfig<SLOTS> {
     /// Gets the deadline RR scheduler config.
-    pub fn deadline_rr(self) -> Option<DeadlineRrSchedulerConfig<SLOTS>> {
+    pub fn deadline_rr(self) -> Option<DeadlineRrScheduleConfig<SLOTS>> {
         match self {
             Self::DeadlineRr(cfg) => Some(cfg),
         }
@@ -343,7 +346,7 @@ impl<const SLOTS: usize> ScheduleConfig<SLOTS> {
 /// Configuration for the deadline-based round-robin scheduler.
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone)]
-pub struct DeadlineRrSchedulerConfig<const SCHEDULE_SLOTS: usize> {
+pub struct DeadlineRrScheduleConfig<const SCHEDULE_SLOTS: usize> {
     /// Shedule slots.
     pub slots: Vec<DeadlineRrSlot, SCHEDULE_SLOTS>,
 }

@@ -2,14 +2,12 @@ stack_size:
   aperiodic_process: 15000
 virtual_links:
   - id: 2
-    rate: 500ms
     fifo_depth: 10
     msg_size: 100
     ports:
       - !QueuingPortSender
         channel: EchoReplyCl
   - id: 1
-    rate: 1s
     msg_size: 100B
     fifo_depth: 10
     interfaces: [ "uart0" ]

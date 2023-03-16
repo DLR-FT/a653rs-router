@@ -41,7 +41,7 @@ pub struct DeadlineRrScheduler<const SLOTS: usize> {
 
 impl<const SLOTS: usize> DeadlineRrScheduler<SLOTS> {
     /// Creates a new scheduler.
-    pub fn new(cfg: &DeadlineRrSchedulerConfig<SLOTS>) -> Self {
+    pub fn new(cfg: &DeadlineRrScheduleConfig<SLOTS>) -> Self {
         Self {
             last_window: usize::default(),
             windows: cfg
@@ -74,7 +74,7 @@ impl<const SLOTS: usize> IoScheduler for DeadlineRrScheduler<SLOTS> {
                 self.last_window = next_window;
                 let next = current_time
                     .checked_add(window.period)
-                    .unwrap_or_else(|| *current_time);
+                    .unwrap_or(*current_time);
                 self.windows[next_window].next = next;
 
                 trace!("Scheduled VL {}, next window at {:?}", window.vl, next);

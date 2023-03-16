@@ -133,7 +133,7 @@ impl<const VLS: usize, const PORTS: usize, const IFS: usize, const SCHEDULE_SLOT
                             InterfaceConfig::Udp(intf) => intf.name.clone(),
                         };
                         *i == intf
-                    }).expect(format!("Unable to find an interface with name {}", i.0.as_str()).as_str());
+                    }).unwrap_or_else(|| panic!("Unable to find an interface with name {}", i.0.as_str()));
                 let intf_id = match intf {
                     InterfaceConfig::Uart(intf) => intf.id.0,
                     InterfaceConfig::Udp(intf) => intf.id.0,
@@ -346,29 +346,29 @@ impl<const VLS: usize, const PORTS: usize, const IFS: usize, const SCHEDULE_SLOT
         .virtual_links
         .iter()
         .flat_map(|vl| {
-            vl.ports.iter().filter_map(|port| {
+            vl.ports.iter().map(|port| {
                 let id = vl.id;
                 let vl_ident = format_ident!("vl_{id}");
                 match port {
                     Port::SamplingPortSource(port) => {
                         let port_id = port.channel.to_uppercase();
                         let port_ident = format_ident!("PORT_{port_id}");
-                        Some(quote!(#vl_ident.add_port_source(unsafe { #port_ident.get().unwrap().clone() });))
+                        quote!(#vl_ident.add_port_source(unsafe { #port_ident.get().unwrap().clone() });)
                     },
                     Port::SamplingPortDestination(port) => {
                         let port_id = port.channel.to_uppercase();
                         let port_ident = format_ident!("PORT_{port_id}");
-                        Some(quote!(#vl_ident.add_port_destination(unsafe { #port_ident.get().unwrap() }.clone());))
+                        quote!(#vl_ident.add_port_destination(unsafe { #port_ident.get().unwrap() }.clone());)
                     },
                     Port::QueuingPortReceiver(port) => {
                         let port_id = port.channel.to_uppercase();
                         let port_ident = format_ident!("PORT_{port_id}");
-                        Some(quote!(#vl_ident.add_port_destination(unsafe { #port_ident.get().unwrap() }.clone());))
+                        quote!(#vl_ident.add_port_destination(unsafe { #port_ident.get().unwrap() }.clone());)
                     },
                     Port::QueuingPortSender(port) => {
                         let port_id = port.channel.to_uppercase();
                         let port_ident = format_ident!("PORT_{port_id}");
-                        Some(quote!(#vl_ident.add_port_source(unsafe { #port_ident.get().unwrap() }.clone());))
+                        quote!(#vl_ident.add_port_source(unsafe { #port_ident.get().unwrap() }.clone());)
                     },
                 }
             })
@@ -378,33 +378,33 @@ impl<const VLS: usize, const PORTS: usize, const IFS: usize, const SCHEDULE_SLOT
 
     fn define_ports(&self) -> Vec<TokenStream> {
         self.config.virtual_links.iter().flat_map(|vl| {
-            vl.ports.iter().filter_map(|p| {
+            vl.ports.iter().map(|p| {
                 match p {
                     Port::SamplingPortSource(port) => {
                         let channel = port.channel.to_uppercase();
                         let msg_size = vl.msg_size;
                         let port_ident = format_ident!("PORT_{channel}");
-                        Some(quote!(static mut #port_ident : OnceCell<SamplingPortSource<#msg_size, Hypervisor>> = OnceCell::new();))
+                        quote!(static mut #port_ident : OnceCell<SamplingPortSource<#msg_size, Hypervisor>> = OnceCell::new();)
                     },
                     Port::SamplingPortDestination(port) => {
                         let channel = port.channel.to_uppercase();
                         let msg_size = vl.msg_size;
                         let port_ident = format_ident!("PORT_{channel}");
-                        Some(quote!(static mut #port_ident : OnceCell<SamplingPortDestination<#msg_size, Hypervisor>> = OnceCell::new();))
+                        quote!(static mut #port_ident : OnceCell<SamplingPortDestination<#msg_size, Hypervisor>> = OnceCell::new();)
                     },
                     Port::QueuingPortSender(port) => {
                         let channel = port.channel.to_uppercase();
                         let msg_size = vl.msg_size;
                         let port_ident = format_ident!("PORT_{channel}");
                         let depth = vl.fifo_depth;
-                        Some(quote!(static mut #port_ident : OnceCell<QueuingPortSender<#msg_size, #depth, Hypervisor>> = OnceCell::new();))
+                        quote!(static mut #port_ident : OnceCell<QueuingPortSender<#msg_size, #depth, Hypervisor>> = OnceCell::new();)
                     }
                     Port::QueuingPortReceiver(port) => {
                         let channel = port.channel.to_uppercase();
                         let msg_size = vl.msg_size;
                         let port_ident = format_ident!("PORT_{channel}");
                         let depth = vl.fifo_depth;
-                        Some(quote!(static mut #port_ident : OnceCell<QueuingPortReceiver<#msg_size, #depth, Hypervisor>> = OnceCell::new();))
+                        quote!(static mut #port_ident : OnceCell<QueuingPortReceiver<#msg_size, #depth, Hypervisor>> = OnceCell::new();)
                     }
                 }
             })

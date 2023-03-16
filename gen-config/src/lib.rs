@@ -19,6 +19,7 @@ impl<const VLS: usize, const PORTS: usize, const IFS: usize, const SCHEDULE_SLOT
     }
 
     pub fn generate_network_partition(&self, hypervisor: TokenStream) -> TokenStream {
+        self.config.validate().expect("Invalid config");
         let process_stack_size = self.config.stack_size.aperiodic_process;
         let max_mtu = self.get_max_mtu() as usize;
         let num_links = self.get_num_links();

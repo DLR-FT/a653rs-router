@@ -593,6 +593,7 @@ dependencies = [
  "humantime-serde",
  "log",
  "serde",
+ "serde_yaml",
  "small-trace",
 ]
 

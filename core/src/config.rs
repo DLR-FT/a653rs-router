@@ -92,6 +92,53 @@ pub struct Config<
     pub schedule: ScheduleConfig<SCHEDULE_SLOTS>,
 }
 
+/// Configuration error
+#[derive(Debug, Clone)]
+pub enum ConfigError {
+    /// The virtual links that are using an interface produce more traffic than can be serviced by the interface.
+    InterfaceDataRate,
+}
+
+impl<const PORTS: usize, const IFS: usize, const VLS: usize, const SCHEDULE_SLOTS: usize>
+    Config<PORTS, IFS, VLS, SCHEDULE_SLOTS>
+{
+    /// Validate the configuration
+    pub fn validate(&self) -> Result<(), ConfigError> {
+        // for every interface, find virtual links, calculate their data rates, sum up
+        for i in self.interfaces.iter() {
+            let combined: f64 = self
+                .virtual_links
+                .iter()
+                .filter_map(|l| {
+                    if l.interfaces.contains(&i.name()) {
+                        // TODO find some more elegant way to handle all types generically
+                        match self.schedule.clone() {
+                            ScheduleConfig::DeadlineRr(c) => Some(
+                                c.slots
+                                    .iter()
+                                    .filter_map(|s| {
+                                        if s.vl == l.id {
+                                            Some((l.msg_size * 8) as f64 / s.period.as_secs_f64())
+                                        } else {
+                                            None
+                                        }
+                                    })
+                                    .sum::<f64>(),
+                            ),
+                        }
+                    } else {
+                        None
+                    }
+                })
+                .sum();
+            if (i.rate().as_u64() as f64) < combined {
+                return Err(ConfigError::InterfaceDataRate);
+            }
+        }
+        Ok(())
+    }
+}
+
 fn default_interfaces<const IFS: usize>() -> Vec<InterfaceConfig, IFS> {
     Vec::new()
 }
@@ -172,6 +219,24 @@ pub enum InterfaceConfig {
     Udp(UdpInterfaceConfig),
     /// An interface that is attached to a UART PL on a Zynq 7000.
     Uart(UartInterfaceConfig),
+}
+
+impl InterfaceConfig {
+    fn rate(&self) -> DataRate {
+        match self {
+            Self::Uart(_c) => {
+                DataRate::b(109453) // overhead: start bit + stop bit + COBS overhead + CRC + VL-ID
+            }
+            Self::Udp(c) => c.rate,
+        }
+    }
+
+    fn name(&self) -> InterfaceName {
+        match self {
+            Self::Uart(c) => c.name.clone(),
+            Self::Udp(c) => c.name.clone(),
+        }
+    }
 }
 
 /// UART interfacew configuration.
@@ -361,4 +426,84 @@ pub struct DeadlineRrSlot {
     /// Periodic after which to schedule this slot again after the last time it has been scheduled.
     #[cfg_attr(all(feature = "std"), serde(with = "humantime_serde"))]
     pub period: Duration,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_yaml::*;
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn check_valid_config() {
+        let config = "
+stack_size:
+  aperiodic_process: 15000
+virtual_links:
+  - id: 2
+    fifo_depth: 10
+    msg_size: 100
+    ports:
+      - !QueuingPortSender
+        channel: EchoReplyCl
+  - id: 1
+    msg_size: 100B
+    fifo_depth: 10
+    interfaces: [ \"uart0\" ]
+    ports:
+      - !QueuingPortReceiver
+        channel: EchoRequestCl
+interfaces:
+  - !Uart
+    id: 1
+    mtu: 1500 
+    name: \"uart0\"
+schedule:
+  !DeadlineRr
+  slots:
+    - vl: 1
+      period: 1s
+    - vl: 2
+      period: 500ms
+";
+        let config: Config<5, 5, 5, 5> = from_str(config).unwrap();
+        assert!(config.validate().is_ok())
+    }
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn check_invalid_config() {
+        let config = "
+stack_size:
+  aperiodic_process: 15000
+virtual_links:
+  - id: 2
+    fifo_depth: 10
+    msg_size: 100
+    ports:
+      - !QueuingPortSender
+        channel: EchoReplyCl
+  - id: 1
+    msg_size: 100B
+    fifo_depth: 10
+    interfaces: [ \"uart0\" ]
+    ports:
+      - !QueuingPortReceiver
+        channel: EchoRequestCl
+interfaces:
+  - !Uart
+    id: 1
+    mtu: 100
+    name: \"uart0\"
+schedule:
+  !DeadlineRr
+  slots:
+    - vl: 1
+      period: 1ms
+    - vl: 2
+      period: 5ms
+";
+        let config: Config<5, 5, 5, 5> = from_str(config).unwrap();
+        assert!(config.validate().is_err())
+    }
 }

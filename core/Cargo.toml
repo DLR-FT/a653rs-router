@@ -15,3 +15,7 @@ humantime-serde = { version = "1", optional = true }
 serde = { version = "1.0", default-features = false, features = ["derive"], optional = true }
 bytesize = { version = "1.1.0", optional = true }
 small-trace = { path = "../trace" }
+
+[dev-dependencies]
+# For tests
+serde_yaml = "0.9"

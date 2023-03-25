@@ -11,9 +11,12 @@ members = [
   "examples/np-zynq7000",
   "examples/echo-client-zynq7000",
   "examples/echo-server-zynq7000",
+  "examples/io-throughput",
+  "throughput",
   "trace"
 ]
 default-members = [  
+  "throughput",
   "trace",
   "coraz7",
   "echo",

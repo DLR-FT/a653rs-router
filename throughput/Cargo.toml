@@ -1,0 +1,12 @@
+[package]
+name = "apex-throughput"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+apex-rs = { git = "https://github.com/aeronautical-informatics/apex-rs.git", branch = "main" }
+once_cell = { version = "1.17", default-features = false }
+log = "0"
+const_format = "0.2"

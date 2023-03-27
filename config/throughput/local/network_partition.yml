@@ -1,8 +1,8 @@
 stack_size:
-  aperiodic_process: 15KB
+  aperiodic_process: 25KB
 virtual_links:
   - id: 1
-    msg_size: 100
+    msg_size: 8192
     interfaces: [ ]
     fifo_depth: 100
     ports:
@@ -14,4 +14,4 @@ schedule:
   !DeadlineRr
   slots:
     - vl: 1
-      period: 4ms
+      period: 40us

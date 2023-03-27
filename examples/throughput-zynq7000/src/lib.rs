@@ -16,10 +16,11 @@ use core::time::Duration;
 use once_cell::unsync::OnceCell;
 
 // TODO make configurable
-const MSG: MessageSize = 100;
+// Maximum from XNG header files
+const MSG: MessageSize = 8192;
 const FIFO: MessageRange = 100;
 // As defined in LithOS constraints
-const INTERVAL: Duration = Duration::from_millis(3);
+const INTERVAL: Duration = Duration::from_millis(1);
 type Hypervisor = XngHypervisor;
 
 static LOGGER: XalLogger = XalLogger;

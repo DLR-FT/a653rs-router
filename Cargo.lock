@@ -487,18 +487,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "io-throughput"
-version = "0.1.0"
-dependencies = [
- "apex-rs",
- "apex-rs-xng",
- "apex-throughput",
- "coraz7",
- "log",
- "once_cell",
-]
-
-[[package]]
 name = "itertools"
 version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -981,6 +969,18 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "throughput-zynq7000"
+version = "0.1.0"
+dependencies = [
+ "apex-rs",
+ "apex-rs-xng",
+ "apex-throughput",
+ "coraz7",
+ "log",
+ "once_cell",
 ]
 
 [[package]]

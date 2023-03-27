@@ -152,6 +152,13 @@
               '';
               help = "Run echo example on two CoraZ7";
             }
+            {
+              name = "test-run-throughput";
+              command = ''
+                nix develop .#deploy -c flash-throughput
+              '';
+              help = "Run throughput example on CoraZ7";
+            }
           ];
         };
 
@@ -234,6 +241,10 @@
                 command = "flash echo_server 210370AD5202A";
               }
               {
+                name = "flash-throughput";
+                command = "flash throughput-local 210370AD523FA";
+              }
+              {
                 name = "launch-picocom";
                 help = "Launches picocom";
                 command = ''
@@ -259,6 +270,34 @@
           };
         };
         packages = {
+          throughput-local-np = naerskLib.buildPackage rec {
+            pname = "throughput-local-np";
+            CONFIG_DIR = ./config/throughput/local;
+            root = ./.;
+            cargoBuildOptions = x: x ++ [ "-p" "np-zynq7000" "--target" "armv7a-none-eabi" ];
+            doCheck = false;
+            copyLibs = true;
+            copyBins = false;
+            #doDoc = true;
+          };
+          throughput-source = naerskLib.buildPackage rec {
+            pname = "thoughput-source";
+            root = ./.;
+            cargoBuildOptions = x: x ++ [ "-p" "throughput-zynq7000" "--target" "armv7a-none-eabi" "--features" "sender" ];
+            doCheck = false;
+            copyLibs = true;
+            copyBins = false;
+            #doDoc = true;
+          };
+          throughput-sink = naerskLib.buildPackage rec {
+            pname = "thoughput-sink";
+            root = ./.;
+            cargoBuildOptions = x: x ++ [ "-p" "throughput-zynq7000" "--target" "armv7a-none-eabi" "--features" "receiver" ];
+            doCheck = false;
+            copyLibs = true;
+            copyBins = false;
+            #doDoc = true;
+          };
           echo = naerskLib.buildPackage rec {
             pname = "echo";
             CONFIG_DIR = ./config;
@@ -361,6 +400,33 @@
                 src = "${self.packages."${system}".echo-server-zynq7000}/lib/libecho_server_zynq7000.a";
                 enableLithOs = true;
                 ltcf = ./config/local_echo/echo_server.ltcf;
+              };
+            };
+          };
+          xng-sys-img-throughput-local = xng-utils.lib.buildXngSysImage {
+            inherit pkgs;
+            hardFp = false;
+            xngOps = self.packages.${system}.xng-ops;
+            lithOsOps = self.packages.${system}.lithos-ops;
+            xcf = pkgs.runCommandNoCC "patch-src" { } ''
+              cp -r ${./. + "/config/throughput/local/xml"} $out/
+            '';
+            name = "xng-sys-img-throughput-local";
+            partitions = {
+              NetworkPartition = {
+                src = "${self.packages."${system}".throughput-local-np}/lib/libnp_zynq7000.a";
+                enableLithOs = true;
+                ltcf = ./config/throughput/local/network_partition.ltcf;
+              };
+              Source = {
+                src = "${self.packages."${system}".throughput-source}/lib/libthroughput_zynq7000.a";
+                enableLithOs = true;
+                ltcf = ./config/throughput/local/source.ltcf;
+              };
+              Sink = {
+                src = "${self.packages."${system}".throughput-sink}/lib/libthroughput_zynq7000.a";
+                enableLithOs = true;
+                ltcf = ./config/throughput/local/sink.ltcf;
               };
             };
           };

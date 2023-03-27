@@ -18,7 +18,8 @@ use once_cell::unsync::OnceCell;
 // TODO make configurable
 const MSG: MessageSize = 100;
 const FIFO: MessageRange = 100;
-const INTERVAL: Duration = Duration::from_millis(10);
+// As defined in LithOS constraints
+const INTERVAL: Duration = Duration::from_millis(3);
 type Hypervisor = XngHypervisor;
 
 static LOGGER: XalLogger = XalLogger;
@@ -52,6 +53,7 @@ pub extern "C" fn sender() {
 static mut RECEIVER_PORT: OnceCell<QueuingPortReceiver<MSG, FIFO, Hypervisor>> = OnceCell::new();
 
 #[cfg(feature = "receiver")]
+#[no_mangle]
 pub extern "C" fn main() {
     setup_logger();
     let part = unsafe { TrafficReceiverPartition::new(&RECEIVER_PORT, receiver, logger) };

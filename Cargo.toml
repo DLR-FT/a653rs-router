@@ -11,7 +11,7 @@ members = [
   "examples/np-zynq7000",
   "examples/echo-client-zynq7000",
   "examples/echo-server-zynq7000",
-  "examples/io-throughput",
+  "examples/throughput-zynq7000",
   "throughput",
   "trace"
 ]

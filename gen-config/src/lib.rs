@@ -418,7 +418,8 @@ impl<const VLS: usize, const PORTS: usize, const IFS: usize, const SCHEDULE_SLOT
     }
 
     fn get_max_mtu(&self) -> u32 {
-        self.config
+        let max_intf = self
+            .config
             .interfaces
             .iter()
             .map(|i| match i {
@@ -426,7 +427,15 @@ impl<const VLS: usize, const PORTS: usize, const IFS: usize, const SCHEDULE_SLOT
                 InterfaceConfig::Udp(i) => i.mtu,
             })
             .max()
-            .unwrap_or_default()
+            .unwrap_or_default();
+        let max_ports = self
+            .config
+            .virtual_links
+            .iter()
+            .map(|l| l.msg_size)
+            .max()
+            .unwrap_or_default();
+        std::cmp::max(max_intf, max_ports)
     }
 
     fn get_num_interfaces(&self) -> usize {

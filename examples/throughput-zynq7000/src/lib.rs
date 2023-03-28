@@ -18,7 +18,7 @@ use once_cell::unsync::OnceCell;
 // TODO make configurable
 // Maximum from XNG header files
 const MSG: MessageSize = 8192;
-const FIFO: MessageRange = 100;
+const FIFO: MessageRange = 256;
 // As defined in LithOS constraints
 const INTERVAL: Duration = Duration::from_millis(1);
 type Hypervisor = XngHypervisor;

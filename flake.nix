@@ -245,6 +245,10 @@
                 command = "flash throughput-local 210370AD523FA";
               }
               {
+                name = "flash-throughput-direct";
+                command = "flash throughput-direct 210370AD523FA";
+              }
+              {
                 name = "launch-picocom";
                 help = "Launches picocom";
                 command = ''
@@ -427,6 +431,28 @@
                 src = "${self.packages."${system}".throughput-sink}/lib/libthroughput_zynq7000.a";
                 enableLithOs = true;
                 ltcf = ./config/throughput/local/sink.ltcf;
+              };
+            };
+          };
+          xng-sys-img-throughput-direct = xng-utils.lib.buildXngSysImage {
+            inherit pkgs;
+            hardFp = false;
+            xngOps = self.packages.${system}.xng-ops;
+            lithOsOps = self.packages.${system}.lithos-ops;
+            xcf = pkgs.runCommandNoCC "patch-src" { } ''
+              cp -r ${./. + "/config/throughput/direct/xml"} $out/
+            '';
+            name = "xng-sys-img-throughput-direct";
+            partitions = {
+              Source = {
+                src = "${self.packages."${system}".throughput-source}/lib/libthroughput_zynq7000.a";
+                enableLithOs = true;
+                ltcf = ./config/throughput/direct/source.ltcf;
+              };
+              Sink = {
+                src = "${self.packages."${system}".throughput-sink}/lib/libthroughput_zynq7000.a";
+                enableLithOs = true;
+                ltcf = ./config/throughput/direct/sink.ltcf;
               };
             };
           };

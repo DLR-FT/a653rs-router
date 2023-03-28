@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<MultiPartitionHmTables xmlns="http://www.fentiss.com/xngMultiHMPartitionTablesXml">
+  <MultiPartitionHMTable name="defaultHmTab">
+    <Event name="scheduleError" action="haltPartition" toEvent="numericError"/>
+    <Event name="numericError" action="haltPartition"/>
+    <Event name="stackOverflow" action="haltPartition"/>
+    <Event name="applicationError" action="coldResetPartition"/>
+    <Event name="internalError" action="haltPartition"/>
+    <Event name="illegalRequest" action="haltPartition"/>
+    <Event name="partitionSignatureError" action="haltPartition"/>
+    <Event name="memoryViolation" action="coldResetPartition"/>
+    <Event name="hardwareFault" action="haltPartition"/>
+    <Event name="powerFail" action="haltPartition"/>
+    <Event name="scheduleVCpuError" action="ignore"/>
+    
+    <Event name="prefetchExternalAbort" action="haltPartition"/>
+    <Event name="dataExternalAbort" action="haltPartition"/>
+    <Event name="eccError" action="haltPartition"/>
+    <Event name="correctableParityError" action="ignore" />
+    <Event name="uncorrectableParityError" action="haltHypervisor" />
+        
+  </MultiPartitionHMTable>
+</MultiPartitionHmTables>
+

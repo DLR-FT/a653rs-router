@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<Partition xmlns="http://www.fentiss.com/xngPartitionXml" name="NetworkPartition" entryPoint="0x4000000" attributes="system boot">
+  <MemoryAreas>
+    <Area start="0x4000000" size="64MB" type="nonSharedNormal" access="readwrite executable" cachePolicy="l1WriteBackWa l2WriteBackWa" />
+    <Area start="0x43C00000" size="64KB" type="nonShareableDevice" access="readwrite" cachePolicy="none" />
+    <Area start="0x80000000" size="32KB" type="nonShareableDevice" access="readwrite" cachePolicy="none" />
+  </MemoryAreas>
+  <HmTable baseHmTable="defaultHmTab" exceptionToEvent = "prefetchExcp dataExcp" nbHmLogs="64" />
+  <Devices>
+    <Device name="Uart1665" irqs="54 55">
+      <Configuration value0="0x10" value1="0x20"/>
+    </Device>
+  </Devices>
+  <Ports>
+    <QueuingPort name="TrafficSN" direction="destination" irq="166"/>
+  </Ports>
+</Partition>

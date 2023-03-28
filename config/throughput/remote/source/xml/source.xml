@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<Partition xmlns="http://www.fentiss.com/xngPartitionXml" name="Source" entryPoint="0x8000000" attributes="system boot">
+  <MemoryAreas>
+    <Area start="0x8000000" size="64MB" type="nonSharedNormal" access="readwrite executable" cachePolicy="l1WriteBackWa l2WriteBackWa" />
+  </MemoryAreas>
+  <HmTable baseHmTable="defaultHmTab" exceptionToEvent = "prefetchExcp dataExcp" nbHmLogs="64" />
+  <Devices>
+  </Devices>
+  <Ports>
+    <QueuingPort name="TrafficS" direction="source" irq="166"/>
+  </Ports>
+</Partition>
+

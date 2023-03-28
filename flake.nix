@@ -153,11 +153,26 @@
               help = "Run echo example on two CoraZ7";
             }
             {
-              name = "test-run-throughput";
+              name = "test-run-throughput-local";
               command = ''
-                nix develop .#deploy -c flash-throughput
+                nix develop .#deploy -c flash-throughput-local
               '';
-              help = "Run throughput example on CoraZ7";
+              help = "Run local (through IO-partition) throughput example on CoraZ7";
+            }
+            {
+              name = "test-run-throughput-direct";
+              command = ''
+                nix develop .#deploy -c flash-throughput-direct
+              '';
+              help = "Run direct throughput example on CoraZ7";
+            }
+            {
+              name = "test-run-throughput-remote";
+              command = ''
+                nix develop .#deploy -c flash-throughput-sink
+                nix develop .#deploy -c flash-throughput-source
+              '';
+              help = "Run remote (through network) throughput example on CoraZ7";
             }
           ];
         };
@@ -241,12 +256,20 @@
                 command = "flash echo_server 210370AD5202A";
               }
               {
-                name = "flash-throughput";
+                name = "flash-throughput-local";
                 command = "flash throughput-local 210370AD523FA";
               }
               {
                 name = "flash-throughput-direct";
                 command = "flash throughput-direct 210370AD523FA";
+              }
+              {
+                name = "flash-throughput-source";
+                command = "flash throughput-source 210370AD523FA";
+              }
+              {
+                name = "flash-throughput-sink";
+                command = "flash throughput-sink 210370AD523FA";
               }
               {
                 name = "launch-picocom";
@@ -453,6 +476,50 @@
                 src = "${self.packages."${system}".throughput-sink}/lib/libthroughput_zynq7000.a";
                 enableLithOs = true;
                 ltcf = ./config/throughput/direct/sink.ltcf;
+              };
+            };
+          };
+          xng-sys-img-throughput-source = xng-utils.lib.buildXngSysImage {
+            inherit pkgs;
+            hardFp = false;
+            xngOps = self.packages.${system}.xng-ops;
+            lithOsOps = self.packages.${system}.lithos-ops;
+            xcf = pkgs.runCommandNoCC "patch-src" { } ''
+              cp -r ${./. + "/config/throughput/remote/source/xml"} $out/
+            '';
+            name = "xng-sys-img-throughput-source";
+            partitions = {
+              NetworkPartition = {
+                src = "${self.packages."${system}".throughput-local-np}/lib/libnp_zynq7000.a";
+                enableLithOs = true;
+                ltcf = ./config/throughput/remote/source/network_partition.ltcf;
+              };
+              Source = {
+                src = "${self.packages."${system}".throughput-source}/lib/libthroughput_zynq7000.a";
+                enableLithOs = true;
+                ltcf = ./config/throughput/remote/source/source.ltcf;
+              };
+            };
+          };
+          xng-sys-img-throughput-sink = xng-utils.lib.buildXngSysImage {
+            inherit pkgs;
+            hardFp = false;
+            xngOps = self.packages.${system}.xng-ops;
+            lithOsOps = self.packages.${system}.lithos-ops;
+            xcf = pkgs.runCommandNoCC "patch-src" { } ''
+              cp -r ${./. + "/config/throughput/remote/sink/xml"} $out/
+            '';
+            name = "xng-sys-img-throughput-sink";
+            partitions = {
+              NetworkPartition = {
+                src = "${self.packages."${system}".throughput-local-np}/lib/libnp_zynq7000.a";
+                enableLithOs = true;
+                ltcf = ./config/throughput/remote/sink/network_partition.ltcf;
+              };
+              Sink = {
+                src = "${self.packages."${system}".throughput-sink}/lib/libthroughput_zynq7000.a";
+                enableLithOs = true;
+                ltcf = ./config/throughput/remote/sink/sink.ltcf;
               };
             };
           };

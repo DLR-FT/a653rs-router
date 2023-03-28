@@ -1,0 +1,35 @@
+#ifndef _LITHOS_CFG_H_
+#define _LITHOS_CFG_H_
+
+#define CONFIG_MAX_PROCESS_STACK_SIZE 1500000
+#define CONFIG_MAX_NO_PARTITIONS 1
+#define CONFIG_MAX_NO_PROCESSES 1
+#define CONFIG_MAX_NO_SAMPLING_PORTS 0
+#define CONFIG_MAX_NO_QUEUING_PORTS 1
+#define CONFIG_MAX_NO_BLACKBOARDS 0
+#define CONFIG_MAX_NO_EVENTS 0
+#define CONFIG_MAX_NO_BUFFERS 0
+#define CONFIG_MAX_NO_MESSAGES 0
+#define CONFIG_MAX_MESSAGE_SIZE 0
+#define CONFIG_MAX_NO_SEMAPHORES 0
+#define CONFIG_MAX_NO_IRQ_EVENTS 0
+#define CONFIG_MAX_MESSAGE_POOL_SIZE 0
+#define CONFIG_MAX_NO_LOGGED_HM_EVENTS 64
+#define CONFIG_MAX_NO_MULTIPLE_SCHEDULES 0
+#define CONFIG_PARTITION_PERIOD 500000LL
+#define CONFIG_PARTITION_DURATION 300000LL
+
+#define CONFIG_DFLT_HM_ACT_CORE ((AC_IGNORE << EV_NUMERIC_ERROR) | \
+                                 (AC_IGNORE << EV_STACK_OVERFLOW) | \
+                                 (AC_IGNORE << EV_MEMORY_VIOLATION) | \
+                                 (AC_IGNORE << EV_HARDWARE_FAULT) | \
+                                 (AC_IGNORE << EV_INTERNAL_ERROR))
+
+#define CONFIG_DFLT_HM_ACT_APP ((AC_IGNORE << EV_DEADLINE_MISSED) | \
+                                (AC_IGNORE << EV_APPLICATION_ERROR) | \
+                                (AC_IGNORE << EV_NUMERIC_ERROR) | \
+                                (AC_IGNORE << EV_STACK_OVERFLOW) | \
+                                (AC_IGNORE << EV_MEMORY_VIOLATION) | \
+                                (AC_IGNORE << EV_HARDWARE_FAULT))
+
+#endif

@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<Channels xmlns="http://www.fentiss.com/xngChannelsXml">
+  <QueuingChannel start="0x400000" size="2.5MB" maxMessageSize="8KB" maxNbMessages="256">
+    <Source partition="Source" port="TrafficS" />
+    <Destination partition="NetworkPartition" port="TrafficSN" />
+  </QueuingChannel>
+  <QueuingChannel start="0x700000" size="2.5MB" maxMessageSize="8KB" maxNbMessages="256">
+    <Source partition="NetworkPartition" port="TrafficRN" />
+    <Destination partition="Sink" port="TrafficR" />
+  </QueuingChannel>
+</Channels>

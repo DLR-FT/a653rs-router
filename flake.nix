@@ -248,7 +248,7 @@
                 name = "launch-picocom";
                 help = "Launches picocom";
                 command = ''
-                  picocom --imap lfcrlf --baud 115200 ''${1:-/dev/ttyUSB1}
+                  picocom --imap lfcrlf --baud 115200 ''${1:-/dev/ttyUSB1} ''${@}
                 '';
               }
             ];

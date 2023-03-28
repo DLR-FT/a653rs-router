@@ -4,7 +4,7 @@
 
 use apex_rs::prelude::*;
 use core::{str::FromStr, time::Duration};
-use log::{debug, info};
+use log::{debug, error, info};
 use once_cell::unsync::OnceCell;
 
 #[derive(Debug)]
@@ -27,7 +27,7 @@ where
 {
     loop {
         if let Err(e) = port.send(&[b'A'; M as usize], interval.clone()) {
-            debug!("Failed to send traffic: {e:?}");
+            error!("Failed to send traffic: {e:?}");
         }
         <H as ApexTimeP4Ext>::periodic_wait().unwrap();
     }
@@ -120,7 +120,9 @@ where
                 Ok(msg) => {
                     self.count_received_data += msg.len() as u64;
                 }
-                Err(e) => debug!("Failed to receive traffic: {e:?}"),
+                Err(_e) => {
+                    // Read as fast as possible
+                }
             }
         }
     }

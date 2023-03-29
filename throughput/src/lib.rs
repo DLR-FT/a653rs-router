@@ -4,7 +4,7 @@
 
 use apex_rs::prelude::*;
 use core::{str::FromStr, time::Duration};
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
 use once_cell::unsync::OnceCell;
 
 #[derive(Debug)]
@@ -26,8 +26,11 @@ where
     [u8; M as usize]:,
 {
     loop {
-        if let Err(e) = port.send(&[b'A'; M as usize], interval.clone()) {
-            error!("Failed to send traffic: {e:?}");
+        // Fill queue until limit defined by XNG
+        for _ in 0..F {
+            if let Err(e) = port.send(&[b'A'; M as usize], interval.clone()) {
+                warn!("Failed to send traffic: {e:?}");
+            }
         }
         <H as ApexTimeP4Ext>::periodic_wait().unwrap();
     }

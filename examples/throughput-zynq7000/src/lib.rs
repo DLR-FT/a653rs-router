@@ -20,7 +20,7 @@ use once_cell::unsync::OnceCell;
 const MSG: MessageSize = 8192;
 const FIFO: MessageRange = 256;
 // As defined in LithOS constraints
-const INTERVAL: Duration = Duration::from_micros(500);
+const INTERVAL: Duration = Duration::from_secs(1);
 type Hypervisor = XngHypervisor;
 
 static LOGGER: XalLogger = XalLogger;

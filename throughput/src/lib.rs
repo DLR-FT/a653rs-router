@@ -27,11 +27,7 @@ where
 {
     loop {
         // Fill queue until limit defined by XNG
-        for _ in 0..F {
-            if let Err(e) = port.send(&[b'A'; M as usize], interval.clone()) {
-                warn!("Failed to send traffic: {e:?}");
-            }
-        }
+        while port.send(&[b'A'; M as usize], interval.clone()).is_ok() {}
         <H as ApexTimeP4Ext>::periodic_wait().unwrap();
     }
 }

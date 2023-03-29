@@ -269,7 +269,7 @@
               }
               {
                 name = "flash-throughput-sink";
-                command = "flash throughput-sink 210370AD523FA";
+                command = "flash throughput-sink 210370AD5202A";
               }
               {
                 name = "launch-picocom";

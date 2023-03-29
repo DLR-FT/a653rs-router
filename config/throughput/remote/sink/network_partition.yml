@@ -3,7 +3,7 @@ stack_size:
 virtual_links:
   - id: 1
     msg_size: 8192
-    interfaces: [ "uart0" ]
+    interfaces: [ ]
     fifo_depth: 256
     ports:
       - !QueuingPortSender

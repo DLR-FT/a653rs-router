@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <Schedules xmlns="http://www.fentiss.com/xngScheduleXml">
-  <Schedule name="sched0" majorFrame="40ms">
+  <Schedule name="sched0" majorFrame="150ms">
     <Cpu id="0">
-      <PartitionWindow id="1" partition="Source" vCpu="0" offset="0ms" duration="20ms" startPoint="true" />
-      <PartitionWindow id="3" partition="Sink" vCpu="0" offset="20ms" duration="20ms" startPoint="true" />
+      <PartitionWindow id="1" partition="Source" vCpu="0" offset="0ms" duration="75ms" startPoint="true" />
+      <PartitionWindow id="3" partition="Sink" vCpu="0" offset="75ms" duration="75ms" startPoint="true" />
     </Cpu>
   </Schedule>
 </Schedules>

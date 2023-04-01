@@ -130,9 +130,20 @@
             {
               name = "test-run-echo-linux";
               command = ''
-                nix build .\#checks.x86_64-linux.run-echo-with-timeout --print-build-logs
+                cargo build --release --target x86_64-unknown-linux-musl
+                RUST_LOG=''${RUST_LOG:=info} linux-apex-hypervisor --duration 10s config/linux/hv-server.yml 2> hv-server.log & \
+                RUST_LOG=''${RUST_LOG:=info} linux-apex-hypervisor --duration 10s config/linux/hv-client.yml 2> hv-client.log &
               '';
               help = "Run echo example using existing scope and exit after 10 seconds";
+            }
+            {
+              name = "test-run-echo-scoped";
+              command = ''
+                cargo build --release --target x86_64-unknown-linux-musl
+                RUST_LOG=''${RUST_LOG:=info} systemd-run --user --scope -- linux-apex-hypervisor --duration 10s config/linux/hv-server.yml & \
+                RUST_LOG=''${RUST_LOG:=info} systemd-run --user --scope -- linux-apex-hypervisor --duration 10s config/linux/hv-client.yml
+              '';
+              help = "Run echo example using apex-linux inside systemd scope and exit after 10 seconds";
             }
             {
               name = "test-run-echo-cora";

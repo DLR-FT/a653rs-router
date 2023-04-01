@@ -12,30 +12,29 @@ use uart_xilinx::MmioUartAxi16550;
 
 /// Networking on XNG.
 #[derive(Debug)]
-pub struct UartNetworkInterface;
+pub struct UartNetworkInterface<const MTU: usize>;
 
 mod config {
     pub const BASE_ADDRESS: usize = 0x43C0_0000;
     pub const CLOCK_RATE: usize = 50_000_000;
     pub const BAUD_RATE: usize = 115200;
-    pub const MTU: usize = 100;
-    pub const FRAME_BUFFER_LEN: usize = 1000;
     pub const FIFO_DEPTH: usize = 16;
+    pub const FRAME_BUFFER: usize = 2000;
 }
 
-struct UartFrame<'p> {
+struct UartFrame<'p, const MTU: usize> {
     vl: VirtualLinkId,
     pl: &'p [u8],
 }
 
 /// encoded: COBS(vl_id + payload + CRC16)
-impl<'p> UartFrame<'p> {
+impl<'p, const MTU: usize> UartFrame<'p, MTU> {
     const fn max_decoded_len() -> usize {
-        core::mem::size_of::<u16>() + config::MTU + core::mem::size_of::<u16>()
+        core::mem::size_of::<u16>() + MTU + core::mem::size_of::<u16>()
     }
 
     const fn max_encoded_len() -> usize {
-        max_encoded_len(2 * core::mem::size_of::<u16>() + config::MTU)
+        max_encoded_len(2 * core::mem::size_of::<u16>() + MTU) + 1
     }
 
     fn frame_encoded_len(&self) -> usize {
@@ -43,9 +42,12 @@ impl<'p> UartFrame<'p> {
     }
 
     /// Encodes the frame contents, excluding the
-    fn encode<'a>(&self, encoded: &'a mut [u8]) -> Result<&'a [u8], ()> {
+    fn encode<'a>(&self, encoded: &'a mut [u8]) -> Result<&'a [u8], ()>
+    where
+        [(); Self::max_decoded_len()]:,
+    {
         let mut buf = [0u8; Self::max_decoded_len()];
-        if self.pl.len() > config::MTU || self.frame_encoded_len() > encoded.len() {
+        if self.pl.len() > MTU || self.frame_encoded_len() > encoded.len() {
             return Err(());
         }
 
@@ -151,13 +153,18 @@ impl<const BUFFER_LEN: usize> Drop for BufferedUart<BUFFER_LEN> {
     }
 }
 
-static mut UART: Lazy<BufferedUart<{ config::FRAME_BUFFER_LEN }>> = Lazy::new(|| {
+// TODO
+static mut UART: Lazy<BufferedUart<{ config::FRAME_BUFFER }>> = Lazy::new(|| {
     let mut b = BufferedUart::new(config::BASE_ADDRESS);
     b.init(config::CLOCK_RATE, config::BAUD_RATE);
     b
 });
 
-impl PlatformNetworkInterface for UartNetworkInterface {
+impl<const MTU: usize> PlatformNetworkInterface for UartNetworkInterface<MTU>
+where
+    [(); UartFrame::<MTU>::max_encoded_len()]:,
+    [(); UartFrame::<MTU>::max_decoded_len()]:,
+{
     type Configuration = UartInterfaceConfig;
 
     fn platform_interface_receive_unchecked(
@@ -186,7 +193,7 @@ impl PlatformNetworkInterface for UartNetworkInterface {
             small_trace!(end_network_receive, id.0 as u16);
             return Err(InterfaceError::NoData);
         }
-        let mut buf = [0u8; { UartFrame::max_encoded_len() + 1 }];
+        let mut buf = [0u8; UartFrame::<MTU>::max_encoded_len()];
         for b in buf.iter_mut() {
             if let Some(c) = unsafe { UART.rx_buffer.dequeue() } {
                 *b = c;
@@ -197,7 +204,7 @@ impl PlatformNetworkInterface for UartNetworkInterface {
                 break;
             }
         }
-        match UartFrame::decode(&mut buf) {
+        match UartFrame::<MTU>::decode(&mut buf) {
             Ok((vl, pl)) => {
                 let rpl = &mut buffer[0..pl.len()];
                 rpl.copy_from_slice(pl);
@@ -217,11 +224,12 @@ impl PlatformNetworkInterface for UartNetworkInterface {
         vl: VirtualLinkId,
         buffer: &[u8],
     ) -> Result<usize, InterfaceError> {
-        let mut buf = [0u8; { UartFrame::max_encoded_len() + 1 }];
-        let frame = UartFrame { vl, pl: buffer };
+        let mut buf = [0u8; UartFrame::<MTU>::max_encoded_len()];
+        let frame = UartFrame::<MTU> { vl, pl: buffer };
 
         // TODO Time it takes to do this should be accounted for if line is not used.
-        let encoded = UartFrame::encode(&frame, &mut buf).or(Err(InterfaceError::InvalidData))?;
+        let encoded =
+            UartFrame::<MTU>::encode(&frame, &mut buf).or(Err(InterfaceError::InvalidData))?;
 
         small_trace!(begin_network_send, id.0 as u16);
         unsafe {
@@ -246,7 +254,12 @@ impl PlatformNetworkInterface for UartNetworkInterface {
     }
 }
 
-impl CreateNetworkInterfaceId<UartNetworkInterface> for UartNetworkInterface {
+impl<const MTU: usize> CreateNetworkInterfaceId<UartNetworkInterface<MTU>>
+    for UartNetworkInterface<MTU>
+where
+    [(); UartFrame::<MTU>::max_encoded_len()]:,
+    [(); UartFrame::<MTU>::max_decoded_len()]:,
+{
     fn create_network_interface_id(
         cfg: UartInterfaceConfig,
     ) -> Result<NetworkInterfaceId, InterfaceError> {

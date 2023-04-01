@@ -7,7 +7,6 @@ use apex_rs::bindings::MessageRange;
 use core::fmt::Display;
 use core::time::Duration;
 use heapless::{String, Vec};
-use log::error;
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Deserializer, Serialize};

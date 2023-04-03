@@ -307,6 +307,26 @@
             copyBins = false;
             #doDoc = true;
           };
+          throughput-remote-source-np = naerskLib.buildPackage rec {
+            pname = "throughput-local-np";
+            CONFIG_DIR = ./config/throughput/remote/source;
+            root = ./.;
+            cargoBuildOptions = x: x ++ [ "-p" "np-zynq7000" "--target" "armv7a-none-eabi" ];
+            doCheck = false;
+            copyLibs = true;
+            copyBins = false;
+            #doDoc = true;
+          };
+          throughput-remote-sink-np = naerskLib.buildPackage rec {
+            pname = "throughput-local-np";
+            CONFIG_DIR = ./config/throughput/remote/sink;
+            root = ./.;
+            cargoBuildOptions = x: x ++ [ "-p" "np-zynq7000" "--target" "armv7a-none-eabi" ];
+            doCheck = false;
+            copyLibs = true;
+            copyBins = false;
+            #doDoc = true;
+          };
           throughput-source = naerskLib.buildPackage rec {
             pname = "thoughput-source";
             root = ./.;
@@ -490,7 +510,7 @@
             name = "xng-sys-img-throughput-source";
             partitions = {
               NetworkPartition = {
-                src = "${self.packages."${system}".throughput-local-np}/lib/libnp_zynq7000.a";
+                src = "${self.packages."${system}".throughput-remote-source-np}/lib/libnp_zynq7000.a";
                 enableLithOs = true;
                 ltcf = ./config/throughput/remote/source/network_partition.ltcf;
               };
@@ -512,7 +532,7 @@
             name = "xng-sys-img-throughput-sink";
             partitions = {
               NetworkPartition = {
-                src = "${self.packages."${system}".throughput-local-np}/lib/libnp_zynq7000.a";
+                src = "${self.packages."${system}".throughput-remote-sink-np}/lib/libnp_zynq7000.a";
                 enableLithOs = true;
                 ltcf = ./config/throughput/remote/sink/network_partition.ltcf;
               };

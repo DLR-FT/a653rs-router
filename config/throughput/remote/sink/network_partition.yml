@@ -12,7 +12,7 @@ schedule:
   !DeadlineRr
   slots:
     - vl: 1
-      period: 40us
+      period: 10ms
 interfaces:
   - !Uart
     id: 1

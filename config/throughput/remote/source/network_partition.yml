@@ -11,10 +11,11 @@ virtual_links:
 interfaces:
   - !Uart
     id: 1
-    mtu: 1500 
+    mtu: 8192
     name: "uart0"
 schedule:
   !DeadlineRr
   slots:
     - vl: 1
-      period: 40us
+      # This is ca the effective data rate of the UART.
+      period: 572ms

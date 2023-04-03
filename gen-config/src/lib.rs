@@ -182,11 +182,12 @@ impl<const VLS: usize, const PORTS: usize, const IFS: usize, const SCHEDULE_SLOT
                 let interface = quote! { network_partition_xng::UartNetworkInterface };
                 let name = i.name.clone().0.to_uppercase();
                 let mtu = i.mtu;
+                let umtu = i.mtu as usize;
                 let var = format_ident!("IF_{name}");
                 quote! {
                     use #interface;
 
-                    static mut #var: OnceCell<NetworkInterface<#mtu, #interface>> = OnceCell::new();
+                    static mut #var: OnceCell<NetworkInterface<#mtu, #interface<#umtu>>> = OnceCell::new();
                 }
             }
         })

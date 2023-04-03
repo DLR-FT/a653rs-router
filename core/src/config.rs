@@ -134,6 +134,7 @@ impl<const PORTS: usize, const IFS: usize, const VLS: usize, const SCHEDULE_SLOT
                 })
                 .sum();
             if (i.rate().as_u64() as f64) < combined {
+                panic!("{:?} {}", i.rate(), combined);
                 return Err(ConfigError::InterfaceDataRate);
             }
         }

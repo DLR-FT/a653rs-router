@@ -7,7 +7,7 @@ virtual_links:
     fifo_depth: 256
     ports:
       - !QueuingPortReceiver
-        channel: TrafficSN
+        channel: "TrafficSN"
 interfaces:
   - !Uart
     id: 1

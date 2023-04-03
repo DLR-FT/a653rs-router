@@ -17,4 +17,4 @@ interfaces:
   - !Uart
     id: 1
     name: "uart0"
-    mtu: 1500
+    mtu: 8192

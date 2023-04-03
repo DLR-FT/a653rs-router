@@ -4,7 +4,7 @@
 
 use apex_rs::prelude::*;
 use core::{str::FromStr, time::Duration};
-use log::{debug, error, info, warn};
+use log::{debug, info};
 use once_cell::unsync::OnceCell;
 
 #[derive(Debug)]
@@ -55,6 +55,7 @@ impl<
     > Partition<H> for TrafficSender<M, F, H>
 {
     fn cold_start(&self, ctx: &mut StartContext<H>) {
+        info!("Starting throughput sender");
         let send_port = ctx
             .create_queuing_port_sender(
                 Name::from_str("TrafficS").unwrap(),
@@ -157,6 +158,7 @@ impl<
     > Partition<H> for TrafficReceiverPartition<M, F, H>
 {
     fn cold_start(&self, ctx: &mut StartContext<H>) {
+        info!("Starting throughput receiver");
         let port = ctx
             .create_queuing_port_receiver(
                 Name::from_str("TrafficR").unwrap(),

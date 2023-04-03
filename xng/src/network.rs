@@ -2,6 +2,7 @@ use core::mem::size_of;
 
 use corncobs::{decode_in_place, encode_buf, max_encoded_len};
 use heapless::spsc::Queue;
+use log::trace;
 use network_partition::prelude::{
     CreateNetworkInterfaceId, InterfaceError, NetworkInterfaceId, PlatformNetworkInterface,
     UartInterfaceConfig, VirtualLinkId,
@@ -171,6 +172,7 @@ where
         id: NetworkInterfaceId,
         buffer: &'_ mut [u8],
     ) -> Result<(VirtualLinkId, &'_ [u8]), InterfaceError> {
+        trace!("Reading from UART");
         if unsafe { !UART.uart.is_data_ready() } {
             return Err(InterfaceError::NoData);
         }

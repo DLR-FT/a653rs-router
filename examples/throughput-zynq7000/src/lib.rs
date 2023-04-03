@@ -27,7 +27,7 @@ static LOGGER: XalLogger = XalLogger;
 
 fn setup_logger() {
     unsafe { log::set_logger_racy(&LOGGER).unwrap() };
-    log::set_max_level(log::LevelFilter::Info);
+    log::set_max_level(log::LevelFilter::Trace);
 }
 
 #[cfg(feature = "sender")]

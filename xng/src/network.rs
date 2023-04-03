@@ -209,7 +209,6 @@ where
             Ok((vl, pl)) => {
                 let rpl = &mut buffer[0..pl.len()];
                 rpl.copy_from_slice(pl);
-
                 small_trace!(end_network_receive, id.0 as u16);
                 Ok((vl, rpl))
             }
@@ -228,7 +227,6 @@ where
         let mut buf = [0u8; UartFrame::<MTU>::max_encoded_len()];
         let frame = UartFrame::<MTU> { vl, pl: buffer };
 
-        // TODO Time it takes to do this should be accounted for if line is not used.
         let encoded =
             UartFrame::<MTU>::encode(&frame, &mut buf).or(Err(InterfaceError::InvalidData))?;
 

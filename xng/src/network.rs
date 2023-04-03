@@ -179,9 +179,8 @@ where
         let mut limit = 0;
         let mut queue_has_eof = false;
         while limit < u8::MAX && !queue_has_eof {
+            limit += 1;
             while let Some(b) = unsafe { UART.uart.read_byte() } {
-                limit += 1;
-
                 _ = unsafe { UART.rx_buffer.enqueue(b) };
                 if b == 0x0 {
                     queue_has_eof = true;

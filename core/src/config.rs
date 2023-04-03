@@ -8,12 +8,14 @@ use core::fmt::Display;
 use core::time::Duration;
 use heapless::{String, Vec};
 
+#[allow(unused_imports)]
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Deserializer, Serialize};
 
 #[cfg(feature = "std")]
 use bytesize::ByteSize;
 
+#[allow(dead_code)]
 const MAX_NAME_LEN: usize = 20;
 
 /// The name of a channel.
@@ -224,8 +226,23 @@ pub enum InterfaceConfig {
 impl InterfaceConfig {
     fn rate(&self) -> DataRate {
         match self {
-            Self::Uart(_c) => {
-                DataRate::b(109453) // overhead: start bit + stop bit + COBS overhead + CRC + VL-ID
+            Self::Uart(c) => {
+                let mtu = c.mtu;
+                let b0 = 115200;
+                let vl = 2;
+                let crc = 2;
+                let b_start = 1;
+                let b_stop = 1;
+                let data = mtu + vl + crc;
+                let overhead = if data % 254 > 1 {
+                    (data / 254) + 1
+                } else {
+                    data / 254
+                };
+                let r = (8 * (overhead + data)) + b_start + b_stop;
+                let t1 = (r as f64) / (b0 as f64);
+                let r1 = (8.0 * mtu as f64) / t1;
+                DataRate::b(r1 as u64) // overhead: start bit + stop bit + COBS overhead + CRC + VL-ID
             }
             Self::Udp(c) => c.rate,
         }

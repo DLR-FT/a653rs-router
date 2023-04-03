@@ -19,7 +19,7 @@ mod config {
     pub const CLOCK_RATE: usize = 50_000_000;
     pub const BAUD_RATE: usize = 115200;
     pub const FIFO_DEPTH: usize = 16;
-    pub const FRAME_BUFFER: usize = 2000;
+    pub const FRAME_BUFFER: usize = 20000;
 }
 
 struct UartFrame<'p, const MTU: usize> {

@@ -200,7 +200,7 @@
                   mkdir -p "$dir"
                   swdir="$dir/img"
 
-                  nix --offline build .#xng-sys-img-local_echo -o $swdir
+                  nix build .#xng-sys-img-local_echo -o $swdir
 
                   hwdir="$dir/hardware"
                   mkdir -p "$hwdir"
@@ -230,7 +230,7 @@
                   mkdir -p "$dir"
                   swdir="$dir/img"
 
-                  nix --offline build ".#xng-sys-img-$example" -o "$swdir"
+                  nix build ".#xng-sys-img-$example" -o "$swdir"
 
                   hwdir="$dir/hardware"
                   mkdir -p "$hwdir"

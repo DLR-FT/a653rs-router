@@ -3,7 +3,7 @@
 #![feature(int_roundings)]
 #![allow(incomplete_features)]
 
-use apex_echo::server::*;
+use apex_echo::server_queuing::*;
 use apex_rs::prelude::*;
 use apex_rs_xng::apex::XngHypervisor;
 use coraz7::{GpioTracer, XalLogger};
@@ -11,10 +11,16 @@ use log::info;
 use once_cell::unsync::OnceCell;
 
 const ECHO_SIZE: MessageSize = 100;
+const ECHO_RANGE: MessageRange = 10;
 
-static mut SENDER: OnceCell<SamplingPortSource<ECHO_SIZE, XngHypervisor>> = OnceCell::new();
-static mut RECEIVER: OnceCell<SamplingPortDestination<ECHO_SIZE, XngHypervisor>> = OnceCell::new();
+static mut SENDER: OnceCell<QueuingPortSender<ECHO_SIZE, ECHO_RANGE, XngHypervisor>> =
+    OnceCell::new();
+
+static mut RECEIVER: OnceCell<QueuingPortReceiver<ECHO_SIZE, ECHO_RANGE, XngHypervisor>> =
+    OnceCell::new();
+
 static LOGGER: XalLogger = XalLogger;
+
 static TRACER: GpioTracer = GpioTracer::new();
 
 #[no_mangle]

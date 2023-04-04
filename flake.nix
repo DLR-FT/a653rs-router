@@ -174,6 +174,13 @@
               '';
               help = "Run remote (through network) throughput example on CoraZ7";
             }
+            {
+              name = "test-run-echo-local";
+              command = ''
+                nix develop .#deploy -c flash-echo-local
+              '';
+              help = "Run local echo test on CoraZ7";
+            }
           ];
         };
 
@@ -246,6 +253,10 @@
                     "$cable" \
                     || printf "Failed to flash target"
                 '';
+              }
+              {
+                name = "flash-echo-local";
+                command = "flash local_echo 210370AD523FA";
               }
               {
                 name = "flash-echo-client";
@@ -426,12 +437,8 @@
             lithOsOps = self.packages.${system}.lithos-ops;
             xcf = pkgs.runCommandNoCC "patch-src" { } ''
               cp -r ${./. + "/config/local_echo/xml"} $out/
-              #for file in $(find $out -name hypervisor.xml)
-              #do
-              #  substituteInPlace "$file" --replace 'baseAddr="0xE0001000"' 'baseAddr="0xE0000000"'
-              #done
             '';
-            name = "network_partition_local_echo";
+            name = "xng-sys-img-echo-local";
             partitions = {
               NetworkPartition = {
                 src = "${self.packages."${system}".np-zynq7000-local_echo}/lib/libnp_zynq7000.a";

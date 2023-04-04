@@ -5,3 +5,4 @@
 pub mod client;
 pub mod queuing;
 pub mod server;
+pub mod server_queuing;

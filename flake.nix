@@ -181,6 +181,13 @@
               '';
               help = "Run local echo test on CoraZ7";
             }
+            {
+              name = "test-run-echo-direct";
+              command = ''
+                nix develop .#deploy -c flash-echo-direct
+              '';
+              help = "Run direct echo test on CoraZ7";
+            }
           ];
         };
 
@@ -253,6 +260,10 @@
                     "$cable" \
                     || printf "Failed to flash target"
                 '';
+              }
+              {
+                name = "flash-echo-direct";
+                command = "flash echo_direct 210370AD523FA";
               }
               {
                 name = "flash-echo-local";
@@ -429,6 +440,28 @@
           lithos-ops = xng-utils.lib.buildLithOsOps {
             inherit pkgs;
             src = xngSrcs.lithos;
+          };
+          xng-sys-img-echo_direct = xng-utils.lib.buildXngSysImage {
+            inherit pkgs;
+            hardFp = false;
+            xngOps = self.packages.${system}.xng-ops;
+            lithOsOps = self.packages.${system}.lithos-ops;
+            xcf = pkgs.runCommandNoCC "patch-src" { } ''
+              cp -r ${./. + "/config/echo_direct/xml"} $out/
+            '';
+            name = "xng-sys-img-echo-direct";
+            partitions = {
+              EchoClient = {
+                src = "${self.packages."${system}".echo-client-zynq7000}/lib/libecho_client_zynq7000.a";
+                enableLithOs = true;
+                ltcf = ./config/echo_direct/echo_client.ltcf;
+              };
+              EchoServer = {
+                src = "${self.packages."${system}".echo-server-zynq7000}/lib/libecho_server_zynq7000.a";
+                enableLithOs = true;
+                ltcf = ./config/echo_direct/echo_server.ltcf;
+              };
+            };
           };
           xng-sys-img-local_echo = xng-utils.lib.buildXngSysImage {
             inherit pkgs;

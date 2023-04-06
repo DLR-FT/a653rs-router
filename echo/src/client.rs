@@ -46,7 +46,7 @@ where
                     match result {
                         Ok(_) => {
                             debug!(
-                                "EchoRequest: seqnr = {:?}, time = {:?}",
+                                "EchoRequest: seqnr = {:?}, time = {:?} ms",
                                 data.sequence, data.when_ms
                             );
                         }

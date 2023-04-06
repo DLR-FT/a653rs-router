@@ -23,6 +23,6 @@ schedule:
   !DeadlineRr
   slots:
     - vl: 1
-      period: 500ms
+      period: 50us
     - vl: 2
-      period: 500ms
+      period: 50us

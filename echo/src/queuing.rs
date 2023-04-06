@@ -35,7 +35,7 @@ where
             match result {
                 Ok(_) => {
                     debug!(
-                        "EchoRequest: seqnr = {:?}, time = {:?}",
+                        "EchoRequest: seqnr = {:?}, time = {:?} ms",
                         data.sequence, data.when_ms
                     );
                 }
@@ -80,7 +80,7 @@ where
                     if received.sequence > last {
                         last += 1;
                         info!(
-                            "EchoReply: seqnr = {:?}, time = {:?}",
+                            "EchoReply: seqnr = {:?}, time = {:?} ms",
                             received.sequence,
                             (now.as_millis() as u64) - received.when_ms
                         );

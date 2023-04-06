@@ -16,7 +16,7 @@ use apex_rs::prelude::{SamplingPortDestination, Validity};
 use core::fmt::{Debug, Display};
 use core::time::Duration;
 use heapless::Vec;
-use log::{trace, warn};
+use log::{debug, trace, warn};
 use small_trace::*;
 
 #[cfg(feature = "serde")]
@@ -141,8 +141,8 @@ where
             let res = src.send(buffer);
             small_trace!(end_apex_send, self.id.0 as u16);
             if let Err(e) = res {
+                warn!("Failed to write to sampling port: {e:?}");
                 last_e = Some(Error::PortSendFail(e));
-                warn!("Failed to write to {src:?}");
             } else {
                 trace!("Wrote to source: {buffer:?}")
             }
@@ -288,8 +288,8 @@ where
             let res = src.send(buffer, timeout);
             small_trace!(end_apex_send, self.id.0 as u16);
             if let Err(e) = res {
+                warn!("Failed to write to queuing port: {e:?}");
                 last_e = Some(Error::PortSendFail(e));
-                warn!("Failed to write to {src:?}");
             } else {
                 trace!("Wrote to source: {buffer:?}")
             }
@@ -363,18 +363,25 @@ where
         trace!("Reading from local queuing port");
         if let Some(dst) = self.port_receiver.as_ref() {
             // TODO make configurable
-            let timeout = SystemTime::Normal(Duration::from_millis(1));
+            let timeout = SystemTime::Normal(Duration::from_micros(1));
             small_trace!(begin_apex_receive, self.id.0 as u16);
             let res = dst.receive(buffer, timeout);
             small_trace!(end_apex_receive, self.id.0 as u16);
             match res {
                 Ok(data) => {
                     trace!("Received data from local queueing port");
-                    self.forward_to_local(data)?;
-                    return Ok(data);
+                    if data.is_empty() {
+                        warn!("Dropping empty message");
+                    } else {
+                        self.forward_to_local(data)?;
+                        return Ok(data);
+                    }
                 }
                 Err(ApexError::InvalidConfig) => {
                     warn!("Echo reply queue overflowed");
+                }
+                Err(ApexError::TimedOut) => {
+                    debug!("Failed to receive data from port: TimedOut");
                 }
                 Err(e) => {
                     warn!("Failed to receive data from port: {e:?}");

@@ -17,7 +17,7 @@ pub struct Echo {
     pub sequence: u32,
 
     /// The time at which the message has been created.
-    pub when_ms: u64,
+    pub when_us: u64,
 }
 
 #[derive(Debug)]
@@ -38,7 +38,7 @@ where
                 SystemTime::Normal(now) => {
                     let data = Echo {
                         sequence: i,
-                        when_ms: now.as_millis() as u64,
+                        when_us: now.as_micros() as u64,
                     };
                     small_trace!(begin_echo_request_send);
                     let result = port.send_type(data);
@@ -46,8 +46,8 @@ where
                     match result {
                         Ok(_) => {
                             debug!(
-                                "EchoRequest: seqnr = {:?}, time = {:?} ms",
-                                data.sequence, data.when_ms
+                                "EchoRequest: seqnr = {:?}, time = {:?} us",
+                                data.sequence, data.when_us
                             );
                         }
                         Err(_) => {
@@ -93,9 +93,9 @@ where
                             SystemTime::Normal(now) => {
                                 let now: Duration = now;
                                 info!(
-                                    "EchoReply: seqnr = {:?}, time = {:?}",
+                                    "EchoReply: seqnr = {:?}, time = {:?} us",
                                     received.sequence,
-                                    (now.as_millis() as u64) - received.when_ms
+                                    (now.as_micros() as u64) - received.when_us
                                 );
                             }
                             _ => {

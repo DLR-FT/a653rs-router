@@ -4,7 +4,7 @@
 
 use apex_rs::prelude::*;
 use core::{str::FromStr, time::Duration};
-use log::{debug, info};
+use log::info;
 use once_cell::unsync::OnceCell;
 
 #[derive(Debug)]

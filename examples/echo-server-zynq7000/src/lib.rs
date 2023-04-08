@@ -9,7 +9,6 @@ use apex_rs_xng::apex::XngHypervisor;
 use log::info;
 use once_cell::unsync::OnceCell;
 use small_trace_gpio::GpioTracer;
-use xng_rs_log::XalLogger;
 
 const ECHO_SIZE: MessageSize = 100;
 const ECHO_RANGE: MessageRange = 10;
@@ -20,8 +19,6 @@ static mut SENDER: OnceCell<QueuingPortSender<ECHO_SIZE, ECHO_RANGE, XngHypervis
 static mut RECEIVER: OnceCell<QueuingPortReceiver<ECHO_SIZE, ECHO_RANGE, XngHypervisor>> =
     OnceCell::new();
 
-static LOGGER: XalLogger = XalLogger;
-
 static TRACER: GpioTracer = GpioTracer::new();
 
 #[no_mangle]
@@ -30,7 +27,7 @@ pub extern "C" fn main() {
     //unsafe { log::set_logger_racy(&XalLogger) };
     //log::set_max_level(log::LevelFilter::Info);
     TRACER.init();
-    unsafe { small_trace::set_tracer(&TRACER) }
+    small_trace::set_tracer(&TRACER);
     info!("Echo server main");
     let partition = EchoServerPartition::new(
         unsafe { &SENDER },

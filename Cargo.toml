@@ -1,33 +1,36 @@
 [workspace]
 resolver = "2"
 members = [
-  "small-trace-gpio",
-  "echo",
-  "gen-config",
   "core",
+  "echo",
+  "examples/echo-client-zynq7000",
+  "examples/echo-linux",
+  "examples/echo-server-zynq7000",
+  "examples/np-zynq7000",
+  "examples/throughput-zynq7000",
+  "gen-config",
   "linux",
   "network-partition-uart",
-  "examples/echo-linux",
-  "examples/np-zynq7000",
-  "examples/echo-client-zynq7000",
-  "examples/echo-server-zynq7000",
-  "examples/throughput-zynq7000",
-  "throughput",
   "small-trace",
+  "small-trace-gpio",
+  "throughput",
   "xng-rs-log",
 ]
 default-members = [  
-  "throughput",
-  "small-trace",
-  "small-trace-gpio",
-  "echo",
-  "gen-config",
   "core",
+  "echo",
+  #"examples/echo-client-zynq7000",
+  "examples/echo-linux",
+  #"examples/echo-server-zynq7000",
+  #"examples/np-zynq7000",
+  #"examples/throughput-zynq7000",
+  "gen-config",
   "linux",
   "network-partition-uart",
-  "examples/echo-linux",
-  "xng-rs-log"
-  #"examples/zynq7000"
+  "small-trace",
+  "small-trace-gpio",
+  "throughput",
+  "xng-rs-log",
 ]
 
 [patch."https://github.com/aeronautical-informatics/apex-rs.git"]

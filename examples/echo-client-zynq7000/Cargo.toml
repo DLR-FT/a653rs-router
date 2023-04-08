@@ -16,3 +16,4 @@ once_cell = { version = "1.17", default-features = false }
 log = "0"
 coraz7 = { path = "../../coraz7" }
 small-trace = { path = "../..//trace" }
+xng-rs-log = { path = "../../xng-rs-log" }

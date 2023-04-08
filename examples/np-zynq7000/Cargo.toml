@@ -9,7 +9,7 @@ crate-type = [ "staticlib" ]
 
 [dependencies]
 network-partition = { path = "../../core", features = [ "serde" ] }
-network-partition-xng = { path = "../../xng" }
+network-partition-uart = { path = "../../network-partition-uart" }
 apex-rs = { git = "https://github.com/aeronautical-informatics/apex-rs.git", branch = "main" }
 apex-rs-xng = { git = "https://github.com/dadada/apex-rs-xng.git", branch = "xng-hypervisor-debug" }
 log = { version = "0", default-features = false }
@@ -18,6 +18,8 @@ once_cell = { version = "1.17", default-features = false }
 postcard = "1.0"
 small-trace = { path = "../../trace" }
 coraz7 = { path = "../../coraz7" }
+xng-rs-log = { path = "../../xng-rs-log" }
+
 
 [build-dependencies]
 network-partition = { path = "../../core", feature = [ "serde" ] }

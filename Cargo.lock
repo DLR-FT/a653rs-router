@@ -314,6 +314,7 @@ dependencies = [
  "log",
  "once_cell",
  "small-trace",
+ "xng-rs-log",
 ]
 
 [[package]]
@@ -346,6 +347,7 @@ dependencies = [
  "log",
  "once_cell",
  "small-trace",
+ "xng-rs-log",
 ]
 
 [[package]]
@@ -653,7 +655,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "network-partition-xng"
+name = "network-partition-uart"
 version = "0.1.0"
 dependencies = [
  "corncobs",
@@ -691,13 +693,14 @@ dependencies = [
  "log",
  "network-partition",
  "network-partition-config",
- "network-partition-xng",
+ "network-partition-uart",
  "once_cell",
  "postcard",
  "proc-macro2",
  "quote",
  "serde_yaml",
  "small-trace",
+ "xng-rs-log",
 ]
 
 [[package]]
@@ -1222,3 +1225,10 @@ name = "windows_x86_64_msvc"
 version = "0.42.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "447660ad36a13288b1db4d4248e857b510e8c3a225c822ba4fb748c0aafecffd"
+
+[[package]]
+name = "xng-rs-log"
+version = "0.1.0"
+dependencies = [
+ "log",
+]

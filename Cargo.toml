@@ -6,7 +6,7 @@ members = [
   "gen-config",
   "core",
   "linux",
-  "xng",
+  "network-partition-uart",
   "examples/echo-linux",
   "examples/np-zynq7000",
   "examples/echo-client-zynq7000",
@@ -23,7 +23,7 @@ default-members = [
   "gen-config",
   "core",
   "linux",
-  "xng",
+  "network-partition-uart",
   "examples/echo-linux",
   #"examples/zynq7000"
 ]

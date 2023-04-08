@@ -3,7 +3,6 @@ extern "C" {
 }
 
 use core::fmt::{Display, Write};
-
 use log::{max_level, Log, Metadata, Record};
 
 pub struct XalLogger;

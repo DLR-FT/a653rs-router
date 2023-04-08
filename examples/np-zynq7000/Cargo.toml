@@ -23,7 +23,7 @@ xng-rs-log = { path = "../../xng-rs-log" }
 
 [build-dependencies]
 network-partition = { path = "../../core", feature = [ "serde" ] }
-network-partition-config = { path = "../../gen-config" }
+network-partition-config = { path = "../../network-partition-config" }
 serde_yaml = "0.9"
 quote = "1"
 proc-macro2 = "1"

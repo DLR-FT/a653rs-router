@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 network-partition = { path = "../../core" }
-network-partition-linux = { path = "../../linux" }
+network-partition-linux = { path = "../../network-partition-linux" }
 apex-echo = { path = "../../echo" }
 apex-rs = { git = "https://github.com/aeronautical-informatics/apex-rs.git", branch = "main" }
 apex-rs-linux = { git = "https://github.com/dadada/apex-linux.git", branch = "stable-for-master-thesis" }
@@ -18,7 +18,7 @@ heapless = "0.7"
 
 [build-dependencies]
 network-partition = { path = "../../core", features = [ "serde", "std" ] }
-network-partition-config = { path = "../../gen-config" }
+network-partition-config = { path = "../../network-partition-config" }
 serde_yaml = "0.9"
 quote = "1"
 proc-macro2 = "1"

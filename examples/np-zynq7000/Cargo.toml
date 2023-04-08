@@ -16,8 +16,8 @@ log = { version = "0", default-features = false }
 heapless = { version = "0.7" }
 once_cell = { version = "1.17", default-features = false }
 postcard = "1.0"
-small-trace = { path = "../../trace" }
-coraz7 = { path = "../../coraz7" }
+small-trace = { path = "../../small-trace" }
+small-trace-gpio = { path = "../../small-trace-gpio" }
 xng-rs-log = { path = "../../xng-rs-log" }
 
 

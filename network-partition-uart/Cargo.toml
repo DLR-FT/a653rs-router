@@ -14,4 +14,4 @@ uart_xilinx = { git = "https://github.com/duskmoon314/uart-rs.git", branch = "ma
 heapless = { version = "0.7" }
 corncobs = { version = "0.1" }
 crc16 = { version = "0.4.0", default-features = false }
-small-trace = { path = "../trace" }
+small-trace = { path = "../small-trace" }

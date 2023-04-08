@@ -6,9 +6,9 @@
 use apex_echo::queuing::*;
 use apex_rs::prelude::*;
 use apex_rs_xng::apex::XngHypervisor;
-use coraz7::GpioTracer;
 use log::info;
 use once_cell::unsync::OnceCell;
+use small_trace_gpio::GpioTracer;
 use xng_rs_log::XalLogger;
 
 const ECHO_SIZE: MessageSize = 100;

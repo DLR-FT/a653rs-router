@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
-  "coraz7",
+  "small-trace-gpio",
   "echo",
   "gen-config",
   "core",
@@ -13,18 +13,20 @@ members = [
   "examples/echo-server-zynq7000",
   "examples/throughput-zynq7000",
   "throughput",
-  "trace"
+  "small-trace",
+  "xng-rs-log",
 ]
 default-members = [  
   "throughput",
-  "trace",
-  "coraz7",
+  "small-trace",
+  "small-trace-gpio",
   "echo",
   "gen-config",
   "core",
   "linux",
   "network-partition-uart",
   "examples/echo-linux",
+  "xng-rs-log"
   #"examples/zynq7000"
 ]
 

@@ -212,15 +212,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "coraz7"
-version = "0.1.0"
-dependencies = [
- "log",
- "small-trace",
- "volatile-register",
-]
-
-[[package]]
 name = "core-foundation-sys"
 version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -310,10 +301,10 @@ dependencies = [
  "apex-echo",
  "apex-rs",
  "apex-rs-xng",
- "coraz7",
  "log",
  "once_cell",
  "small-trace",
+ "small-trace-gpio",
  "xng-rs-log",
 ]
 
@@ -343,10 +334,10 @@ dependencies = [
  "apex-echo",
  "apex-rs",
  "apex-rs-xng",
- "coraz7",
  "log",
  "once_cell",
  "small-trace",
+ "small-trace-gpio",
  "xng-rs-log",
 ]
 
@@ -688,7 +679,6 @@ version = "0.1.0"
 dependencies = [
  "apex-rs",
  "apex-rs-xng",
- "coraz7",
  "heapless",
  "log",
  "network-partition",
@@ -700,6 +690,7 @@ dependencies = [
  "quote",
  "serde_yaml",
  "small-trace",
+ "small-trace-gpio",
  "xng-rs-log",
 ]
 
@@ -898,6 +889,15 @@ name = "small-trace"
 version = "0.1.0"
 
 [[package]]
+name = "small-trace-gpio"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "small-trace",
+ "volatile-register",
+]
+
+[[package]]
 name = "spin"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -981,9 +981,10 @@ dependencies = [
  "apex-rs",
  "apex-rs-xng",
  "apex-throughput",
- "coraz7",
  "log",
  "once_cell",
+ "small-trace-gpio",
+ "xng-rs-log",
 ]
 
 [[package]]

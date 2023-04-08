@@ -179,7 +179,7 @@ impl<const VLS: usize, const PORTS: usize, const IFS: usize, const SCHEDULE_SLOT
                 }
             }
             InterfaceConfig::Uart(i) => {
-                let interface = quote! { network_partition_xng::UartNetworkInterface };
+                let interface = quote! { network_partition_uart::UartNetworkInterface };
                 let name = i.name.clone().0.to_uppercase();
                 let mtu = i.mtu;
                 let umtu = i.mtu as usize;

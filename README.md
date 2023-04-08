@@ -102,14 +102,14 @@ use with specific hypervisors:
 of apex-linux, which will print them to the standard output, together with the
 output of the hypervisor and the output of the other partitions.
 
-`coraz7::XalLogger` logs messages to the XNG console using XalPutChar. Using
+`XalLogger` logs messages to the XNG console using XalPutChar. Using
 this logger requires that the XAL is linked into the final partition image in
 addition LithOS.
 
 ## Profiling
 
 The crates inside this workspace make use of a common trace facility. The
-`coraz7` crate provides an implementation of this facility that allows log the
+crates provide an implementation of this facility that allows log the
 traced events and their associated data to GPIO ports. This is useful, because
 this way a logic analyzer can be used to record both the trace events and
 e.g. network communication on the UART using the same clock. In practice, this

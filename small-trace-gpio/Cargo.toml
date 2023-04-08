@@ -1,6 +1,6 @@
 [package]
-name = "coraz7"
-description = "Platform specific structures"
+name = "small-trace-gpio"
+description = "Tracer for writing traces to GPIOs"
 version = "0.1.0"
 edition = "2021"
 
@@ -9,4 +9,4 @@ edition = "2021"
 [dependencies]
 log = "0"
 volatile-register = "0.2"
-small-trace = { path = "../trace" }
+small-trace = { path = "../small-trace" }

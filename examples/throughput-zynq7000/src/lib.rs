@@ -11,9 +11,9 @@ use apex_throughput::TrafficSender;
 #[cfg(feature = "receiver")]
 use apex_throughput::{TrafficReceiver, TrafficReceiverPartition};
 
-use coraz7::XalLogger;
 use core::time::Duration;
 use once_cell::unsync::OnceCell;
+use xng_rs_log::XalLogger;
 
 // TODO make configurable
 // Maximum from XNG header files

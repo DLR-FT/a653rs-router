@@ -140,6 +140,7 @@ impl<const PORTS: usize, const IFS: usize, const VLS: usize, const SCHEDULE_SLOT
     }
 }
 
+#[cfg(feature = "serde")]
 fn default_interfaces<const IFS: usize>() -> Vec<InterfaceConfig, IFS> {
     Vec::new()
 }
@@ -190,6 +191,7 @@ pub struct VirtualLinkConfig<const PORTS: usize, const IFS: usize> {
     pub interfaces: Vec<InterfaceName, IFS>,
 }
 
+#[cfg(feature = "serde")]
 fn default_interface_names<const IFS: usize>() -> Vec<InterfaceName, IFS> {
     Vec::default()
 }

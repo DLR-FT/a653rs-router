@@ -9,7 +9,7 @@ edition = "2021"
 crate-type = [ "staticlib" ]
 
 [dependencies]
-apex-echo = { path = "../../echo" }
+apex-echo = { path = "../../apex-echo" }
 apex-rs = { git = "https://github.com/aeronautical-informatics/apex-rs.git", branch = "main" }
 apex-rs-xng = { git = "https://github.com/dadada/apex-rs-xng.git", branch = "xng-hypervisor-debug" }
 once_cell = { version = "1.17", default-features = false }

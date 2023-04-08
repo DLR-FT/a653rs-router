@@ -2,8 +2,8 @@
 resolver = "2"
 members = [
   "apex-throughput",
+  "apex-echo",
   "core",
-  "echo",
   "examples/echo-client-zynq7000",
   "examples/echo-linux",
   "examples/echo-server-zynq7000",
@@ -18,8 +18,8 @@ members = [
 ]
 default-members = [  
   "apex-throughput",
+  "apex-echo",
   "core",
-  "echo",
   #"examples/echo-client-zynq7000",
   "examples/echo-linux",
   #"examples/echo-server-zynq7000",

@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+  "apex-throughput",
   "core",
   "echo",
   "examples/echo-client-zynq7000",
@@ -13,10 +14,10 @@ members = [
   "network-partition-uart",
   "small-trace",
   "small-trace-gpio",
-  "throughput",
   "xng-rs-log",
 ]
 default-members = [  
+  "apex-throughput",
   "core",
   "echo",
   #"examples/echo-client-zynq7000",
@@ -29,7 +30,6 @@ default-members = [
   "network-partition-uart",
   "small-trace",
   "small-trace-gpio",
-  "throughput",
   "xng-rs-log",
 ]
 

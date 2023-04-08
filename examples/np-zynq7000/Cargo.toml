@@ -8,7 +8,7 @@ edition = "2021"
 crate-type = [ "staticlib" ]
 
 [dependencies]
-network-partition = { path = "../../core", features = [ "serde" ] }
+network-partition = { path = "../../network-partition", features = [ "serde" ] }
 network-partition-uart = { path = "../../network-partition-uart" }
 apex-rs = { git = "https://github.com/aeronautical-informatics/apex-rs.git", branch = "main" }
 apex-rs-xng = { git = "https://github.com/dadada/apex-rs-xng.git", branch = "xng-hypervisor-debug" }
@@ -22,7 +22,7 @@ xng-rs-log = { path = "../../xng-rs-log" }
 
 
 [build-dependencies]
-network-partition = { path = "../../core", feature = [ "serde" ] }
+network-partition = { path = "../../network-partition", feature = [ "serde" ] }
 network-partition-config = { path = "../../network-partition-config" }
 serde_yaml = "0.9"
 quote = "1"

@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-network-partition = { path = "../core", features = [ "serde", "std"] }
+network-partition = { path = "../network-partition", features = [ "serde", "std"] }
 serde = { version = "1.0", features = ["derive"] }
 bytesize = { version = "1.1", features = ["serde"] }
 proc-macro2 = "1"

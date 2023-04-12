@@ -12,7 +12,7 @@
     </Device>
   </Devices>
   <Ports>
-    <SamplingPort name="EchoRequestSrv" direction="source" irq="168"/>
-    <SamplingPort name="EchoReplySrv" direction="destination" irq="169"/>
+    <QueuingPort name="EchoRequestSrv" direction="source" irq="168"/>
+    <QueuingPort name="EchoReplySrv" direction="destination" irq="169"/>
   </Ports>
 </Partition>

@@ -4,14 +4,15 @@ virtual_links:
   - id: 2
     msg_size: 100
     interfaces: [ "uart0" ]
+    fifo_depth: 10
     ports:
-      - !SamplingPortDestination
+      - !QueuingPortReceiver
         channel: EchoReplySrv
-        validity: 10s
   - id: 1
     msg_size: 100
+    fifo_depth: 10
     ports:
-      - !SamplingPortSource
+      - !QueuingPortSender
         channel: EchoRequestSrv
 interfaces:
   - !Uart

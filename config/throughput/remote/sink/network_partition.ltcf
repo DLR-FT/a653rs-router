@@ -1,7 +1,8 @@
 #ifndef _LITHOS_CFG_H_
 #define _LITHOS_CFG_H_
 
-#define CONFIG_MAX_PROCESS_STACK_SIZE 1500000
+// Maximum allowed stack size of LithOS. See lithos.c
+#define CONFIG_MAX_PROCESS_STACK_SIZE (32*1024)
 #define CONFIG_MAX_NO_PARTITIONS 2
 #define CONFIG_MAX_NO_PROCESSES 2
 #define CONFIG_MAX_NO_SAMPLING_PORTS 0

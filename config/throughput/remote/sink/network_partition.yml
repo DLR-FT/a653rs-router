@@ -1,5 +1,5 @@
 stack_size:
-  aperiodic_process: 25KB
+  aperiodic_process: 32768B
 virtual_links:
   - id: 1
     msg_size: 8192

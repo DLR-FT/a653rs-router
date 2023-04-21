@@ -319,6 +319,18 @@
           };
         };
         packages = {
+          all-images = nixpkgs.legacyPackages.${system}.linkFarmFromDrvs "all-images" (
+            with self.packages.${system}; [
+              xng-sys-img-echo_client
+              xng-sys-img-echo_direct
+              xng-sys-img-echo_server
+              xng-sys-img-local_echo
+              xng-sys-img-throughput-direct
+              xng-sys-img-throughput-local
+              xng-sys-img-throughput-sink
+              xng-sys-img-throughput-source
+            ]
+          );
           throughput-local-np = naerskLib.buildPackage rec {
             pname = "throughput-local-np";
             CONFIG_DIR = ./config/throughput/local;

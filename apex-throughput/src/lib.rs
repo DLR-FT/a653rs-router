@@ -2,7 +2,7 @@
 #![feature(generic_const_exprs)]
 #![allow(incomplete_features)]
 
-use apex_rs::prelude::*;
+use a653rs::prelude::*;
 use core::{str::FromStr, time::Duration};
 use log::info;
 use once_cell::unsync::OnceCell;
@@ -60,7 +60,6 @@ impl<
             .create_queuing_port_sender(
                 Name::from_str("TrafficS").unwrap(),
                 QueuingDiscipline::FIFO,
-                F,
             )
             .unwrap();
         _ = self.sender.set(send_port);
@@ -163,7 +162,6 @@ impl<
             .create_queuing_port_receiver(
                 Name::from_str("TrafficR").unwrap(),
                 QueuingDiscipline::FIFO,
-                F,
             )
             .unwrap();
         _ = self.port.set(port);

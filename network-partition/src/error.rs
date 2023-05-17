@@ -1,7 +1,7 @@
 use core::fmt::{Display, Formatter};
 
 ///! Error types
-use apex_rs::prelude::Error as ApexError;
+use a653rs::prelude::Error as ApexError;
 
 // TODO more precise errors
 
@@ -9,10 +9,10 @@ use apex_rs::prelude::Error as ApexError;
 #[derive(Clone, Debug)]
 pub enum Error {
     /// Failed to send data to a port.
-    PortSendFail(apex_rs::prelude::Error),
+    PortSendFail(a653rs::prelude::Error),
 
     /// Failed to receive data from a port.
-    PortReceiveFail(apex_rs::prelude::Error),
+    PortReceiveFail(a653rs::prelude::Error),
 
     /// Failed to receive something from an interface.
     InterfaceReceiveFail(InterfaceError),
@@ -129,7 +129,7 @@ impl Display for Error {
     }
 }
 
-impl From<apex_rs::prelude::Error> for Error {
+impl From<a653rs::prelude::Error> for Error {
     fn from(err: ApexError) -> Self {
         match err {
             ApexError::ReadError(_) => Self::PortReceiveFail(err),

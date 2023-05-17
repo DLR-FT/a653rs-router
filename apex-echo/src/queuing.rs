@@ -1,8 +1,7 @@
 use crate::client::Echo;
 
-use apex_rs::bindings::*;
-use apex_rs::prelude::*;
-use apex_rs_postcard::prelude::*;
+use a653rs::prelude::*;
+use a653rs_postcard::prelude::*;
 use core::str::FromStr;
 use core::time::Duration;
 use log::{debug, error, info, trace, warn};
@@ -133,7 +132,6 @@ where
             .create_queuing_port_sender(
                 Name::from_str("EchoRequest").unwrap(),
                 QueuingDiscipline::FIFO,
-                FIFO_DEPTH,
             )
             .unwrap();
 
@@ -143,7 +141,6 @@ where
             .create_queuing_port_receiver(
                 Name::from_str("EchoReply").unwrap(),
                 QueuingDiscipline::FIFO,
-                FIFO_DEPTH,
             )
             .unwrap();
         _ = self.receiver.set(receive_port);

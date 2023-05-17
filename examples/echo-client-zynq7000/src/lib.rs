@@ -3,9 +3,9 @@
 #![feature(int_roundings)]
 #![allow(incomplete_features)]
 
+use a653rs::prelude::*;
+use a653rs_xng::apex::XngHypervisor;
 use apex_echo::queuing::*;
-use apex_rs::prelude::*;
-use apex_rs_xng::apex::XngHypervisor;
 use log::info;
 use once_cell::unsync::OnceCell;
 use small_trace_gpio::GpioTracer;

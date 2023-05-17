@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 network-partition = { path = "../network-partition" }
-apex-rs-linux = { git = "https://github.com/dadada/apex-linux.git", branch = "stable-for-master-thesis" }
+a653rs-linux = { git = "https://github.com/DLR-FT/a653rs-linux.git", branch = "main" }
 once_cell = "1.17"
 log = "0"
 heapless = "0.7"

@@ -2,6 +2,8 @@
   description = "network-partition";
 
   inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-22.11";
+
     utils.url = "github:numtide/flake-utils";
 
     devshell = {
@@ -12,14 +14,18 @@
 
     fenix = {
       url = "github:nix-community/fenix";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     naersk = {
       url = "github:nix-community/naersk";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     hypervisor = {
+      #url = "github:DLR-FT/a653rs-linux";
       url = "github:dadada/apex-linux/udp-network-driver";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     xng-utils = {
@@ -47,12 +53,7 @@
   outputs = { self, nixpkgs, utils, devshell, fenix, hypervisor, naersk, xng-utils, fpga-project, xilinx-flake-utils, ... }@inputs:
     utils.lib.eachSystem [ "x86_64-linux" ] (system:
       let
-        pkgs = import nixpkgs {
-          inherit system;
-          overlays = [
-            devshell.overlays.default
-          ];
-        };
+        pkgs = import nixpkgs { inherit system; };
         formatter = pkgs.nixpkgs-fmt;
         rust-toolchain = with fenix.packages.${system}; combine [
           latest.rustc
@@ -69,7 +70,7 @@
           cargo = rust-toolchain;
           rustc = rust-toolchain;
         });
-        hypervisorPackage = hypervisor.packages.${system}.linux-apex-hypervisor;
+        hypervisorPackage = hypervisor.packages.${system}.a653rs-linux-hypervisor;
 
         xngSrcs = {
           xng = pkgs.requireFile {
@@ -91,6 +92,7 @@
         # TODO merge into default dev shell
         devShells.xng =
           let
+            pkgs = import nixpkgs { inherit system; overlays = [ devshell.overlays.default ]; };
             mkShell = pkgs.mkShell.override { stdenv = pkgs.gccMultiStdenv; };
           in
           with self.packages."${system}"; mkShell {
@@ -107,100 +109,105 @@
             ];
           };
 
-        devShells.default = pkgs.devshell.mkShell {
-          imports = [ "${devshell}/extra/git/hooks.nix" ];
-          name = "network-partition-devshell";
-          packages = with pkgs; [
-            hypervisorPackage
-            gcc
-            rust-toolchain
-            cargo-outdated
-            cargo-udeps
-            cargo-audit
-            cargo-watch
-            formatter
-            treefmt
-          ];
-          git.hooks.enable = true;
-          git.hooks.pre-commit.text = ''
-            treefmt --fail-on-change
-          '';
-          commands = [
-            {
-              name = "build-no_std";
-              command = ''
-                cd $PRJ_ROOT
-                cargo build -p network-partition --release --target thumbv7m-none-eabi
-              '';
-              help = "Verify that the library builds for no_std without std-features";
-            }
-            {
-              name = "test-run-echo-linux";
-              command = ''
-                cargo build --release --target x86_64-unknown-linux-musl
-                RUST_LOG=''${RUST_LOG:=info} linux-apex-hypervisor --duration 10s config/linux/hv-server.yml 2> hv-server.log & \
-                RUST_LOG=''${RUST_LOG:=info} linux-apex-hypervisor --duration 10s config/linux/hv-client.yml 2> hv-client.log &
-              '';
-              help = "Run echo example using existing scope and exit after 10 seconds";
-            }
-            {
-              name = "test-run-echo-scoped";
-              command = ''
-                cargo build --release --target x86_64-unknown-linux-musl
-                RUST_LOG=''${RUST_LOG:=info} systemd-run --user --scope -- linux-apex-hypervisor --duration 10s config/linux/hv-server.yml & \
-                RUST_LOG=''${RUST_LOG:=info} systemd-run --user --scope -- linux-apex-hypervisor --duration 10s config/linux/hv-client.yml
-              '';
-              help = "Run echo example using apex-linux inside systemd scope and exit after 10 seconds";
-            }
-            {
-              name = "test-run-echo-cora";
-              command = ''
-                nix develop .#deploy -c flash-echo-server && nix develop .#deploy -c flash-echo-client
-              '';
-              help = "Run echo example on two CoraZ7";
-            }
-            {
-              name = "test-run-throughput-local";
-              command = ''
-                nix develop .#deploy -c flash-throughput-local
-              '';
-              help = "Run local (through IO-partition) throughput example on CoraZ7";
-            }
-            {
-              name = "test-run-throughput-direct";
-              command = ''
-                nix develop .#deploy -c flash-throughput-direct
-              '';
-              help = "Run direct throughput example on CoraZ7";
-            }
-            {
-              name = "test-run-throughput-remote";
-              command = ''
-                nix develop .#deploy -c flash-throughput-sink
-                nix develop .#deploy -c flash-throughput-source
-              '';
-              help = "Run remote (through network) throughput example on CoraZ7";
-            }
-            {
-              name = "test-run-echo-local";
-              command = ''
-                nix develop .#deploy -c flash-echo-local
-              '';
-              help = "Run local echo test on CoraZ7";
-            }
-            {
-              name = "test-run-echo-direct";
-              command = ''
-                nix develop .#deploy -c flash-echo-direct
-              '';
-              help = "Run direct echo test on CoraZ7";
-            }
-          ];
-        };
+        devShells.default =
+          let
+            pkgs = import nixpkgs { inherit system; overlays = [ devshell.overlays.default ]; };
+          in
+          pkgs.devshell.mkShell {
+            imports = [ "${devshell}/extra/git/hooks.nix" ];
+            name = "network-partition-devshell";
+            packages = with pkgs; [
+              hypervisorPackage
+              gcc
+              rust-toolchain
+              cargo-outdated
+              cargo-udeps
+              cargo-audit
+              cargo-watch
+              formatter
+              treefmt
+            ];
+            git.hooks.enable = true;
+            git.hooks.pre-commit.text = ''
+              treefmt --fail-on-change
+            '';
+            commands = [
+              {
+                name = "build-no_std";
+                command = ''
+                  cd $PRJ_ROOT
+                  cargo build -p network-partition --release --target thumbv7m-none-eabi
+                '';
+                help = "Verify that the library builds for no_std without std-features";
+              }
+              {
+                name = "test-run-echo-linux";
+                command = ''
+                  cargo build --release --target x86_64-unknown-linux-musl
+                  RUST_LOG=''${RUST_LOG:=info} a653rs-linux-hypervisor --duration 10s config/linux/hv-server.yml 2> hv-server.log & \
+                  RUST_LOG=''${RUST_LOG:=info} a653rs-linux-hypervisor --duration 10s config/linux/hv-client.yml 2> hv-client.log &
+                '';
+                help = "Run echo example using existing scope and exit after 10 seconds";
+              }
+              {
+                name = "test-run-echo-scoped";
+                command = ''
+                  cargo build --release --target x86_64-unknown-linux-musl
+                  RUST_LOG=''${RUST_LOG:=info} systemd-run --user --scope -- a653rs-linux-hypervisor --duration 10s config/linux/hv-server.yml & \
+                  RUST_LOG=''${RUST_LOG:=info} systemd-run --user --scope -- a653rs-linux-hypervisor --duration 10s config/linux/hv-client.yml
+                '';
+                help = "Run echo example using apex-linux inside systemd scope and exit after 10 seconds";
+              }
+              {
+                name = "test-run-echo-cora";
+                command = ''
+                  nix develop .#deploy -c flash-echo-server && nix develop .#deploy -c flash-echo-client
+                '';
+                help = "Run echo example on two CoraZ7";
+              }
+              {
+                name = "test-run-throughput-local";
+                command = ''
+                  nix develop .#deploy -c flash-throughput-local
+                '';
+                help = "Run local (through IO-partition) throughput example on CoraZ7";
+              }
+              {
+                name = "test-run-throughput-direct";
+                command = ''
+                  nix develop .#deploy -c flash-throughput-direct
+                '';
+                help = "Run direct throughput example on CoraZ7";
+              }
+              {
+                name = "test-run-throughput-remote";
+                command = ''
+                  nix develop .#deploy -c flash-throughput-sink
+                  nix develop .#deploy -c flash-throughput-source
+                '';
+                help = "Run remote (through network) throughput example on CoraZ7";
+              }
+              {
+                name = "test-run-echo-local";
+                command = ''
+                  nix develop .#deploy -c flash-echo-local
+                '';
+                help = "Run local echo test on CoraZ7";
+              }
+              {
+                name = "test-run-echo-direct";
+                command = ''
+                  nix develop .#deploy -c flash-echo-direct
+                '';
+                help = "Run direct echo test on CoraZ7";
+              }
+            ];
+          };
 
         # Separate devshell so we do not need to build Vitis if some flake input does not match just for changing code.
         devShells.deploy =
           let
+            pkgs = import nixpkgs { inherit system; overlays = [ devshell.overlays.default ]; };
             fpga = fpga-project.packages."${system}".default;
             zynq7000Init = ./deployment/zynq7000_init_te0706.tcl;
             vitis = xilinx-flake-utils.packages.${system}.vitis-unified-software-platform-vitis_2019-2_1106_2127;
@@ -319,11 +326,19 @@
             {
               nativeBuildInputs = [ rust-toolchain ];
             } "cd ${./.} && cargo fmt --check && touch $out";
-          run-echo-with-timeout = import ./test/integration.nix {
-            inherit nixpkgs pkgs system;
-            linux-apex-hypervisor = hypervisorPackage;
-            echo-linux = self.packages.${system}.echo-linux;
-          };
+          run-echo-with-timeout =
+            let
+              pkgs = import nixpkgs {
+                inherit system;
+                overlays = [
+                  (final: prev: {
+                    arinc653rs-linux-hypervisor = hypervisorPackage;
+                    echo-linux = self.packages.${system}.echo-linux;
+                  })
+                ];
+              };
+            in
+            import ./test/integration.nix { inherit pkgs; };
         };
         packages = {
           all-images = nixpkgs.legacyPackages.${system}.linkFarmFromDrvs "all-images" (

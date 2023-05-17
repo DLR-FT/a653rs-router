@@ -2,8 +2,8 @@
 #![feature(generic_const_exprs)]
 #![allow(incomplete_features)]
 
-use apex_rs::prelude::*;
-use apex_rs_xng::apex::XngHypervisor;
+use a653rs::prelude::*;
+use a653rs_xng::apex::XngHypervisor;
 
 #[cfg(feature = "sender")]
 use apex_throughput::TrafficSender;

@@ -1,15 +1,10 @@
-{ nixpkgs ? <nixpkgs>
-, pkgs ? import <nixpkgs> { inherit system; config = { }; }
-, system ? builtins.currentSystem
-, linux-apex-hypervisor
-, echo-linux
-} @args:
-import "${nixpkgs}/nixos/tests/make-test-python.nix"
+{ pkgs }:
+pkgs.testers.nixosTest
   ({ pkgs, ... }: {
     name = "network-partition-integration";
 
-    nodes.system1 = { config, lib, ... }: {
-      environment.systemPackages = [ linux-apex-hypervisor ];
+    nodes.system1 = { config, lib, pkgs, ... }: {
+      environment.systemPackages = [ pkgs.arinc653rs-linux-hypervisor ];
       environment.etc."hypervisor_config_client.yml" =
         {
           text = ''
@@ -20,13 +15,13 @@ import "${nixpkgs}/nixos/tests/make-test-python.nix"
                 duration: 100ms
                 offset: 0ms
                 period: 1s
-                image: ${echo-linux}/bin/echo
+                image: ${pkgs.echo-linux}/bin/echo
               - id: 2
                 name: Network
                 duration: 100ms
                 offset: 500ms
                 period: 1s
-                image: ${echo-linux}/bin/np-client
+                image: ${pkgs.echo-linux}/bin/np-client
                 udp_ports:
                   - "127.0.0.1:34254"
             channel:
@@ -55,13 +50,13 @@ import "${nixpkgs}/nixos/tests/make-test-python.nix"
                 duration: 50ms
                 offset: 50ms
                 period: 100ms
-                image: ${echo-linux}/bin/echo-server
+                image: ${pkgs.echo-linux}/bin/echo-server
               - id: 1
                 name: Network
                 duration: 50ms
                 offset: 0s
                 period: 100ms
-                image: ${echo-linux}/bin/np-server
+                image: ${pkgs.echo-linux}/bin/np-server
                 udp_ports:
                   - "127.0.0.1:34256"
             channel:
@@ -84,7 +79,6 @@ import "${nixpkgs}/nixos/tests/make-test-python.nix"
 
     testScript = ''
       system1.wait_for_unit("multi-user.target")
-      system1.succeed("linux-apex-hypervisor --duration 10s /etc/hypervisor_config_server.yml & linux-apex-hypervisor --duration 10s /etc/hypervisor_config_client.yml")
+      system1.succeed("a653rs-linux-hypervisor --duration 10s /etc/hypervisor_config_server.yml & linux-apex-hypervisor --duration 10s /etc/hypervisor_config_client.yml")
     '';
   })
-  args

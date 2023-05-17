@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 use std::{mem::size_of, net::UdpSocket};
 
-use apex_rs_linux::partition::ApexLinuxPartition;
+use a653rs_linux::partition::ApexLinuxPartition;
 
 use log::{error, trace};
 use network_partition::prelude::{

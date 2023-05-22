@@ -328,17 +328,12 @@
             } "cd ${./.} && cargo fmt --check && touch $out";
           run-echo-with-timeout =
             let
-              pkgs = import nixpkgs {
-                inherit system;
-                overlays = [
-                  (final: prev: {
-                    arinc653rs-linux-hypervisor = hypervisorPackage;
-                    echo-linux = self.packages.${system}.echo-linux;
-                  })
-                ];
-              };
+              nixos-lib = nixpkgs.lib.nixos;
+              hostPkgs = pkgs;
+              hypervisor = hypervisorPackage;
+              partition = self.packages.${system}.echo-linux;
             in
-            import ./test/integration.nix { inherit pkgs; };
+            nixos-lib.runTest (import ./test/integration.nix { inherit hostPkgs hypervisor partition; });
         };
         packages = {
           all-images = nixpkgs.legacyPackages.${system}.linkFarmFromDrvs "all-images" (

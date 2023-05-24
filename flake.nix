@@ -28,13 +28,20 @@
     };
 
     fpga-project = {
-      url = "git+ssh://git@github.com/dadada/vivado-coraz7-uart.git?ref=main";
+      url = "git+ssh://git@gitlab.dlr.de/projekt-resilienz/vivado-coraz7-uart.git?ref=main";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     xilinx-flake-utils = {
       url = "github:aeronautical-informatics/xilinx-flake-utils";
       # do not override any inputs here to not have to rebuild Xilinx Vitis
     };
+  };
+
+  nixConfig = {
+    trusted-substituters = "https://cache.ft-ssy-stonks.intra.dlr.de";
+    substituters = "https://cache.ft-ssy-stonks.intra.dlr.de";
+    trusted-public-keys = "ft-ssy-stonks.intra.dlr.de:xWBi+hGpebqGVgcYJtcPyW4BXBQ6TmI15c5OHf6htpM=";
   };
 
   outputs = { self, nixpkgs, utils, devshell, fenix, hypervisor, naersk, xng-utils, fpga-project, xilinx-flake-utils, ... }@inputs:

@@ -98,7 +98,7 @@ debugging purposes), a platform-dependent logger implementation needs to be
 provided. Both apex-linux and this repo provide loggers that are targeted for
 use with specific hypervisors:
 
-`apex_rs_linux::partition::ApexLogger` logs message to the health manager
+`a653rs_linux::partition::ApexLogger` logs message to the health manager
 of apex-linux, which will print them to the standard output, together with the
 output of the hypervisor and the output of the other partitions.
 

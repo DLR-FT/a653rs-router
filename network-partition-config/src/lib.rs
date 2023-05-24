@@ -43,7 +43,7 @@ impl<const VLS: usize, const PORTS: usize, const IFS: usize, const SCHEDULE_SLOT
         let init_scheduler = self.init_scheduler();
 
         quote! {
-            use apex_rs::prelude::*;
+            use a653rs::prelude::*;
             use core::str::FromStr;
             use core::time::Duration;
             use core::result::Result::*;
@@ -246,7 +246,7 @@ impl<const VLS: usize, const PORTS: usize, const IFS: usize, const SCHEDULE_SLOT
                                 // TODO make configurable
                                 let q_disc = QueuingDiscipline::FIFO;
                                 let name = Name::from_str(#channel).unwrap();
-                                let src = match ctx.create_queuing_port_sender::<#mtu, #fifo_depth>(name, q_disc, #fifo_depth) {
+                                let src = match ctx.create_queuing_port_sender::<#mtu, #fifo_depth>(name, q_disc) {
                                     Ok(src) => src,
                                     Err(err) => {
                                         error!("{:?}", err);
@@ -265,7 +265,7 @@ impl<const VLS: usize, const PORTS: usize, const IFS: usize, const SCHEDULE_SLOT
                                 // TODO make configurable
                                 let q_disc = QueuingDiscipline::FIFO;
                                 let name = Name::from_str(#channel).unwrap();
-                                let src = match ctx.create_queuing_port_receiver::<#mtu, #fifo_depth>(name, q_disc, #fifo_depth) {
+                                let src = match ctx.create_queuing_port_receiver::<#mtu, #fifo_depth>(name, q_disc) {
                                     Ok(src) => src,
                                     Err(err) => {
                                         error!("{:?}", err);

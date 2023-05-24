@@ -22,7 +22,7 @@ fn gen_config(config: &Path, dest: &Path, out_dir: &OsString) {
     let config: Config<10, 10, 10, 10> = serde_yaml::from_str(&config).unwrap();
 
     let network_partition = ConfigGenerator::new(config)
-        .generate_network_partition(quote!(apex_rs_xng::apex::XngHypervisor));
+        .generate_network_partition(quote!(a653rs_xng::apex::XngHypervisor));
 
     write(dest, network_partition.to_string()).unwrap();
 

@@ -32,10 +32,10 @@ fn gen_config(config: &Path, dest: &Path, out_dir: &OsString) {
     let config: Config<20, 20, 20, 20> = serde_yaml::from_str(&config).unwrap();
 
     let network_partition = ConfigGenerator::new(config)
-        .generate_network_partition(quote!(apex_rs_linux::partition::ApexLinuxPartition));
+        .generate_network_partition(quote!(a653rs_linux::partition::ApexLinuxPartition));
 
     let network_partition = quote! {
-        use apex_rs_linux::partition::ApexLogger;
+        use a653rs_linux::partition::ApexLogger;
         use log::LevelFilter;
 
         #network_partition

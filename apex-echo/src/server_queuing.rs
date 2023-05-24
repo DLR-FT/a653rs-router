@@ -1,4 +1,4 @@
-use apex_rs::prelude::*;
+use a653rs::prelude::*;
 use core::str::FromStr;
 use core::time::Duration;
 use log::{debug, error, info, trace, warn};
@@ -44,7 +44,6 @@ where
                 .create_queuing_port_receiver(
                     Name::from_str("EchoRequest").unwrap(),
                     QueuingDiscipline::FIFO,
-                    RANGE,
                 )
                 .unwrap();
             _ = self.receiver.set(recv);
@@ -55,7 +54,6 @@ where
                 .create_queuing_port_sender(
                     Name::from_str("EchoReply").unwrap(),
                     QueuingDiscipline::FIFO,
-                    RANGE,
                 )
                 .unwrap();
             _ = self.sender.set(send);

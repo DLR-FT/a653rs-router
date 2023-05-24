@@ -3,7 +3,7 @@ use crate::{
     prelude::{DataRate, NetworkInterfaceId, VirtualLinkId},
 };
 
-use apex_rs::bindings::MessageRange;
+use a653rs::bindings::MessageRange;
 use core::fmt::Display;
 use core::time::Duration;
 use heapless::{String, Vec};

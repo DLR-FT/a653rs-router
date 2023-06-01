@@ -24,7 +24,7 @@
 
     hypervisor = {
       #url = "github:DLR-FT/a653rs-linux";
-      url = "github:dadada/apex-linux/udp-network-driver";
+      url = "github:dadada/apex-linux/dev/tim";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 

@@ -115,7 +115,7 @@ where
             Err(e) => return Err(Error::InterfaceCreationError(e)),
         };
         Ok(NetworkInterface {
-            _h: PhantomData::default(),
+            _h: PhantomData,
             id,
         })
     }

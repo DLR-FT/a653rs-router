@@ -8,7 +8,7 @@ std = [ "dep:bytesize", "dep:humantime-serde" ]
 serde = [ "dep:serde", "heapless/serde", "bytesize?/serde" ]
 
 [dependencies]
-a653rs = { git = "https://github.com/DLR-FT/a653rs.git", branch = "main"}
+a653rs = "0"
 heapless = { version = "0.7" }
 log = "0"
 humantime-serde = { version = "1", optional = true }

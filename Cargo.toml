@@ -35,6 +35,8 @@ default-members = [
 
 [patch.crates-io]
 a653rs = { git = "https://github.com/DLR-FT/a653rs.git", branch = "main" }
-
-[patch."https://github.com/DLR-FT/a653rs-linux.git"]
-a653rs-linux = { git = "https://github.com/dadada/apex-linux.git", branch = "udp-network-driver" }
+a653rs-linux = { git = "https://github.com/dadada/apex-linux.git", branch = "dev/tim" }
+# a653rs-linux = { git = "https://github.com/DLR-FT/a653rs-linux.git", branch = "main" }
+uart_xilinx = { git = "https://github.com/duskmoon314/uart-rs.git", branch = "main"}
+a653rs-postcard = { git = "https://github.com/DLR-FT/a653rs-postcard.git", branch = "main" }
+a653rs-xng = { git = "https://github.com/DLR-FT/a653rs-xng.git", branch = "main" }

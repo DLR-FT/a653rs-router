@@ -363,6 +363,10 @@
                 xng-sys-img-throughput-source
               ]
             );
+            network-partition-linux-echo-local = self.lib.network-partition-linux {
+              inherit naerskLib;
+              configDir = ./config/linux;
+            };
             throughput-source = naerskLib.buildPackage rec {
               pname = "thoughput-source";
               root = ./.;
@@ -622,6 +626,16 @@
           copyLibs = true;
           copyBins = false;
           #doDoc = true;
+        };
+        network-partition-linux = { naerskLib, configDir }: naerskLib.buildPackage rec {
+          pname = "network-partition-linux";
+          CONFIG_DIR = configDir;
+          root = ./.;
+          copyLibs = true;
+          copyBins = false;
+          cargoBuildOptions = x: x ++ [ "-p" pname "--target" "x86_64-unknown-linux-musl" ];
+          cargoTestOptions = x: x ++ [ "-p" pname "--target" "x86_64-unknown-linux-musl" ];
+          doCheck = true;
         };
       };
     };

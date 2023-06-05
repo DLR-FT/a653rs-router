@@ -10,6 +10,34 @@ to communicate with the hypervisor.
 Keep in mind that this is a research project and it has not been developed and
 tested according to DO-178C.
 
+## Compiling with Configuration
+
+The flake exposes a library function for compiling the IO-partition using a custom configuration.
+
+```nix
+let
+  system = "x86_64-linux";
+  rust-toolchain = with fenix.packages.${system}; combine [
+    latest.rustc
+    targets.x86_64-unknown-linux-musl.latest.rust-std
+    targets.armv7a-none-eabi.latest.rust-std
+  ];
+  naerskLib = (naersk.lib.${system}.override {
+    cargo = rust-toolchain;
+    rustc = rust-toolchain;
+  });
+in {
+  packages.${system}.router = network-partition.lib.network-partition-linux {
+    inherit naerskLib;
+    configDir = ./config/my-router;
+  };
+  packages.${system}.router = network-partition.lib.network-partition-zynq7000 {
+    inherit naerskLib;
+    configDir = ./config/my-router;
+  };
+}
+```
+
 ## Virtual Links
 
 The purpose of the IO-partition is to transparently bridge APEX channels over

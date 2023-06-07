@@ -8,7 +8,7 @@ std = [ "dep:bytesize", "dep:humantime-serde" ]
 serde = [ "dep:serde", "heapless/serde", "bytesize?/serde" ]
 
 [dependencies]
-a653rs = "0"
+a653rs = "0.2"
 heapless = { version = "0.7" }
 log = "0"
 humantime-serde = { version = "1", optional = true }

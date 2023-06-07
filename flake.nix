@@ -24,7 +24,7 @@
 
     hypervisor = {
       #url = "github:DLR-FT/a653rs-linux";
-      url = "github:dadada/apex-linux/dev/tim";
+      url = "github:dadada/apex-linux?rev=299f6402b78513f61dd1fc544c57d27689a94229";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 

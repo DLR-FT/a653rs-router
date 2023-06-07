@@ -1,6 +1,6 @@
 use a653rs::prelude::*;
+use core::str::FromStr;
 use core::time::Duration;
-use core::{hint::spin_loop, str::FromStr};
 use log::{debug, error, info, trace, warn};
 use once_cell::unsync::OnceCell;
 use small_trace::small_trace;

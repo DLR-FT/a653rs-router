@@ -18,7 +18,7 @@ once_cell = { version = "1.17", default-features = false }
 postcard = "1.0"
 small-trace = { path = "../../small-trace" }
 small-trace-gpio = { path = "../../small-trace-gpio" }
-xng-rs-log = { path = "../../xng-rs-log" }
+xng-rs-log = "0"
 
 
 [build-dependencies]

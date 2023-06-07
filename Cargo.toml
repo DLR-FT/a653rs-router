@@ -14,7 +14,6 @@ members = [
   "network-partition-uart",
   "small-trace",
   "small-trace-gpio",
-  "xng-rs-log",
 ]
 default-members = [  
   "apex-throughput",
@@ -30,7 +29,6 @@ default-members = [
   "network-partition-uart",
   "small-trace",
   "small-trace-gpio",
-  "xng-rs-log",
 ]
 
 [patch.crates-io]
@@ -43,3 +41,4 @@ uart_xilinx = { git = "https://github.com/duskmoon314/uart-rs.git", branch = "ma
 # These are not on crates.io
 a653rs-postcard = { git = "https://github.com/DLR-FT/a653rs-postcard.git", branch = "main" }
 a653rs-xng = { git = "https://github.com/DLR-FT/a653rs-xng.git", rev = "8da02431ff9a301d081312ba92b8fd7a5dc21b61" }
+xng-rs-log = { git = "https://github.com/DLR-FT/xng-rs-log.git", branch = "main" }

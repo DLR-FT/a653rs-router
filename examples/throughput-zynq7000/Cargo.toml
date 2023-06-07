@@ -19,4 +19,4 @@ a653rs-xng = "0"
 small-trace-gpio = { path = "../../small-trace-gpio" }
 once_cell = { version = "1.17", default-features = false }
 log = "0"
-xng-rs-log = { path = "../../xng-rs-log" }
+xng-rs-log = "0"

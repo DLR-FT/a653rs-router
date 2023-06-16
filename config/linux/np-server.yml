@@ -19,6 +19,7 @@ interfaces:
     name: "34256"
     rate: 10000000
     mtu: 1.5KB
+    source: "127.0.0.1:34256"
     destination: "127.0.0.1:34254"
 schedule:
   !DeadlineRr

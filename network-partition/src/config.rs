@@ -299,6 +299,9 @@ pub struct UdpInterfaceConfig {
     )]
     pub mtu: PayloadSize,
 
+    /// UDP source address the socket is bound to.
+    pub source: String<MAX_NAME_LEN>,
+
     /// UDP destination peer
     /// TODO remove
     pub destination: String<MAX_NAME_LEN>,

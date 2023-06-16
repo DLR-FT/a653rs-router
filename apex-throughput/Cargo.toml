@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-a653rs = { git = "https://github.com/DLR-FT/a653rs.git", branch = "main" }
+a653rs = "0.2"
 once_cell = { version = "1.17", default-features = false }
 log = "0"
 const_format = "0.2"

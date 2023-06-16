@@ -14,9 +14,9 @@ crate-type = [ "staticlib" ]
 
 [dependencies]
 apex-throughput = { path = "../../apex-throughput" }
-a653rs = { git = "https://github.com/DLR-FT/a653rs.git", branch = "main" }
-a653rs-xng = { git = "https://github.com/DLR-FT/a653rs-xng.git", branch = "main" }
+a653rs = "0.2"
+a653rs-xng = "0"
 small-trace-gpio = { path = "../../small-trace-gpio" }
 once_cell = { version = "1.17", default-features = false }
 log = "0"
-xng-rs-log = { path = "../../xng-rs-log" }
+xng-rs-log = "0"

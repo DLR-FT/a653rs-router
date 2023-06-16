@@ -1,7 +1,7 @@
-use core::fmt::{Display, Formatter};
+//! Error types
 
-///! Error types
 use a653rs::prelude::Error as ApexError;
+use core::fmt::{Display, Formatter};
 
 // TODO more precise errors
 

@@ -14,9 +14,6 @@ use small_trace::small_trace;
 #[derive(Debug)]
 pub struct UdpNetworkInterface;
 
-static SOCKETS: Lazy<Arc<Mutex<Vec<UdpSocket>>>> =
-    Lazy::new(|| Arc::new(Mutex::new(ApexLinuxPartition::receive_udp_sockets())));
-
 static INTERFACES: Lazy<Arc<Mutex<Vec<LimitedUdpSocket>>>> =
     Lazy::new(|| Arc::new(Mutex::new(Vec::new())));
 
@@ -27,7 +24,7 @@ impl PlatformNetworkInterface for UdpNetworkInterface {
         id: NetworkInterfaceId,
         buffer: &'_ mut [u8],
     ) -> Result<(VirtualLinkId, &'_ [u8]), InterfaceError> {
-        let interfaces = INTERFACES.lock().unwrap();
+        let interfaces = INTERFACES.try_lock().or(Err(InterfaceError::SendFailed))?;
         let sock = interfaces
             .iter()
             .find(|i| i.id == id)
@@ -85,16 +82,17 @@ struct LimitedUdpSocket {
     _rate: DataRate,
 }
 
+fn get_socket(cfg: &UdpInterfaceConfig) -> Result<UdpSocket, InterfaceError> {
+    let res = ApexLinuxPartition::get_udp_socket(cfg.source.as_str());
+    trace!("{:?}", cfg.source);
+    res.ok().flatten().ok_or(InterfaceError::NotFound)
+}
+
 impl CreateNetworkInterfaceId<UdpNetworkInterface> for UdpNetworkInterface {
     fn create_network_interface_id(
         cfg: UdpInterfaceConfig,
     ) -> Result<NetworkInterfaceId, InterfaceError> {
-        let mut interfaces = INTERFACES.lock().unwrap(); // TODO wrap error
-        let sock = SOCKETS
-            .lock()
-            .or(Err(InterfaceError::NotFound))?
-            .pop()
-            .ok_or(InterfaceError::NotFound)?;
+        let sock = get_socket(&cfg)?;
         sock.set_nonblocking(true).unwrap();
         sock.connect(cfg.destination.as_str()).unwrap();
         let sock = LimitedUdpSocket {
@@ -102,9 +100,11 @@ impl CreateNetworkInterfaceId<UdpNetworkInterface> for UdpNetworkInterface {
             sock,
             _rate: cfg.rate,
         };
-        interfaces.push(sock);
-        let id = cfg.id;
+        INTERFACES
+            .try_lock()
+            .or(Err(InterfaceError::NotFound))?
+            .push(sock);
 
-        Ok(id)
+        Ok(cfg.id)
     }
 }

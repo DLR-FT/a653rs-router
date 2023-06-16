@@ -10,15 +10,15 @@ crate-type = [ "staticlib" ]
 [dependencies]
 network-partition = { path = "../../network-partition", features = [ "serde" ] }
 network-partition-uart = { path = "../../network-partition-uart" }
-a653rs = { git = "https://github.com/DLR-FT/a653rs.git", branch = "main" }
-a653rs-xng = { git = "https://github.com/DLR-FT/a653rs-xng.git", branch = "main" }
+a653rs = "0.2"
+a653rs-xng = "0"
 log = { version = "0", default-features = false }
 heapless = { version = "0.7" }
 once_cell = { version = "1.17", default-features = false }
 postcard = "1.0"
 small-trace = { path = "../../small-trace" }
 small-trace-gpio = { path = "../../small-trace-gpio" }
-xng-rs-log = { path = "../../xng-rs-log" }
+xng-rs-log = "0"
 
 
 [build-dependencies]

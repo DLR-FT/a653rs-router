@@ -296,8 +296,9 @@ impl<const VLS: usize, const PORTS: usize, const IFS: usize, const SCHEDULE_SLOT
                     let rate = i.rate.0;
                     let mtu = i.mtu;
                     let id = i.id.0;
+                    let source = i.source.to_string();
                     quote! {
-                        let intf = UdpNetworkInterface::create_network_interface::<#mtu>(UdpInterfaceConfig { id: NetworkInterfaceId(#id), name: InterfaceName::from(#name), destination: #destination .into(), rate: DataRate::b(#rate), mtu: #mtu }).unwrap();
+                        let intf = UdpNetworkInterface::create_network_interface::<#mtu>(UdpInterfaceConfig { id: NetworkInterfaceId(#id), name: InterfaceName::from(#name), destination: #destination .into(), rate: DataRate::b(#rate), mtu: #mtu, source: #source .into() }).unwrap();
                         unsafe { #var.set(intf).unwrap(); }
                     }
                 },

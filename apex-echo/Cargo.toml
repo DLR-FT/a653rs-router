@@ -6,8 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-a653rs = { git = "https://github.com/DLR-FT/a653rs.git", branch = "main" }
-a653rs-postcard = { git = "https://github.com/DLR-FT/a653rs-postcard.git", branch = "main" }
+a653rs = "0.2"
+a653rs-postcard = "0"
 serde = { version = "1.0", features = ["derive"], default-features = false }
 log = "0"
 once_cell = { version = "1.17", default-features = false }

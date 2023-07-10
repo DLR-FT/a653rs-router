@@ -1,7 +1,4 @@
 #![no_std]
-#![feature(generic_const_exprs)]
-#![feature(int_roundings)]
-#![allow(incomplete_features)]
 
 use a653rs::prelude::*;
 use a653rs_xng::apex::XngHypervisor;

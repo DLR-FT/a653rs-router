@@ -1,6 +1,4 @@
 #![no_std]
-#![feature(generic_const_exprs)]
-#![feature(int_roundings)]
 #![allow(incomplete_features)]
 
 use xng_rs_log::XalLogger;

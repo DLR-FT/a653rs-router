@@ -2,7 +2,6 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(incomplete_features)]
-#![feature(generic_const_exprs)]
 #![warn(
     missing_debug_implementations,
     missing_docs,

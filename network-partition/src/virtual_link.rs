@@ -102,9 +102,7 @@ pub struct VirtualSamplingLink<
     const PORTS: usize,
     const IFS: usize,
     H: ApexSamplingPortP4,
-> where
-    [(); MTU as usize]:,
-{
+> {
     id: VirtualLinkId,
     port_dst: Option<SamplingPortDestination<MTU, H>>,
     port_srcs: Vec<SamplingPortSource<MTU, H>, PORTS>,
@@ -117,8 +115,6 @@ impl<
         const IFS: usize,
         H: ApexSamplingPortP4 + Debug,
     > VirtualSamplingLink<MTU, PORTS, IFS, H>
-where
-    [(); MTU as usize]:,
 {
     /// Creates a new virtual link.
     pub fn new(id: VirtualLinkId) -> Self {
@@ -161,8 +157,6 @@ impl<
         const IFS: usize,
         H: ApexSamplingPortP4 + Debug,
     > VirtualLinkData for VirtualSamplingLink<MTU, PORTS, IFS, H>
-where
-    [(); MTU as usize]:,
 {
     type Source = SamplingPortSource<MTU, H>;
     type Destination = SamplingPortDestination<MTU, H>;
@@ -197,8 +191,6 @@ impl<
         const IFS: usize,
         H: ApexSamplingPortP4 + Debug,
     > VirtualLink for VirtualSamplingLink<MTU, PORTS, IFS, H>
-where
-    [(); MTU as usize]:,
 {
     fn vl_id(&self) -> VirtualLinkId {
         self.id
@@ -246,9 +238,7 @@ pub struct VirtualQueuingLink<
     const PORTS: usize,
     const IFS: usize,
     H: ApexQueuingPortP4 + Debug,
-> where
-    [(); MTU as usize]:,
-{
+> {
     id: VirtualLinkId,
     port_receiver: Option<QueuingPortReceiver<MTU, DEPTH, H>>,
     port_senders: Vec<QueuingPortSender<MTU, DEPTH, H>, PORTS>,
@@ -262,8 +252,6 @@ impl<
         const IFS: usize,
         H: ApexQueuingPortP4 + Debug,
     > VirtualQueuingLink<MTU, DEPTH, PORTS, IFS, H>
-where
-    [(); MTU as usize]:,
 {
     /// Creates a new virtual link.
     pub const fn new(id: VirtualLinkId) -> Self {
@@ -309,8 +297,6 @@ impl<
         const IFS: usize,
         H: ApexQueuingPortP4 + Debug,
     > VirtualLinkData for VirtualQueuingLink<MTU, DEPTH, PORTS, IFS, H>
-where
-    [(); MTU as usize]:,
 {
     type Destination = QueuingPortReceiver<MTU, DEPTH, H>;
     type Source = QueuingPortSender<MTU, DEPTH, H>;
@@ -348,8 +334,6 @@ impl<
         const IFS: usize,
         H: ApexQueuingPortP4 + Debug,
     > VirtualLink for VirtualQueuingLink<MTU, DEPTH, PORTS, IFS, H>
-where
-    [(); MTU as usize]:,
 {
     fn vl_id(&self) -> VirtualLinkId {
         self.id

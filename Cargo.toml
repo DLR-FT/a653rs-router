@@ -3,14 +3,17 @@ resolver = "2"
 members = [
   "apex-throughput",
   "apex-echo",
-  "examples/echo-client-zynq7000",
-  "examples/echo-linux",
-  "examples/echo-server-zynq7000",
-  "examples/np-zynq7000",
-  "examples/throughput-zynq7000",
+  "dummy-hypervisor",
+  "echo-router",
+  # FIXME
+  #"examples/echo-client-zynq7000",
+  #"examples/echo-linux",
+  #"examples/echo-server-zynq7000",
+  #"examples/np-zynq7000",
+  #"examples/throughput-zynq7000",
   "network-partition",
-  "network-partition-config",
   "network-partition-linux",
+  "network-partition-macros",
   "network-partition-uart",
   "small-trace",
   "small-trace-gpio",
@@ -18,25 +21,23 @@ members = [
 default-members = [  
   "apex-throughput",
   "apex-echo",
-  #"examples/echo-client-zynq7000",
-  "examples/echo-linux",
-  #"examples/echo-server-zynq7000",
-  #"examples/np-zynq7000",
-  #"examples/throughput-zynq7000",
+  "echo-router",
   "network-partition",
-  "network-partition-config",
   "network-partition-linux",
+  "network-partition-macros",
   "network-partition-uart",
   "small-trace",
   "small-trace-gpio",
 ]
 
-[patch.crates-io]
+[workspace.dependencies]
+a653rs = "0.3"
+log = "0"
+# For UDP socket support
+a653rs-linux = { git = "https://github.com/dadada/apex-linux.git", branch = "udp-network-driver", default-features = false }
 # A bit newer than the published version
-uart_xilinx = { git = "https://github.com/duskmoon314/uart-rs.git", branch = "main"}
-
+uart_xilinx = { git = "https://github.com/duskmoon314/uart-rs.git", branch = "main", default-features = false }
 # These are not on crates.io
-a653rs-linux = { git = "https://github.com/dadada/apex-linux.git", branch = "udp-network-driver" }
-a653rs-postcard = { git = "https://github.com/DLR-FT/a653rs-postcard.git", branch = "main" }
-a653rs-xng = { git = "https://github.com/DLR-FT/a653rs-xng.git", rev = "8da02431ff9a301d081312ba92b8fd7a5dc21b61" }
-xng-rs-log = { git = "https://github.com/DLR-FT/xng-rs-log.git", branch = "main" }
+a653rs-postcard = { git = "https://github.com/DLR-FT/a653rs-postcard.git", branch = "main", default-features = false }
+a653rs-xng = { git = "https://github.com/DLR-FT/a653rs-xng.git", branch = "main", default-features = false }
+xng-rs-log = { git = "https://github.com/DLR-FT/xng-rs-log.git", branch = "main", default-features = false }

@@ -14,7 +14,7 @@ crate-type = [ "staticlib" ]
 
 [dependencies]
 apex-throughput = { path = "../../apex-throughput" }
-a653rs = "0.3"
+a653rs.workspace = true
 a653rs-xng = "0"
 small-trace-gpio = { path = "../../small-trace-gpio" }
 once_cell = { version = "1.17", default-features = false }

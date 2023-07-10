@@ -1,5 +1,5 @@
 [package]
-name = "apex-throughput"
+name = "dummy-hypervisor"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,6 +7,4 @@ edition = "2021"
 
 [dependencies]
 a653rs.workspace = true
-once_cell = { version = "1.17", default-features = false }
-log = "0"
-const_format = "0.2"
+network-partition.path = "../network-partition"

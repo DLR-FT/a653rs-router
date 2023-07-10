@@ -10,7 +10,7 @@ crate-type = [ "staticlib" ]
 
 [dependencies]
 apex-echo = { path = "../../apex-echo" }
-a653rs = "0.3"
+a653rs.workspace = true
 a653rs-xng = "0"
 once_cell = { version = "1.17", default-features = false }
 log = "0"

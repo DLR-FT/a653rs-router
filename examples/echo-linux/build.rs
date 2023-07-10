@@ -1,5 +1,3 @@
-use network_partition::prelude::Config;
-use network_partition_config::ConfigGenerator;
 use quote::quote;
 use std::env;
 use std::ffi::OsString;
@@ -28,23 +26,24 @@ fn main() {
 
 fn gen_config(config: &Path, dest: &Path, out_dir: &OsString) {
     let config = read_to_string(config).unwrap();
-    // TODO make configurable from env variables or use second config struct that uses alloc
-    let config: Config<20, 20, 20, 20> = serde_yaml::from_str(&config).unwrap();
+    // TODO make configurable from env variables or use second config struct that
+    // uses alloc
+    let config = todo!();
+    // let config: Config<10, 10, 10, 10> = serde_yaml::from_str(&config).unwrap();
 
-    let network_partition = ConfigGenerator::new(config)
-        .generate_network_partition(quote!(a653rs_linux::partition::ApexLinuxPartition));
+    let network_partition = todo!();
 
     let network_partition = quote! {
-        use a653rs_linux::partition::ApexLogger;
-        use log::LevelFilter;
+    //    use a653rs_linux::partition::ApexLogger;
+    //    use log::LevelFilter;
 
-        #network_partition
+    //    #network_partition
 
-        fn main() {
-            ApexLogger::install_panic_hook();
-            ApexLogger::install_logger(LevelFilter::Trace).unwrap();
-            NetworkPartition.run();
-        }
+    //    fn main() {
+    //        ApexLogger::install_panic_hook();
+    //        ApexLogger::install_logger(LevelFilter::Trace).unwrap();
+    //        NetworkPartition.run();
+    //    }
     };
 
     write(dest, network_partition.to_string()).unwrap();

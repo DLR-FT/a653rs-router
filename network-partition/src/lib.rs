@@ -14,20 +14,33 @@
 )]
 
 mod config;
-mod error;
-mod forward;
+pub mod error;
 mod network;
+mod reconfigure;
+mod router;
+mod run;
 mod scheduler;
 mod types;
-mod virtual_link;
 
-/// Standard Prelude to be used by network partition implementations (e.g. network_partition_linux)
+pub use crate::run::*;
+
+/// Standard Prelude to be used by network partition implementations (e.g.
+/// network_partition_linux)
 pub mod prelude {
-    pub use crate::config::*;
-    pub use crate::error::{Error, InterfaceError, IoScheduleError};
-    pub use crate::forward::*;
-    pub use crate::network::*;
-    pub use crate::scheduler::*;
+    pub use crate::config::Config;
+    pub use crate::network::{
+        CreateNetworkInterface, CreateNetworkInterfaceId, InterfaceConfig, NetworkInterface,
+        NetworkInterfaceId, PayloadSize, PlatformNetworkInterface,
+    };
+    pub use crate::reconfigure::{Configurator, Resources};
+    pub use crate::router::{Router, RouterInput, RouterOutput};
+    pub use crate::scheduler::{DeadlineRrScheduler, Scheduler, TimeSource};
     pub use crate::types::*;
-    pub use crate::virtual_link::*;
 }
+
+mod sealed {
+    pub(crate) trait Sealed {}
+}
+
+#[cfg(feature = "macros")]
+pub use network_partition_macros::*;

@@ -1,34 +1,23 @@
-use std::sync::{Arc, Mutex};
-use std::{mem::size_of, net::UdpSocket};
-
 use a653rs_linux::partition::ApexLinuxPartition;
-
 use log::{error, trace};
-use network_partition::prelude::{
-    CreateNetworkInterfaceId, DataRate, InterfaceError, NetworkInterfaceId,
-    PlatformNetworkInterface, UdpInterfaceConfig, VirtualLinkId,
-};
-use once_cell::sync::Lazy;
+use network_partition::error::*;
+use network_partition::prelude::*;
 use small_trace::small_trace;
+use std::{mem::size_of, net::UdpSocket};
 
 #[derive(Debug)]
 pub struct UdpNetworkInterface;
 
-static INTERFACES: Lazy<Arc<Mutex<Vec<LimitedUdpSocket>>>> =
-    Lazy::new(|| Arc::new(Mutex::new(Vec::new())));
+static mut INTERFACES: Vec<LimitedUdpSocket> = Vec::new();
 
 impl PlatformNetworkInterface for UdpNetworkInterface {
-    type Configuration = UdpInterfaceConfig;
+    type Configuration = InterfaceConfig;
 
     fn platform_interface_receive_unchecked(
         id: NetworkInterfaceId,
         buffer: &'_ mut [u8],
     ) -> Result<(VirtualLinkId, &'_ [u8]), InterfaceError> {
-        let interfaces = INTERFACES.try_lock().or(Err(InterfaceError::SendFailed))?;
-        let sock = interfaces
-            .iter()
-            .find(|i| i.id == id)
-            .ok_or(InterfaceError::NotFound)?;
+        let sock = get_interface(id)?;
         match sock.sock.recv(buffer) {
             Ok(read) => {
                 small_trace!(begin_network_receive, id.0 as u16);
@@ -52,11 +41,9 @@ impl PlatformNetworkInterface for UdpNetworkInterface {
         vl: VirtualLinkId,
         buffer: &[u8],
     ) -> Result<usize, InterfaceError> {
-        let interfaces = INTERFACES.lock().unwrap();
-        let sock = interfaces
-            .iter()
-            .find(|i| i.id == id)
-            .ok_or(InterfaceError::NotFound)?;
+        // This is safe, because the interfaces are only created before the list of
+        // interfaces is used
+        let sock = get_interface(id)?;
         let vlid = vl.into_inner().to_be_bytes();
         let udp_buf = [vlid.as_slice(), buffer].concat();
         small_trace!(begin_network_send, id.0 as u16);
@@ -75,14 +62,33 @@ impl PlatformNetworkInterface for UdpNetworkInterface {
     }
 }
 
+/// This is only safe, because the interfaces are only used *after* the list of
+/// interfaces is created and the list of interfaces is never accessed
+/// concurrently.
+fn get_interface(id: NetworkInterfaceId) -> Result<&'static LimitedUdpSocket, InterfaceError> {
+    unsafe {
+        INTERFACES
+            .get(id.0 as usize)
+            .ok_or(InterfaceError::NotFound)
+    }
+}
+
+// This is safe, because the interfaces are only created before the list of
+// interfaces is used.
+fn add_interface(s: LimitedUdpSocket) -> NetworkInterfaceId {
+    unsafe {
+        INTERFACES.push(s);
+        NetworkInterfaceId(INTERFACES.len() as u32)
+    }
+}
+
 #[derive(Debug)]
 struct LimitedUdpSocket {
-    id: NetworkInterfaceId,
     sock: UdpSocket,
     _rate: DataRate,
 }
 
-fn get_socket(cfg: &UdpInterfaceConfig) -> Result<UdpSocket, InterfaceError> {
+fn get_socket(cfg: &InterfaceConfig) -> Result<UdpSocket, InterfaceError> {
     let res = ApexLinuxPartition::get_udp_socket(cfg.source.as_str());
     trace!("{:?}", cfg.source);
     res.ok().flatten().ok_or(InterfaceError::NotFound)
@@ -90,21 +96,15 @@ fn get_socket(cfg: &UdpInterfaceConfig) -> Result<UdpSocket, InterfaceError> {
 
 impl CreateNetworkInterfaceId<UdpNetworkInterface> for UdpNetworkInterface {
     fn create_network_interface_id(
-        cfg: UdpInterfaceConfig,
+        cfg: InterfaceConfig,
     ) -> Result<NetworkInterfaceId, InterfaceError> {
         let sock = get_socket(&cfg)?;
         sock.set_nonblocking(true).unwrap();
         sock.connect(cfg.destination.as_str()).unwrap();
         let sock = LimitedUdpSocket {
-            id: cfg.id,
             sock,
             _rate: cfg.rate,
         };
-        INTERFACES
-            .try_lock()
-            .or(Err(InterfaceError::NotFound))?
-            .push(sock);
-
-        Ok(cfg.id)
+        Ok(add_interface(sock))
     }
 }

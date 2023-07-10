@@ -1,6 +1,4 @@
 #![no_std]
-#![allow(incomplete_features)]
-#![feature(generic_const_exprs)]
 
 use a653rs::prelude::*;
 use a653rs_linux::partition::{ApexLinuxPartition, ApexLogger};

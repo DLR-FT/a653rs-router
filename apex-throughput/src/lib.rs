@@ -59,7 +59,7 @@ impl<
         let send_port = ctx
             .create_queuing_port_sender(
                 Name::from_str("TrafficS").unwrap(),
-                QueuingDiscipline::FIFO,
+                QueuingDiscipline::Fifo,
             )
             .unwrap();
         _ = self.sender.set(send_port);
@@ -161,7 +161,7 @@ impl<
         let port = ctx
             .create_queuing_port_receiver(
                 Name::from_str("TrafficR").unwrap(),
-                QueuingDiscipline::FIFO,
+                QueuingDiscipline::Fifo,
             )
             .unwrap();
         _ = self.port.set(port);

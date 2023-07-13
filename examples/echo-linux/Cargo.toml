@@ -9,7 +9,7 @@ edition = "2021"
 network-partition = { path = "../../network-partition" }
 network-partition-linux = { path = "../../network-partition-linux" }
 apex-echo = { path = "../../apex-echo" }
-a653rs = "0.2"
+a653rs = "0.3"
 a653rs-linux = "0"
 log = "0"
 once_cell = "1.17"

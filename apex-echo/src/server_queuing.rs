@@ -43,7 +43,7 @@ where
             let recv = ctx
                 .create_queuing_port_receiver(
                     Name::from_str("EchoRequest").unwrap(),
-                    QueuingDiscipline::FIFO,
+                    QueuingDiscipline::Fifo,
                 )
                 .unwrap();
             _ = self.receiver.set(recv);
@@ -53,7 +53,7 @@ where
             let send = ctx
                 .create_queuing_port_sender(
                     Name::from_str("EchoReply").unwrap(),
-                    QueuingDiscipline::FIFO,
+                    QueuingDiscipline::Fifo,
                 )
                 .unwrap();
             _ = self.sender.set(send);

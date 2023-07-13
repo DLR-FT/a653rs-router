@@ -10,7 +10,7 @@ crate-type = [ "staticlib" ]
 [dependencies]
 network-partition = { path = "../../network-partition", features = [ "serde" ] }
 network-partition-uart = { path = "../../network-partition-uart" }
-a653rs = "0.2"
+a653rs = "0.3"
 a653rs-xng = "0"
 log = { version = "0", default-features = false }
 heapless = { version = "0.7" }

@@ -13,11 +13,21 @@ dependencies = [
 ]
 
 [[package]]
-name = "a653rs-linux"
-version = "0.1.0"
-source = "git+https://github.com/dadada/apex-linux.git?rev=299f6402b78513f61dd1fc544c57d27689a94229#299f6402b78513f61dd1fc544c57d27689a94229"
+name = "a653rs"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b7660e679461434e8c1e2b47eba46d0635c6a6475d1c56775c4c8157962bb17d"
 dependencies = [
- "a653rs",
+ "serde",
+ "strum",
+]
+
+[[package]]
+name = "a653rs-linux"
+version = "0.2.0"
+source = "git+https://github.com/dadada/apex-linux.git?branch=udp-network-driver#5d7164acd20b72d942c8aafa1aa73f1867851bf0"
+dependencies = [
+ "a653rs 0.3.2",
  "a653rs-linux-core",
  "anyhow",
  "lazy_static",
@@ -34,12 +44,14 @@ dependencies = [
 [[package]]
 name = "a653rs-linux-core"
 version = "0.1.0"
-source = "git+https://github.com/dadada/apex-linux.git?rev=299f6402b78513f61dd1fc544c57d27689a94229#299f6402b78513f61dd1fc544c57d27689a94229"
+source = "git+https://github.com/dadada/apex-linux.git?branch=udp-network-driver#5d7164acd20b72d942c8aafa1aa73f1867851bf0"
 dependencies = [
- "a653rs",
+ "a653rs 0.3.2",
  "anyhow",
  "bincode",
+ "byteorder",
  "bytesize",
+ "enum_primitive",
  "itertools",
  "log",
  "memfd",
@@ -54,10 +66,10 @@ dependencies = [
 
 [[package]]
 name = "a653rs-postcard"
-version = "0.1.0"
-source = "git+https://github.com/DLR-FT/a653rs-postcard.git?branch=main#3a7e09e70e881f2e43ad6529a4f30da88f37b0f5"
+version = "0.2.0"
+source = "git+https://github.com/DLR-FT/a653rs-postcard.git?branch=main#7f5fc019a3aa3145cae585c3471adb49756e8303"
 dependencies = [
- "a653rs",
+ "a653rs 0.3.2",
  "arrayvec",
  "postcard",
  "serde",
@@ -68,7 +80,7 @@ name = "a653rs-xng"
 version = "0.1.0"
 source = "git+https://github.com/DLR-FT/a653rs-xng.git?rev=8da02431ff9a301d081312ba92b8fd7a5dc21b61#8da02431ff9a301d081312ba92b8fd7a5dc21b61"
 dependencies = [
- "a653rs",
+ "a653rs 0.2.1",
  "cty",
 ]
 
@@ -103,7 +115,7 @@ checksum = "9c7d0618f0e0b7e8ff11427422b64564d5fb0be1940354bfe2e0529b18a9d9b8"
 name = "apex-echo"
 version = "0.1.0"
 dependencies = [
- "a653rs",
+ "a653rs 0.3.2",
  "a653rs-postcard",
  "log",
  "once_cell",
@@ -115,7 +127,7 @@ dependencies = [
 name = "apex-throughput"
 version = "0.1.0"
 dependencies = [
- "a653rs",
+ "a653rs 0.3.2",
  "const_format",
  "log",
  "once_cell",
@@ -198,7 +210,7 @@ checksum = "ec837a71355b28f6556dbd569b37b3f363091c0bd4b2e735674521b4c5fd9bc5"
 dependencies = [
  "android-tzdata",
  "iana-time-zone",
- "num-traits",
+ "num-traits 0.2.15",
  "winapi",
 ]
 
@@ -289,7 +301,7 @@ checksum = "b365fabc795046672053e29c954733ec3b05e4be654ab130fe8f1f94d7051f35"
 name = "echo-client-zynq7000"
 version = "0.1.0"
 dependencies = [
- "a653rs",
+ "a653rs 0.3.2",
  "a653rs-xng",
  "apex-echo",
  "log",
@@ -303,7 +315,7 @@ dependencies = [
 name = "echo-linux"
 version = "0.1.0"
 dependencies = [
- "a653rs",
+ "a653rs 0.3.2",
  "a653rs-linux",
  "apex-echo",
  "heapless",
@@ -322,7 +334,7 @@ dependencies = [
 name = "echo-server-zynq7000"
 version = "0.1.0"
 dependencies = [
- "a653rs",
+ "a653rs 0.3.2",
  "a653rs-xng",
  "apex-echo",
  "log",
@@ -337,6 +349,15 @@ name = "either"
 version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7fcaabb2fef8c910e7f4c7ce9f67a1283a1715879a7c230ca9d6d1ae31f16d91"
+
+[[package]]
+name = "enum_primitive"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "be4551092f4d519593039259a9ed8daedf0da12e5109c5280338073eaeb81180"
+dependencies = [
+ "num-traits 0.1.43",
+]
 
 [[package]]
 name = "errno"
@@ -580,7 +601,7 @@ dependencies = [
 name = "network-partition"
 version = "0.1.0"
 dependencies = [
- "a653rs",
+ "a653rs 0.3.2",
  "bytesize",
  "heapless",
  "humantime-serde",
@@ -647,7 +668,7 @@ dependencies = [
 name = "np-zynq7000"
 version = "0.1.0"
 dependencies = [
- "a653rs",
+ "a653rs 0.3.2",
  "a653rs-xng",
  "heapless",
  "log",
@@ -662,6 +683,15 @@ dependencies = [
  "small-trace",
  "small-trace-gpio",
  "xng-rs-log",
+]
+
+[[package]]
+name = "num-traits"
+version = "0.1.43"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "92e5113e9fd4cc14ded8e499429f396a20f98c772a47cc8622a736e1ec843c31"
+dependencies = [
+ "num-traits 0.2.15",
 ]
 
 [[package]]
@@ -956,7 +986,7 @@ dependencies = [
 name = "throughput-zynq7000"
 version = "0.1.0"
 dependencies = [
- "a653rs",
+ "a653rs 0.3.2",
  "a653rs-xng",
  "apex-throughput",
  "log",

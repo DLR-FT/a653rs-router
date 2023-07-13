@@ -319,6 +319,8 @@
             };
 
           checks = {
+            all-images = self.packages.${system}.all-images;
+            network-partition = self.packages.${system}.network-partition;
             nixpkgs-fmt = pkgs.runCommand "check-format-nix"
               {
                 nativeBuildInputs = [ formatter ];
@@ -363,6 +365,15 @@
                 xng-sys-img-throughput-source
               ]
             );
+            network-partition = naerskLib.buildPackage rec {
+              pname = "network-partition";
+              root = ./.;
+              cargoBuildOptions = x: x ++ [ "-p" pname ];
+              doCheck = true;
+              copyLibs = true;
+              copyBins = false;
+              doDoc = true;
+            };
             network-partition-linux-echo-local = self.lib.network-partition-linux {
               inherit naerskLib;
               configDir = ./config/linux;

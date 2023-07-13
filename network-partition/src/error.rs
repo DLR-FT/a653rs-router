@@ -132,8 +132,8 @@ impl Display for Error {
 impl From<a653rs::prelude::Error> for Error {
     fn from(err: ApexError) -> Self {
         match err {
-            ApexError::ReadError(_) => Self::PortReceiveFail(err),
-            ApexError::WriteError(_) => Self::PortSendFail(err),
+            ApexError::ReadError => Self::PortReceiveFail(err),
+            ApexError::WriteError => Self::PortSendFail(err),
             _ => Self::Unknown,
         }
     }

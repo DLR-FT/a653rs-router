@@ -1,4 +1,4 @@
-use syn::{spanned::Spanned, ItemMod, TypePath};
+use syn::{spanned::Spanned, ItemMod, Path};
 
 use crate::types::WrappedByteSize;
 
@@ -11,11 +11,11 @@ pub struct Router {
     pub mtu: WrappedByteSize,
     pub name: proc_macro2::Ident,
     pub outputs: usize,
-    pub scheduler: TypePath,
+    pub scheduler: Path,
 }
 
 impl Router {
-    pub fn parse(scheduler: &TypePath, module: &mut ItemMod) -> syn::Result<Router> {
+    pub fn parse(scheduler: &Path, module: &mut ItemMod) -> syn::Result<Router> {
         let mut acc = darling::Error::accumulator();
         let root = module.span();
         let (_, content) = module

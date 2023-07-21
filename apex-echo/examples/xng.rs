@@ -6,5 +6,5 @@ extern crate a653rs_xng;
 #[cfg(feature = "xng")]
 #[no_mangle]
 pub extern "C" fn main() {
-    echo_router::run()
+    apex_echo::run()
 }

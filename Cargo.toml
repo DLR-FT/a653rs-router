@@ -5,12 +5,6 @@ members = [
   "apex-echo",
   "dummy-hypervisor",
   "echo-router",
-  # FIXME
-  #"examples/echo-client-zynq7000",
-  #"examples/echo-linux",
-  #"examples/echo-server-zynq7000",
-  #"examples/np-zynq7000",
-  #"examples/throughput-zynq7000",
   "network-partition",
   "network-partition-linux",
   "network-partition-macros",
@@ -40,4 +34,6 @@ uart_xilinx = { git = "https://github.com/duskmoon314/uart-rs.git", branch = "ma
 # These are not on crates.io
 a653rs-postcard = { git = "https://github.com/DLR-FT/a653rs-postcard.git", branch = "main", default-features = false }
 a653rs-xng = { git = "https://github.com/DLR-FT/a653rs-xng.git", branch = "main", default-features = false }
+once_cell = { version = "1.17", default-features = false }
+serde = { version = "1.0", default-features = false }
 xng-rs-log = { git = "https://github.com/DLR-FT/xng-rs-log.git", branch = "main", default-features = false }

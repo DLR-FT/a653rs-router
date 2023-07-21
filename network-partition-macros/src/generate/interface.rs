@@ -10,7 +10,7 @@ impl GenMod for Interface {
         let name = &self.name.to_string();
         let ident = format_ident!("{name}");
         let interface_type = &self.interface_type.path;
-        let mtu = self.mtu.bytes() as u32;
+        let mtu = self.mtu.bytes() as usize;
         let rate = self.rate.bytes();
         let source = self.source.as_str();
         let destination = self.destination.as_str();
@@ -29,7 +29,7 @@ impl GenMod for Interface {
 
                 pub const NAME: &str = #name;
 
-                pub static mut VALUE: Option< NetworkInterface < #mtu, #interface_type >> = None;
+                pub static mut VALUE: Option< NetworkInterface < #mtu, #interface_type< #mtu > >> = None;
             }
         })
     }

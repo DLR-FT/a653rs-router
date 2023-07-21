@@ -12,7 +12,7 @@ use log::trace;
 use serde::{Deserialize, Serialize};
 
 /// Size of a frame payload.
-pub type PayloadSize = u32;
+pub type PayloadSize = usize;
 
 /// Network interface ID.
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
@@ -47,7 +47,7 @@ impl<const MTU: PayloadSize, H: PlatformNetworkInterface> NetworkInterface<MTU, 
 
     /// Sends data to the interface.
     pub fn send(&self, vl: &VirtualLinkId, buf: &[u8]) -> Result<usize, Error> {
-        if buf.len() > MTU as usize {
+        if buf.len() > MTU {
             return Err(Error::InterfaceSendFail(InterfaceError::InsufficientBuffer));
         }
 
@@ -60,7 +60,7 @@ impl<const MTU: PayloadSize, H: PlatformNetworkInterface> NetworkInterface<MTU, 
 
     /// Receives data from the interface.
     pub fn receive<'a>(&self, buf: &'a mut [u8]) -> Result<(VirtualLinkId, &'a [u8]), Error> {
-        if buf.len() < MTU as usize {
+        if buf.len() < MTU {
             return Err(Error::InterfaceReceiveFail(
                 InterfaceError::InsufficientBuffer,
             ));

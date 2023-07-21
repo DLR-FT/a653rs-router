@@ -2,10 +2,13 @@
 {
   name = "network-partition-integration";
   hostPkgs = hostPkgs;
-  node.specialArgs = { inherit hypervisor partition; };
+  node.specialArgs = {
+    inherit hypervisor echo-client echo-server client-router server-router;
+  };
 
   nodes.system1 = { config, lib, pkgs, specialArgs, ... }: {
     environment.systemPackages = [ specialArgs.hypervisor ];
+
     environment.etc."hypervisor_config_client.yml" =
       {
         text = ''
@@ -16,15 +19,15 @@
               duration: 100ms
               offset: 0ms
               period: 1s
-              image: ${specialArgs.partition}/bin/echo
+              image: ${specialArgs.echo-client}/bin/echo-client
             - id: 2
               name: Network
               duration: 100ms
               offset: 500ms
               period: 1s
-              image: ${specialArgs.partition}/bin/np-client
+              image: ${specialArgs.client-router}/bin/echo-router-linux
               udp_ports:
-                - "127.0.0.1:34254"
+                - "127.0.0.1:8082"
           channel:
             - !Sampling
               name: EchoRequest
@@ -51,15 +54,15 @@
               duration: 50ms
               offset: 50ms
               period: 100ms
-              image: ${specialArgs.partition}/bin/echo-server
+              image: ${specialArgs.echo-server}/bin/echo-server
             - id: 1
               name: Network
               duration: 50ms
               offset: 0s
               period: 100ms
-              image: ${specialArgs.partition}/bin/np-server
+              image: ${specialArgs.server-router}/bin/echo-router-linux
               udp_ports:
-                - "127.0.0.1:34256"
+                - "127.0.0.1:8081"
           channel:
             - !Sampling
               name: EchoRequest
@@ -80,6 +83,6 @@
 
   testScript = ''
     system1.wait_for_unit("multi-user.target")
-    system1.succeed("a653rs-linux-hypervisor --duration 10s /etc/hypervisor_config_server.yml & a653rs-linux-hypervisor --duration 10s /etc/hypervisor_config_client.yml")
+    system1.succeed("linux-apex-hypervisor --duration 10s /etc/hypervisor_config_server.yml & linux-apex-hypervisor --duration 10s /etc/hypervisor_config_client.yml")
   '';
 }

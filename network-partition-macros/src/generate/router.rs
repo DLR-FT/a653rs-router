@@ -38,8 +38,9 @@ impl GenerateStream for Router {
 impl Router {
     fn gen_sched_type_alias(&self) -> ItemType {
         let sched = &self.scheduler;
+        let slots = self.inputs;
         parse_quote!(
-            type AScheduler = #sched;
+            type AScheduler = #sched<#slots>;
         )
     }
 

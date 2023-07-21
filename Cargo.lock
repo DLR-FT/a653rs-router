@@ -126,11 +126,16 @@ name = "apex-echo"
 version = "0.1.0"
 dependencies = [
  "a653rs",
+ "a653rs-linux",
  "a653rs-postcard",
+ "a653rs-xng",
+ "dummy-hypervisor",
  "log",
  "once_cell",
  "serde",
  "small-trace",
+ "small-trace-gpio",
+ "xng-rs-log",
 ]
 
 [[package]]

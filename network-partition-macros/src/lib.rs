@@ -12,14 +12,14 @@ mod types;
 use generate::GenerateStream;
 use parse::{args::RunArgs, router::Router};
 use quote::quote;
-use syn::{parse_macro_input, parse_quote, ItemMod, TypePath};
+use syn::{parse_macro_input, parse_quote, ItemMod};
 
 #[proc_macro_attribute]
 pub fn router_config(
     args: proc_macro::TokenStream,
     input: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
-    let scheduler = parse_macro_input!(args as TypePath);
+    let scheduler = parse_macro_input!(args as syn::Path);
     let mut input = parse_macro_input!(input as ItemMod);
     Router::parse(&scheduler, &mut input)
         .and_then(|r| r.gen_stream(&mut input))

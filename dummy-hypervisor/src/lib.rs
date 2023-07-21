@@ -244,9 +244,9 @@ impl ApexErrorP4 for DummyHypervisor {
 }
 
 #[derive(Debug, Default)]
-pub struct DummyScheduler;
+pub struct DummyScheduler<const SLOTS: usize>;
 
-impl Scheduler for DummyScheduler {
+impl<const SLOTS: usize> Scheduler for DummyScheduler<SLOTS> {
     fn schedule_next(
         &mut self,
         current_time: &std::time::Duration,
@@ -266,9 +266,9 @@ impl Scheduler for DummyScheduler {
 }
 
 #[derive(Debug)]
-pub struct DummyInterface;
+pub struct DummyInterface<const MTU: usize>;
 
-impl CreateNetworkInterfaceId<Self> for DummyInterface {
+impl<const MTU: usize> CreateNetworkInterfaceId<Self> for DummyInterface<MTU> {
     fn create_network_interface_id(
         cfg: InterfaceConfig,
     ) -> Result<network_partition::prelude::NetworkInterfaceId, InterfaceError> {
@@ -276,7 +276,7 @@ impl CreateNetworkInterfaceId<Self> for DummyInterface {
     }
 }
 
-impl PlatformNetworkInterface for DummyInterface {
+impl<const MTU: usize> PlatformNetworkInterface for DummyInterface<MTU> {
     type Configuration = InterfaceConfig;
 
     fn platform_interface_send_unchecked(

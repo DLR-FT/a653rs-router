@@ -1,8 +1,4 @@
-#![cfg_attr(
-    all(any(features = "xng", features = "dummy"), not(features = "linux")),
-    no_std
-)]
-#![cfg_attr(feature = "dummy", allow(dead_code))]
+#![cfg_attr(not(any(test, features = "linux")), no_std)]
 
 #[cfg(any(
     all(feature = "dummy", any(feature = "linux", feature = "xng")),
@@ -59,7 +55,7 @@ pub fn run() {
 // router_config(dummy_hypervisor::DummyScheduler))]
 
 #[cfg(all(feature = "xng", feature = "client"))]
-#[router_config(network_partition::prelude::DeadlineRrScheduler<2>)]
+#[router_config(network_partition::prelude::DeadlineRrScheduler)]
 pub(crate) mod router {
     #[limits(inputs = 1, outputs = 1, mtu = "1Kib")]
     struct Limits;
@@ -71,7 +67,7 @@ pub(crate) mod router {
 }
 
 #[cfg(all(feature = "xng", feature = "server"))]
-#[router_config(network_partition::prelude::DeadlineRrScheduler<2>)]
+#[router_config(network_partition::prelude::DeadlineRrScheduler)]
 pub(crate) mod router {
     #[limits(inputs = 1, outputs = 1, mtu = "1Kib")]
     struct Limits;
@@ -83,7 +79,7 @@ pub(crate) mod router {
 }
 
 #[cfg(all(feature = "linux", feature = "client"))]
-#[router_config(network_partition::prelude::DeadlineRrScheduler<2>)]
+#[router_config(network_partition::prelude::DeadlineRrScheduler)]
 pub(crate) mod router {
     #[limits(inputs = 1, outputs = 1, mtu = "1Kib")]
     struct Limits;
@@ -95,7 +91,7 @@ pub(crate) mod router {
 }
 
 #[cfg(all(feature = "linux", feature = "server"))]
-#[router_config(network_partition::prelude::DeadlineRrScheduler<2>)]
+#[router_config(network_partition::prelude::DeadlineRrScheduler)]
 pub(crate) mod router {
     #[limits(inputs = 1, outputs = 1, mtu = "1Kib")]
     struct Limits;

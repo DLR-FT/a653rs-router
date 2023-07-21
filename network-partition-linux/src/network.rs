@@ -6,11 +6,11 @@ use small_trace::small_trace;
 use std::{mem::size_of, net::UdpSocket};
 
 #[derive(Debug)]
-pub struct UdpNetworkInterface;
+pub struct UdpNetworkInterface<const MTU: usize>;
 
 static mut INTERFACES: Vec<LimitedUdpSocket> = Vec::new();
 
-impl PlatformNetworkInterface for UdpNetworkInterface {
+impl<const MTU: usize> PlatformNetworkInterface for UdpNetworkInterface<MTU> {
     type Configuration = InterfaceConfig;
 
     fn platform_interface_receive_unchecked(
@@ -94,7 +94,9 @@ fn get_socket(cfg: &InterfaceConfig) -> Result<UdpSocket, InterfaceError> {
     res.ok().flatten().ok_or(InterfaceError::NotFound)
 }
 
-impl CreateNetworkInterfaceId<UdpNetworkInterface> for UdpNetworkInterface {
+impl<const MTU: usize> CreateNetworkInterfaceId<UdpNetworkInterface<MTU>>
+    for UdpNetworkInterface<MTU>
+{
     fn create_network_interface_id(
         cfg: InterfaceConfig,
     ) -> Result<NetworkInterfaceId, InterfaceError> {

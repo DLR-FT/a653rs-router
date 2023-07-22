@@ -6,6 +6,7 @@ use crate::{
 };
 use core::fmt::Debug;
 use heapless::{LinearMap, String, Vec};
+use log::{debug, warn};
 
 #[cfg(feature = "serde")]
 use crate::types::VirtualLinkId;
@@ -21,7 +22,12 @@ pub struct Resources<'a, const I: usize, const O: usize> {
 
 impl<'a, const I: usize, const O: usize> Debug for Resources<'a, I, O> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str("ResourceCollection")
+        let inputs: Vec<_, I> = self.inputs.keys().collect();
+        let outputs: Vec<_, O> = self.outputs.keys().collect();
+        f.write_fmt(format_args!(
+            "Resources: inputs: {:?}, outputs: {:?}",
+            inputs, outputs,
+        ))
     }
 }
 
@@ -92,17 +98,30 @@ impl Configurator {
         scheduler: &mut dyn Scheduler,
         cfg: &Config<I, O>,
     ) -> Result<Router<'a, I, O>, Error> {
+        debug!("Have resources {resources:?}");
+        let mut b = &mut crate::router::builder();
+        if cfg.vls.is_empty() {
+            return b.build();
+        }
         let slots: Vec<_, I> = cfg.vls.into_iter().map(|(v, c)| (*v, c.period)).collect();
         scheduler.reconfigure(slots.as_slice())?;
-        let mut b = &mut crate::router::builder();
         for (v, cfg) in cfg.vls.into_iter() {
-            let inp = resources
-                .get_input(cfg.src.as_str())
-                .ok_or(Error::InvalidConfig)?;
+            debug!("VL {v} got config {cfg:?}");
+            let input = cfg.src.as_str();
+            let inp = resources.get_input(input).ok_or_else(|| {
+                warn!("Unknown input: {input}");
+                Error::InvalidConfig
+            })?;
             let outs: Result<Vec<_, O>, Error> = cfg
                 .dsts
                 .iter()
-                .map(|d| resources.get_output(d.as_str()).ok_or(Error::InvalidConfig))
+                .map(|d| {
+                    let output = d.as_str();
+                    resources.get_output(output).ok_or_else(|| {
+                        warn!("Unknown output {output}");
+                        Error::InvalidConfig
+                    })
+                })
                 .collect();
             let outs = outs?;
             b = b.route(v, inp, &outs).or(Err(Error::InvalidConfig))?;
@@ -116,7 +135,7 @@ impl Configurator {
         config_port: &dyn RouterInput,
     ) -> Result<Config<I, O>, Error> {
         let buf = &mut [0u8; 10000];
-        let (_vl, _buf) = config_port.receive(&VirtualLinkId::from(0u16), buf)?;
-        postcard::from_bytes_cobs::<Config<I, O>>(buf).or(Err(Error::InvalidConfig))
+        let (_vl, buf) = config_port.receive(&VirtualLinkId::from(0u16), buf)?;
+        postcard::from_bytes::<Config<I, O>>(buf).or(Err(Error::InvalidConfig))
     }
 }

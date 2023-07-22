@@ -30,7 +30,10 @@ impl Router {
             },
             Some,
         );
-        let interfaces = Interface::from_content(content).map_or_else(
+
+        let limits = limits.unwrap();
+
+        let interfaces = Interface::from_content(content, limits.mtu.bytes() as usize).map_or_else(
             |e| {
                 acc.push(e);
                 None
@@ -39,7 +42,6 @@ impl Router {
         );
         acc.finish()?;
 
-        let limits = limits.unwrap();
         let interfaces = interfaces.unwrap();
 
         Ok(Router {

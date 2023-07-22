@@ -7,4 +7,7 @@ edition = "2021"
 
 [dependencies]
 a653rs.workspace = true
-network-partition.path = "../network-partition"
+
+[dependencies.network-partition]
+path = "../network-partition"
+default-features = false

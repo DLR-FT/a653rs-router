@@ -21,6 +21,8 @@ impl GenerateStream for Router {
         // Number of buffer length, inputs and outputs
         content.push(self.gen_inputs_const().into());
         content.push(self.gen_outputs_const().into());
+        content.push(self.gen_total_inputs_const().into());
+        content.push(self.gen_total_outputs_const().into());
         content.push(self.gen_buffer_len_const().into());
 
         // Generates module with GetResources implementation for getting all interfaces
@@ -38,7 +40,7 @@ impl GenerateStream for Router {
 impl Router {
     fn gen_sched_type_alias(&self) -> ItemType {
         let sched = &self.scheduler;
-        let slots = self.inputs;
+        let slots = self.inputs + self.interfaces.len();
         parse_quote!(
             type AScheduler = #sched<#slots>;
         )
@@ -68,13 +70,13 @@ impl Router {
                     outputs: [(&str, &'_ dyn RouterOutput); OUTPUTS]
                 ) -> ! {
                     super::interfaces::init().unwrap();
-                    let mut resources = Resources::<INPUTS , OUTPUTS>::new();
+                    let mut resources = Resources::<TOTAL_INPUTS, TOTAL_OUTPUTS>::new();
                     inputs.into_iter().for_each(|(n,v)| resources.insert_input(n, v).unwrap());
                     outputs.into_iter().for_each(|(n,v)| resources.insert_output(n, v).unwrap());
                     super::interfaces::inputs().into_iter().for_each(|(n,v)| resources.insert_input(n, v).unwrap());
                     super::interfaces::outputs().into_iter().for_each(|(n,v)| resources.insert_output(n, v).unwrap());
                     let mut scheduler = AScheduler::default();
-                    network_partition::run::<INPUTS, OUTPUTS, BUF_LEN>(time, router_config, resources, &mut scheduler)
+                    network_partition::run::<TOTAL_INPUTS, TOTAL_OUTPUTS, BUF_LEN>(time, router_config, resources, &mut scheduler)
                 }
             }
         }
@@ -114,6 +116,16 @@ impl Router {
     fn gen_outputs_const(&self) -> ItemConst {
         let outputs = &self.outputs;
         parse_quote!(const OUTPUTS: usize = #outputs;)
+    }
+
+    fn gen_total_inputs_const(&self) -> ItemConst {
+        let inputs = &(self.inputs + self.interfaces.len());
+        parse_quote!(const TOTAL_INPUTS: usize = #inputs;)
+    }
+
+    fn gen_total_outputs_const(&self) -> ItemConst {
+        let outputs = &(self.outputs + self.interfaces.len());
+        parse_quote!(const TOTAL_OUTPUTS: usize = #outputs;)
     }
 
     fn gen_buffer_len_const(&self) -> ItemConst {

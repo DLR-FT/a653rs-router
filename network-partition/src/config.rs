@@ -162,14 +162,19 @@ pub struct Builder<const I: usize, const O: usize> {
     cfg: Config<I, O>,
 }
 
-type BuilderResult<'a, const I: usize, const O: usize> =
+/// Result of applying a change to the configuration builder.
+pub type BuilderResult<'a, const I: usize, const O: usize> =
     Result<&'a mut Builder<I, O>, RouterConfigError>;
-type ConfigResult<const I: usize, const O: usize> = Result<Config<I, O>, RouterConfigError>;
+
+/// The result of building a configuration.
+pub type ConfigResult<const I: usize, const O: usize> = Result<Config<I, O>, RouterConfigError>;
 
 impl<const I: usize, const O: usize> Builder<I, O> {
     /// Build the configuration.
     pub fn build(&self) -> ConfigResult<I, O> {
-        // TODO validate?
+        if self.cfg.vls.iter().any(|vl| vl.1.period.is_zero()) {
+            return Err(RouterConfigError::Schedule);
+        }
         Ok(self.cfg.clone())
     }
 

@@ -12,13 +12,12 @@ macros = [ "dep:network-partition-macros", "serde" ]
 a653rs.workspace = true
 heapless = { version = "0.7", default-features = false }
 log = "0"
-network-partition-macros = { version = "0.1", path = "../network-partition-macros", optional = true }
 humantime-serde = { version = "1", optional = true }
 serde = { version = "1.0", default-features = false, features = ["derive"], optional = true }
 bytesize = { version = "1.1.0", optional = true }
 small-trace = { path = "../small-trace" }
 postcard = { version = "1.0", optional = true, default-features = false, features = [ "heapless" ] }
+network-partition-macros = { version = "0.1", path = "../network-partition-macros", optional = true }
 
 [dev-dependencies]
 serde_yaml = "0.9"
-network-partition-macros = { version = "0.1", path = "../network-partition-macros" }

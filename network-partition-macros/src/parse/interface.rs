@@ -47,31 +47,50 @@ enum ParseResult {
 }
 
 impl Interface {
-    pub fn from_content(items: &mut Vec<Item>) -> darling::Result<Vec<Self>> {
+    fn check(self, max_mtu: usize) -> darling::Result<Self> {
+        let i_mtu = self.mtu.bytes() as usize;
+        if i_mtu > max_mtu {
+            Err(darling::Error::custom(format!(
+                "Interface MTU = {i_mtu:?} is larger than router maximum MTU = {max_mtu}"
+            )))
+        } else {
+            Ok(self)
+        }
+    }
+
+    fn from_item(item: &mut Item, max_mtu: usize) -> darling::Result<ParseResult> {
+        if let Item::Struct(item) = item {
+            let parsed = Self::may_from_attributes(item.ident.clone(), &mut item.attrs);
+            match parsed {
+                Some(Ok(res)) => {
+                    no_struct_body(item)?;
+                    match res.check(max_mtu) {
+                        Ok(i) => Ok(ParseResult::Interface(i)),
+                        Err(e) => Err(e.with_span(item)),
+                    }
+                }
+                Some(Err(e)) => Err(e),
+                None => Ok(ParseResult::Unchanged(Item::Struct(item.clone()))),
+            }
+        } else {
+            Ok(ParseResult::Unchanged(item.clone()))
+        }
+    }
+
+    pub fn from_content(items: &mut Vec<Item>, max_mtu: usize) -> darling::Result<Vec<Self>> {
         let mut interfaces: Vec<Self> = vec![];
         let mut acc = darling::Error::accumulator();
-        let c: Vec<Item> = items
-            .iter_mut()
-            .flat_map(|item| {
-                if let Item::Struct(item) = item {
-                    let res = Self::may_from_attributes(item.ident.clone(), &mut item.attrs);
-                    match res {
-                        Some(Ok(res)) => {
-                            if let Err(e) = no_struct_body(item) {
-                                acc.push(e);
-                            } else {
-                                interfaces.push(res);
-                            }
-                            None
-                        }
-                        Some(Err(e)) => {
-                            acc.push(e);
-                            None
-                        }
-                        None => Some(Item::Struct(item.clone())),
-                    }
-                } else {
-                    Some(item.clone())
+        let mut unchanged: Vec<Item> = vec![];
+        for item in items.iter_mut() {
+            match Self::from_item(item, max_mtu) {
+                Ok(ParseResult::Unchanged(item)) => {
+                    unchanged.push(item);
+                }
+                Ok(ParseResult::Interface(intf)) => {
+                    interfaces.push(intf);
+                }
+                Err(e) => {
+                    acc.push(e);
                 }
             }
         }

@@ -53,6 +53,10 @@ pub struct DeadlineRrScheduler<const SLOTS: usize> {
 
 impl<const SLOTS: usize> Scheduler for DeadlineRrScheduler<SLOTS> {
     fn schedule_next(&mut self, current_time: &Duration) -> Option<VirtualLinkId> {
+        if self.windows.is_empty() {
+            return None;
+        }
+
         // Try all windows of one round-robin and return None if none of them are past
         // their deadline.
         for i in 1..=SLOTS {

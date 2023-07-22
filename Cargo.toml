@@ -2,31 +2,34 @@
 resolver = "2"
 members = [
   "apex-throughput",
-  "apex-echo",
+  "configurator",
   "dummy-hypervisor",
-  "echo-router",
+  "echo",
   "network-partition",
   "network-partition-linux",
   "network-partition-macros",
   "network-partition-uart",
+  "router",
   "small-trace",
   "small-trace-gpio",
 ]
 default-members = [  
   "apex-throughput",
-  "apex-echo",
-  "echo-router",
+  "configurator",
+  "dummy-hypervisor",
+  "echo",
   "network-partition",
   "network-partition-linux",
   "network-partition-macros",
   "network-partition-uart",
+  "router",
   "small-trace",
   "small-trace-gpio",
 ]
 
 [workspace.dependencies]
-a653rs = "0.3"
 log = "0"
+a653rs = { version = "0.3", default-features = false }
 # For UDP socket support
 a653rs-linux = { git = "https://github.com/dadada/apex-linux.git", branch = "udp-network-driver", default-features = false }
 # A bit newer than the published version

@@ -1,3 +1,4 @@
+#![no_std]
 #![allow(unused_variables)]
 
 use a653rs::bindings::*;
@@ -249,7 +250,7 @@ pub struct DummyScheduler<const SLOTS: usize>;
 impl<const SLOTS: usize> Scheduler for DummyScheduler<SLOTS> {
     fn schedule_next(
         &mut self,
-        current_time: &std::time::Duration,
+        current_time: &core::time::Duration,
     ) -> Option<network_partition::prelude::VirtualLinkId> {
         todo!()
     }
@@ -258,7 +259,7 @@ impl<const SLOTS: usize> Scheduler for DummyScheduler<SLOTS> {
         &mut self,
         vls: &[(
             network_partition::prelude::VirtualLinkId,
-            std::time::Duration,
+            core::time::Duration,
         )],
     ) -> Result<(), Error> {
         todo!()

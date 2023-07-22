@@ -1,0 +1,32 @@
+[package]
+name = "configurator"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[[example]]
+# -- because the variant name is empty, see flake.nix
+name = "configurator--"
+path = "./examples/linux.rs"
+
+[features]
+client = [ ]
+server = [ ]
+
+[dependencies.a653rs]
+workspace = true
+features = [ "macros" ]
+
+[dependencies.network-partition]
+features = [ "serde" ]
+path = "../network-partition"
+
+[dependencies.a653rs-linux]
+workspace = true
+
+[dependencies.a653rs-postcard]
+workspace = true
+
+[dependencies.log]
+version = "0"

@@ -27,7 +27,7 @@ pub use crate::run::*;
 /// Standard Prelude to be used by network partition implementations (e.g.
 /// network_partition_linux)
 pub mod prelude {
-    pub use crate::config::Config;
+    pub use crate::config::{BuilderResult, Config, ConfigResult, RouterConfigError};
     pub use crate::network::{
         CreateNetworkInterface, CreateNetworkInterfaceId, InterfaceConfig, NetworkInterface,
         NetworkInterfaceId, PayloadSize, PlatformNetworkInterface,

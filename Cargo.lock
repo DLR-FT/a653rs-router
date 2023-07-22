@@ -122,23 +122,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3b13c32d80ecc7ab747b80c3784bce54ee8a7a0cc4fbda9bf4cda2cf6fe90854"
 
 [[package]]
-name = "apex-echo"
-version = "0.1.0"
-dependencies = [
- "a653rs",
- "a653rs-linux",
- "a653rs-postcard",
- "a653rs-xng",
- "dummy-hypervisor",
- "log",
- "once_cell",
- "serde",
- "small-trace",
- "small-trace-gpio",
- "xng-rs-log",
-]
-
-[[package]]
 name = "apex-throughput"
 version = "0.1.0"
 dependencies = [
@@ -242,6 +225,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "62ec6771ecfa0762d24683ee5a32ad78487a3d3afdc0fb8cae19d2c5deb50b7c"
 dependencies = [
  "crossbeam-utils",
+]
+
+[[package]]
+name = "configurator"
+version = "0.1.0"
+dependencies = [
+ "a653rs",
+ "a653rs-linux",
+ "a653rs-postcard",
+ "log",
+ "network-partition",
 ]
 
 [[package]]
@@ -400,17 +394,17 @@ dependencies = [
 ]
 
 [[package]]
-name = "echo-router"
+name = "echo"
 version = "0.1.0"
 dependencies = [
  "a653rs",
  "a653rs-linux",
+ "a653rs-postcard",
  "a653rs-xng",
  "dummy-hypervisor",
  "log",
- "network-partition",
- "network-partition-linux",
- "network-partition-uart",
+ "once_cell",
+ "serde",
  "small-trace",
  "small-trace-gpio",
  "xng-rs-log",
@@ -852,6 +846,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "50f3b39ccfb720540debaa0164757101c08ecb8d326b15358ce76a62c7e85965"
 dependencies = [
  "proc-macro2",
+]
+
+[[package]]
+name = "router"
+version = "0.1.0"
+dependencies = [
+ "a653rs",
+ "a653rs-linux",
+ "a653rs-xng",
+ "dummy-hypervisor",
+ "log",
+ "network-partition",
+ "network-partition-linux",
+ "network-partition-uart",
+ "small-trace",
+ "small-trace-gpio",
+ "xng-rs-log",
 ]
 
 [[package]]

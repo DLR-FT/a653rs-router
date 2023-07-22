@@ -3,7 +3,7 @@ use network_partition_macros::router_config;
 
 #[router_config(dummy_hypervisor::DummyScheduler)]
 mod example_router {
-    #[limits(inputs = 1, outputs = 1, mtu = "1Kib")]
+    #[limits(inputs = 1, outputs = 1, mtu = "10KB")]
     struct Limits;
 
     #[interface(

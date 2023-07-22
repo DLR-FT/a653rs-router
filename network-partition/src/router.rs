@@ -11,7 +11,7 @@ use a653rs::prelude::{
 };
 use core::{fmt::Debug, time::Duration};
 use heapless::{LinearMap, Vec};
-use log::{trace, warn};
+use log::{debug, trace, warn};
 use small_trace::small_trace;
 
 /// An input to a virtual link.
@@ -59,6 +59,7 @@ impl<'a, const I: usize, const O: usize> Router<'a, I, O> {
         let input = self.inputs.get(vl).ok_or(Error::InvalidConfig)?;
         // This vl may be different, than the one specified.
         let (vl, buf) = input.receive(vl, buf)?;
+        debug!("Received from {vl:?}: {buf:?}");
         let outs = self.outputs.get(&vl).ok_or(Error::InvalidConfig)?;
         for out in outs.into_iter() {
             out.send(&vl, buf)?;
@@ -151,7 +152,7 @@ impl<const M: MessageSize, S: ApexSamplingPortP4> RouterInput for SamplingPortDe
         vl: &VirtualLinkId,
         buf: &'a mut [u8],
     ) -> Result<(VirtualLinkId, &'a [u8]), Error> {
-        if buf.len() > M as usize {
+        if buf.len() < M as usize {
             return Err(Error::InvalidConfig);
         }
         small_trace!(begin_apex_receive, vl.0 as u16);
@@ -176,10 +177,9 @@ impl<const M: MessageSize, S: ApexSamplingPortP4> RouterInput for SamplingPortDe
 
 impl<const M: MessageSize, S: ApexSamplingPortP4> RouterOutput for SamplingPortSource<M, S> {
     fn send(&self, vl: &VirtualLinkId, buf: &[u8]) -> Result<(), Error> {
-        if buf.len() < M as usize {
+        if buf.len() > M as usize {
             return Err(Error::InvalidConfig);
         }
-        // TODO small_trace!(begin_forward_to_apex, vl.0 as u16);
         small_trace!(begin_apex_send, vl.0 as u16);
         let res = self.send(buf);
         small_trace!(end_apex_send, vl.0 as u16);

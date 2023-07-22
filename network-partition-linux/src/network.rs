@@ -1,5 +1,5 @@
 use a653rs_linux::partition::ApexLinuxPartition;
-use log::{error, trace};
+use log::{debug, error, trace};
 use network_partition::error::*;
 use network_partition::prelude::*;
 use small_trace::small_trace;
@@ -28,7 +28,7 @@ impl<const MTU: usize> PlatformNetworkInterface for UdpNetworkInterface<MTU> {
                 let vl_id = u32::from_be_bytes(vl_id_buf);
                 let vl_id = VirtualLinkId::from_u32(vl_id);
                 let msg = &buffer[vl_id_len..read];
-                trace!("Received message from UDP socket for VL {vl_id}: {:?}", msg);
+                debug!("Received message from UDP socket for VL {vl_id}: {:?}", msg);
                 small_trace!(end_network_receive, id.0 as u16);
                 Ok((vl_id, msg))
             }
@@ -51,7 +51,7 @@ impl<const MTU: usize> PlatformNetworkInterface for UdpNetworkInterface<MTU> {
         small_trace!(end_network_send, id.0 as u16);
         match res {
             Ok(trans) => {
-                trace!("Send {} bytes to UDP socket", udp_buf.len());
+                debug!("Send {} bytes to UDP socket", udp_buf.len());
                 Ok(trans)
             }
             Err(err) => {
@@ -75,10 +75,11 @@ fn get_interface(id: NetworkInterfaceId) -> Result<&'static LimitedUdpSocket, In
 
 // This is safe, because the interfaces are only created before the list of
 // interfaces is used.
-fn add_interface(s: LimitedUdpSocket) -> NetworkInterfaceId {
+fn add_interface(s: LimitedUdpSocket) -> Result<NetworkInterfaceId, InterfaceError> {
     unsafe {
+        let id = NetworkInterfaceId(INTERFACES.len() as u32);
         INTERFACES.push(s);
-        NetworkInterfaceId(INTERFACES.len() as u32)
+        Ok(id)
     }
 }
 
@@ -101,12 +102,14 @@ impl<const MTU: usize> CreateNetworkInterfaceId<UdpNetworkInterface<MTU>>
         cfg: InterfaceConfig,
     ) -> Result<NetworkInterfaceId, InterfaceError> {
         let sock = get_socket(&cfg)?;
-        sock.set_nonblocking(true).unwrap();
-        sock.connect(cfg.destination.as_str()).unwrap();
+        sock.set_nonblocking(true)
+            .or(Err(InterfaceError::SendFailed))?;
+        sock.connect(cfg.destination.as_str())
+            .or(Err(InterfaceError::SendFailed))?;
         let sock = LimitedUdpSocket {
             sock,
             _rate: cfg.rate,
         };
-        Ok(add_interface(sock))
+        add_interface(sock)
     }
 }

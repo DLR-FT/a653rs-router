@@ -19,7 +19,7 @@
 
     hypervisor = {
       #url = "github:DLR-FT/a653rs-linux";
-      url = "github:dadada/apex-linux?branch=udp-network-driver";
+      url = "github:dadada/apex-linux?ref=udp-network-driver";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -49,7 +49,6 @@
     utils.lib.eachSystem [ "x86_64-linux" ]
       (system:
         let
-          inherit (self.lib) mkExample;
           pkgs = import nixpkgs { inherit system; };
           formatter = pkgs.nixpkgs-fmt;
           rust-toolchain = with fenix.packages.${system}; combine [
@@ -64,7 +63,7 @@
             targets.armv7a-none-eabi.latest.rust-std
           ];
 
-          hypervisorPackage = hypervisor.packages.${system}.linux-apex-hypervisor;
+          hypervisorPackage = hypervisor.packages.${system}.a653rs-linux-hypervisor;
 
           xngSrcs = {
             xng = pkgs.requireFile {
@@ -188,48 +187,65 @@
               ];
             };
 
-          checks = {
-            nixpkgs-fmt = pkgs.runCommand "check-format-nix"
-              {
-                nativeBuildInputs = [ formatter ];
-              } "nixpkgs-fmt --check ${./.} && touch $out";
-            cargo-fmt = pkgs.runCommand "check-format-rust"
-              {
-                nativeBuildInputs = [ rust-toolchain ];
-              } "cd ${./.} && cargo fmt --check && touch $out";
-            echo-router-linux-client = self.packages.${system}.echo-router-linux-client;
-            echo-router-linux-server = self.packages.${system}.echo-router-linux-server;
-          };
+          checks =
+            let
+              nixos-lib = nixpkgs.lib.nixos;
+            in
+            with self.packages.${system}; {
+              nixpkgs-fmt = pkgs.runCommand "check-format-nix"
+                {
+                  nativeBuildInputs = [ formatter ];
+                } "nixpkgs-fmt --check ${./.} && touch $out";
+              cargo-fmt = pkgs.runCommand "check-format-rust"
+                {
+                  nativeBuildInputs = [ rust-toolchain ];
+                } "cd ${./.} && cargo fmt --check && touch $out";
+              integration = nixos-lib.runTest (import ./test/integration.nix {
+                hostPkgs = pkgs;
+                configurator-client = configurator---client;
+                configurator-server = configurator---server;
+                echo-client = echo-sampling-linux-client;
+                echo-server = echo-sampling-linux-server;
+                hypervisor = hypervisorPackage;
+                router-client = router-echo-linux-client;
+                router-server = router-echo-linux-server;
+              });
+            };
           packages =
             let
+              inherit (self.lib) allProducts mkExample;
               rustPlatform = (pkgs.makeRustPlatform { cargo = rust-toolchain; rustc = rust-toolchain; });
               platforms = [
                 { feature = "dummy"; target = "x86_64-unknown-linux-gnu"; }
                 { feature = "linux"; target = "x86_64-unknown-linux-musl"; }
-                { feature = "xng"; target = "armv7a-unknown-eabi"; }
+                { feature = "xng"; target = "armv7a-none-eabi"; }
               ];
-              flavors = [ "client" "server" ];
             in
-            (
-              builtins.listToAttrs (
-                map
-                  ({ platform, flavor }:
-                    let
-                      example = "echo-router-${platform.feature}";
-                    in
-                    (nixpkgs.lib.nameValuePair
-                      "${example}-${flavor}"
-                      (mkExample {
-                        inherit rustPlatform example;
-                        features = [ platform.feature flavor ];
-                        target = "x86_64-unknown-${platform.feature}-musl";
-                      })
-                    )
-                  )
-                  (nixpkgs.lib.cartesianProductOfSets { "platform" = platforms; "flavor" = flavors; })
-              )
-            )
-            // {
+            (allProducts {
+              inherit rustPlatform platforms;
+              products = [ "router" ];
+              flavors = [ "client" "server" ];
+              variants = [ "echo" "throughput" ];
+            })
+            //
+            (allProducts {
+              inherit rustPlatform platforms;
+              products = [ "echo" ];
+              flavors = [ "client" "server" ];
+              variants = [ "sampling" "queuing" ];
+            })
+            //
+            (allProducts {
+              inherit rustPlatform;
+              products = [ "configurator" ];
+              flavors = [ "client" "server" ];
+              variants = [ "" ];
+              platforms = [
+                { feature = ""; target = "x86_64-unknown-linux-musl"; }
+              ];
+            })
+            //
+            {
               xng-ops = xng-utils.lib.buildXngOps {
                 inherit pkgs;
                 src = xngSrcs.xng;
@@ -240,15 +256,15 @@
               };
             };
         }) // {
-      lib = {
+      lib = rec {
         mkExample = { rustPlatform, example, features, target }: rustPlatform.buildRustPackage {
           pname = example;
           version = "0.1.0";
           src = ./.;
           cargoLock.lockFile = ./Cargo.lock;
           cargoLock.outputHashes = {
-            "a653rs-linux-0.2.0" = "sha256-qkyFm7NGKzuxOBi/lEh6tE2XIB6ylcOCg5NPJ2edKBA=";
-            "a653rs-postcard-0.2.0" = "sha256-67xDv+xW49ZhCmjJkkP81VkASY8TrBVxHoDo1jVwf04=";
+            "a653rs-linux-0.2.0" = "sha256-PR+gpuqY9opGNdi9rmgjBKYoX827h0jLeRD+XXSOXXM=";
+            "a653rs-postcard-0.2.0" = "sha256-xDM5PwV24ZQ3NPVl12A1zX7FvYgLUxcufMCft+BzOSU=";
             "a653rs-xng-0.1.0" = "sha256-7vZ8eWwLXzR4Fb4UCA2GyI8HRnKVR5NFcWumrzkUMNM=";
             "xng-rs-log-0.1.0" = "sha256-YIFFnjWsk6g9tQuRBqmPaXsY3s2+BpkAg5PCw2ZGYCU=";
           };
@@ -256,10 +272,32 @@
           cargoBuildFlags = "--example=${example} --target=${target} --features=${nixpkgs.lib.concatStringsSep "," features}";
           installPhase = ''
             mkdir -p "$out/bin"
-            ls -R
             cp "target/${target}/release/examples/${example}" "$out/bin"
           '';
         };
+        allProducts = { rustPlatform, flavors, platforms, variants, products }: builtins.listToAttrs (
+          map
+            ({ product, flavor, platform, variant }:
+              let
+                example = "${product}-${variant}-${platform.feature}";
+              in
+              (nixpkgs.lib.nameValuePair
+                "${example}-${flavor}"
+                (mkExample {
+                  inherit rustPlatform example;
+                  features = [ variant platform.feature flavor ];
+                  target = platform.target;
+                })
+              )
+            )
+            (nixpkgs.lib.cartesianProductOfSets {
+              "flavor" = flavors;
+              "platform" = platforms;
+              "variant" = variants;
+              "product" = products;
+            })
+        );
+
       };
     };
 }

@@ -4,6 +4,7 @@
 //! The bits are mapped to ports IO 26 to 33 on the CoraZ7.
 //!
 //! The fpga design files are at https://github.com/dadada/vivado-coraz7-uart
+
 use core::marker::{Send, Sync};
 use small_trace::{TraceEvent, Tracer};
 use volatile_register::{RO, RW};

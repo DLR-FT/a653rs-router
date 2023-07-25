@@ -157,7 +157,6 @@ impl<const BUFFER_LEN: usize> Drop for BufferedUart<BUFFER_LEN> {
     }
 }
 
-// TODO
 static mut UART: Lazy<BufferedUart<{ config::FRAME_BUFFER }>> = Lazy::new(|| {
     let mut b = BufferedUart::new(config::BASE_ADDRESS);
     b.init(config::CLOCK_RATE, config::BAUD_RATE);

@@ -141,7 +141,6 @@
               fpga = fpga-project.packages."${system}".default;
               zynq7000Init = ./deployment/zynq7000_init_te0706.tcl;
               vitis = xilinx-flake-utils.packages.${system}.vitis-unified-software-platform-vitis_2019-2_1106_2127;
-              xng-sys-img-local_echo = self.packages."${system}".xng-sys-img-local_echo;
             in
             pkgs.devshell.mkShell {
               name = "network-partition-deploy";
@@ -210,10 +209,16 @@
                 router-client = router-echo-linux-client;
                 router-server = router-echo-linux-server;
               });
+              all-images = nixpkgs.legacyPackages.${system}.linkFarmFromDrvs "all-images" (
+                with self.packages.${system}; [ xng-echo-client xng-echo-server ]
+              );
             };
           packages =
             let
-              inherit (self.lib) allProducts;
+              allProducts = self.lib.allProducts;
+              xngImage = self.lib.xngImage;
+              xngOps = self.packages.${system}.xng-ops;
+              lithOsOps = self.packages.${system}.lithos-ops;
               rustPlatform = (pkgs.makeRustPlatform { cargo = rust-toolchain; rustc = rust-toolchain; });
               platforms = [
                 { feature = "dummy"; target = "x86_64-unknown-linux-gnu"; }
@@ -263,6 +268,22 @@
               lithos-ops = xng-utils.lib.buildLithOsOps {
                 inherit pkgs;
                 src = xngSrcs.lithos;
+              };
+              xng-echo-client = xngImage rec {
+                inherit pkgs xngOps lithOsOps;
+                name = "xng-echo-client";
+                partitions = {
+                  Router = "${self.packages."${system}".router-echo-xng-client}/lib/librouter_echo_xng.a";
+                  Echo = "${self.packages."${system}".echo-sampling-xng-client}/lib/libecho_sampling_xng.a";
+                };
+              };
+              xng-echo-server = xngImage rec {
+                inherit pkgs xngOps lithOsOps;
+                name = "xng-echo-server";
+                partitions = {
+                  Router = "${self.packages."${system}".router-echo-xng-server}/lib/librouter_echo_xng.a";
+                  Echo = "${self.packages."${system}".echo-sampling-xng-server}/lib/libecho_sampling_xng.a";
+                };
               };
             };
         }) // {
@@ -318,7 +339,28 @@
               "product" = products;
             })
         );
-
+        xngImage =
+          { pkgs
+          , name
+          , xngOps
+          , lithOsOps
+          , partitions
+          }: xng-utils.lib.buildXngSysImage {
+            inherit pkgs name xngOps lithOsOps;
+            hardFp = false;
+            xcf = pkgs.runCommandNoCC "patch-src" { } ''
+              cp -r "${./config/${name}/xml}" $out/
+            '';
+            partitions = pkgs.lib.concatMapAttrs
+              (partName: value: {
+                "${partName}" = {
+                  src = value;
+                  enableLithOs = true;
+                  ltcf = ./config/${name}/${nixpkgs.lib.toLower partName}.ltcf;
+                };
+              })
+              partitions;
+          };
       };
     };
 }

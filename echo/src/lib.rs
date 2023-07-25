@@ -28,6 +28,7 @@ compile_error!("The features `sampling` and `queuing` are mutually exclusive.");
 use a653rs::prelude::*;
 use log::{info, trace};
 use once_cell::unsync::OnceCell;
+use serde::{Deserialize, Serialize};
 
 #[allow(dead_code)]
 const LOG_LEVEL: log::LevelFilter = log::LevelFilter::Debug;
@@ -53,6 +54,16 @@ const ECHO_SIZE: MessageSize = 100;
     any(feature = "dummy", feature = "xng", feature = "linux")
 ))]
 const FIFO_DEPTH: MessageRange = 10;
+
+#[derive(Serialize, Deserialize, Copy, Clone, Debug)]
+/// Echo message
+pub struct Echo {
+    /// A sequence number.
+    pub sequence: u32,
+
+    /// The time at which the message has been created.
+    pub when_us: u64,
+}
 
 #[cfg(all(
     feature = "queuing",
@@ -94,7 +105,7 @@ pub fn run() {
     }
     #[cfg(feature = "xng")]
     {
-        unsafe { log::set_logger_racy(&XalLogger).unwrap() };
+        unsafe { log::set_logger_racy(&LOGGER).unwrap() };
         log::set_max_level(LOG_LEVEL);
     }
     #[cfg(feature = "linux")]
@@ -181,7 +192,7 @@ extern "C" fn entry_point_aperiodic() {
 ))]
 extern "C" fn entry_point_aperiodic() {
     #[cfg(feature = "queuing")]
-    use crate::serverqueuing::EchoServerProcess as Receiver;
+    use crate::server_queuing::EchoServerProcess as Receiver;
 
     #[cfg(feature = "sampling")]
     use crate::server::EchoServerProcess as Receiver;

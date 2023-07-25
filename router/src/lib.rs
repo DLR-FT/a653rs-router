@@ -69,72 +69,72 @@ pub fn run() {
 #[cfg(all(feature = "echo", feature = "xng", feature = "client"))]
 #[router_config(network_partition::prelude::DeadlineRrScheduler)]
 pub(crate) mod router {
-    #[limits(inputs = 1, outputs = 1, mtu = "10KB")]
+    #[limits(inputs = 1, outputs = 1, mtu = "1KB")]
     struct Limits;
 
     #[interface(interface_type = network_partition_uart::UartNetworkInterface)]
     #[interface(source = "tx", destination = "rx")]
-    #[interface(rate = "10MB", mtu = "1.5KB")]
+    #[interface(rate = "10MB", mtu = "1KB")]
     struct Uart1;
 }
 
 #[cfg(all(feature = "echo", feature = "xng", feature = "server"))]
 #[router_config(network_partition::prelude::DeadlineRrScheduler)]
 pub(crate) mod router {
-    #[limits(inputs = 1, outputs = 1, mtu = "10KB")]
+    #[limits(inputs = 1, outputs = 1, mtu = "1KB")]
     struct Limits;
 
     #[interface(interface_type = network_partition_uart::UartNetworkInterface)]
     #[interface(source = "tx", destination = "rx")]
-    #[interface(rate = "10MB", mtu = "1.5KB")]
+    #[interface(rate = "10MB", mtu = "1KB")]
     struct Uart1;
 }
 
 #[cfg(all(feature = "echo", feature = "linux", feature = "client"))]
 #[router_config(network_partition::prelude::DeadlineRrScheduler)]
 pub(crate) mod router {
-    #[limits(inputs = 1, outputs = 1, mtu = "10KB")]
+    #[limits(inputs = 1, outputs = 1, mtu = "1KB")]
     struct Limits;
 
     #[interface(interface_type = network_partition_linux::UdpNetworkInterface)]
     #[interface(source = "0.0.0.0:8081", destination = "192.168.1.2:8082")]
-    #[interface(rate = "10MB", mtu = "1.5KB")]
+    #[interface(rate = "10MB", mtu = "1KB")]
     struct Udp8081;
 }
 
 #[cfg(all(feature = "echo", feature = "linux", feature = "server"))]
 #[router_config(network_partition::prelude::DeadlineRrScheduler)]
 pub(crate) mod router {
-    #[limits(inputs = 1, outputs = 1, mtu = "10KB")]
+    #[limits(inputs = 1, outputs = 1, mtu = "1KB")]
     struct Limits;
 
     #[interface(interface_type = network_partition_linux::UdpNetworkInterface)]
     #[interface(source = "0.0.0.0:8082", destination = "192.168.1.1:8081")]
-    #[interface(rate = "10MB", mtu = "1.5KB")]
+    #[interface(rate = "10MB", mtu = "1KB")]
     struct Udp8082;
 }
 
 #[cfg(all(feature = "echo", feature = "dummy", feature = "client"))]
 #[router_config(dummy_hypervisor::DummyScheduler)]
 pub(crate) mod router {
-    #[limits(inputs = 1, outputs = 1, mtu = "10KB")]
+    #[limits(inputs = 1, outputs = 1, mtu = "1KB")]
     struct Limits;
 
     #[interface(interface_type = dummy_hypervisor::DummyInterface)]
     #[interface(source = "client:8081", destination = "server:8082")]
-    #[interface(rate = "10MB", mtu = "1.5KB")]
+    #[interface(rate = "10MB", mtu = "1KB")]
     struct Port1;
 }
 
 #[cfg(all(feature = "echo", feature = "dummy", feature = "server"))]
 #[router_config(dummy_hypervisor::DummyScheduler)]
 pub(crate) mod router {
-    #[limits(inputs = 1, outputs = 1, mtu = "10KB")]
+    #[limits(inputs = 1, outputs = 1, mtu = "1KB")]
     struct Limits;
 
     #[interface(interface_type = dummy_hypervisor::DummyInterface)]
     #[interface(source = "server:8082", destination = "client:8081")]
-    #[interface(rate = "10MB", mtu = "1.5KB")]
+    #[interface(rate = "10MB", mtu = "1KB")]
     struct Port1;
 }
 
@@ -143,72 +143,72 @@ pub(crate) mod router {
 #[cfg(all(feature = "throughput", feature = "xng", feature = "client"))]
 #[router_config(network_partition::prelude::DeadlineRrScheduler)]
 pub(crate) mod router {
-    #[limits(inputs = 1, outputs = 0, mtu = "10KB")]
+    #[limits(inputs = 1, outputs = 0, mtu = "100KB")]
     struct Limits;
 
     #[interface(interface_type = network_partition_uart::UartNetworkInterface)]
     #[interface(source = "tx", destination = "rx")]
-    #[interface(rate = "10MB", mtu = "1.5KB")]
+    #[interface(rate = "10MB", mtu = "1KB")]
     struct Uart1;
 }
 
 #[cfg(all(feature = "throughput", feature = "xng", feature = "server"))]
 #[router_config(network_partition::prelude::DeadlineRrScheduler)]
 pub(crate) mod router {
-    #[limits(inputs = 0, outputs = 1, mtu = "10KB")]
+    #[limits(inputs = 0, outputs = 1, mtu = "100KB")]
     struct Limits;
 
     #[interface(interface_type = network_partition_uart::UartNetworkInterface)]
     #[interface(source = "tx", destination = "rx")]
-    #[interface(rate = "10MB", mtu = "1.5KB")]
+    #[interface(rate = "10MB", mtu = "1KB")]
     struct Uart1;
 }
 
 #[cfg(all(feature = "throughput", feature = "linux", feature = "client"))]
 #[router_config(network_partition::prelude::DeadlineRrScheduler)]
 pub(crate) mod router {
-    #[limits(inputs = 1, outputs = 0, mtu = "10KB")]
+    #[limits(inputs = 1, outputs = 0, mtu = "100KB")]
     struct Limits;
 
     #[interface(interface_type = network_partition_linux::UdpNetworkInterface)]
     #[interface(source = "client:8081", destination = "server:8082")]
-    #[interface(rate = "10MB", mtu = "1.5KB")]
+    #[interface(rate = "10MB", mtu = "1KB")]
     struct Udp8081;
 }
 
 #[cfg(all(feature = "throughput", feature = "linux", feature = "server"))]
 #[router_config(network_partition::prelude::DeadlineRrScheduler)]
 pub(crate) mod router {
-    #[limits(inputs = 0, outputs = 1, mtu = "10KB")]
+    #[limits(inputs = 0, outputs = 1, mtu = "100KB")]
     struct Limits;
 
     #[interface(interface_type = network_partition_linux::UdpNetworkInterface)]
     #[interface(source = "server:8082", destination = "client:8081")]
-    #[interface(rate = "10MB", mtu = "1.5KB")]
+    #[interface(rate = "10MB", mtu = "1KB")]
     struct Udp8082;
 }
 
 #[cfg(all(feature = "throughput", feature = "dummy", feature = "client"))]
 #[router_config(dummy_hypervisor::DummyScheduler)]
 pub(crate) mod router {
-    #[limits(inputs = 1, outputs = 0, mtu = "10KB")]
+    #[limits(inputs = 1, outputs = 0, mtu = "100KB")]
     struct Limits;
 
     #[interface(interface_type = dummy_hypervisor::DummyInterface)]
     #[interface(source = "client:8081", destination = "server:8082")]
-    #[interface(rate = "10MB", mtu = "1.5KB")]
+    #[interface(rate = "10MB", mtu = "1KB")]
     struct Port1;
 }
 
 #[cfg(all(feature = "throughput", feature = "dummy", feature = "server"))]
 #[router_config(dummy_hypervisor::DummyScheduler)]
 pub(crate) mod router {
-    #[limits(inputs = 0, outputs = 1, mtu = "10KB")]
+    #[limits(inputs = 0, outputs = 1, mtu = "100KB")]
     struct Limits;
 
     #[interface(interface_type = dummy_hypervisor::DummyInterface)]
     #[interface(source = "server:8082", destination = "client:8081")]
-    #[interface(rate = "10MB", mtu = "1.5KB")]
+    #[interface(rate = "10MB", mtu = "1KB")]
     struct Port1;
 }
 
@@ -227,13 +227,13 @@ pub(crate) mod router {
 #[cfg_attr(feature = "xng", partition(a653rs_xng::apex::XngHypervisor))]
 mod router_partition {
 
-    #[sampling_in(msg_size = "10KB", refresh_period = "10s")]
+    #[sampling_in(msg_size = "1KB", refresh_period = "10s")]
     struct EchoRequest;
 
-    #[sampling_out(msg_size = "10KB")]
+    #[sampling_out(msg_size = "1KB")]
     struct EchoReply;
 
-    #[sampling_in(name = "RouterConfig", refresh_period = "10s", msg_size = "10KB")]
+    #[sampling_in(name = "RouterConfig", refresh_period = "10s", msg_size = "1KB")]
     struct RouterConfig;
 
     #[start(cold)]
@@ -283,13 +283,13 @@ mod router_partition {
 #[cfg_attr(feature = "xng", partition(a653rs_xng::apex::XngHypervisor))]
 mod router_partition {
 
-    #[sampling_out(msg_size = "10KB")]
+    #[sampling_out(msg_size = "1KB")]
     struct EchoRequest;
 
-    #[sampling_in(msg_size = "10KB", refresh_period = "10s")]
+    #[sampling_in(msg_size = "1KB", refresh_period = "10s")]
     struct EchoReply;
 
-    #[sampling_in(name = "RouterConfig", refresh_period = "10s", msg_size = "10KB")]
+    #[sampling_in(name = "RouterConfig", refresh_period = "10s", msg_size = "1KB")]
     struct RouterConfig;
 
     #[start(cold)]
@@ -341,13 +341,13 @@ mod router_partition {
     // this way we can also use the partition for non-networked tests.
 
     // TODO use proper config for more throughput
-    #[queuing_in(msg_size = "10KB", msg_count = "10", discipline = "Fifo")]
+    #[queuing_in(msg_size = "1KB", msg_count = "10", discipline = "Fifo")]
     struct ThroughputIn;
 
-    #[queuing_out(msg_size = "10KB", msg_count = "10", discipline = "Fifo")]
+    #[queuing_out(msg_size = "1KB", msg_count = "10", discipline = "Fifo")]
     struct ThroughputOut;
 
-    #[sampling_in(name = "RouterConfig", refresh_period = "1s", msg_size = "10KB")]
+    #[sampling_in(name = "RouterConfig", refresh_period = "1s", msg_size = "1KB")]
     struct RouterConfig;
 
     #[start(cold)]

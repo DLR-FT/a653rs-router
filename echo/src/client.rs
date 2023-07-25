@@ -1,3 +1,4 @@
+use crate::Echo;
 use a653rs::prelude::*;
 use a653rs_postcard::{
     prelude::SamplingRecvError,
@@ -9,16 +10,6 @@ use log::{debug, error, info, trace, warn};
 use once_cell::unsync::OnceCell;
 use serde::{Deserialize, Serialize};
 use small_trace::small_trace;
-
-#[derive(Serialize, Deserialize, Copy, Clone, Debug)]
-/// Echo message
-pub struct Echo {
-    /// A sequence number.
-    pub sequence: u32,
-
-    /// The time at which the message has been created.
-    pub when_us: u64,
-}
 
 #[derive(Debug)]
 pub struct EchoSenderProcess<const ECHO_SIZE: MessageSize>;

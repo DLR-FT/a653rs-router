@@ -64,19 +64,19 @@ in
           channel:
             - !Sampling
               name: EchoRequest
-              msg_size: 10KB
+              msg_size: 1KB
               source: Echo
               destination:
                 - Network
             - !Sampling
               name: EchoReply
-              msg_size: 10KB
+              msg_size: 1KB
               source: Network
               destination:
                 - Echo
             - !Sampling
               name: RouterConfig
-              msg_size: 10KB
+              msg_size: 1KB
               source: Cfgr
               destination:
                 - Network
@@ -147,19 +147,19 @@ in
         channel:
           - !Sampling
             name: EchoRequest
-            msg_size: 10KB
+            msg_size: 1KB
             source: Network
             destination:
               - Echo
           - !Sampling
             name: EchoReply
-            msg_size: 10KB
+            msg_size: 1KB
             source: Echo
             destination:
               - Network
           - !Sampling
             name: RouterConfig
-            msg_size: 10KB
+            msg_size: 1KB
             source: Cfgr
             destination:
               - Network

@@ -19,7 +19,7 @@ mod configurator {
     #[allow(dead_code)]
     const LOG_LEVEL: LevelFilter = LevelFilter::Info;
 
-    #[sampling_out(name = "RouterConfig", msg_size = "10KB")]
+    #[sampling_out(name = "RouterConfig", msg_size = "1KB")]
     struct RouterConfig;
 
     #[start(cold)]

@@ -1,4 +1,4 @@
-use crate::client::Echo;
+use crate::Echo;
 
 use a653rs::prelude::*;
 use a653rs_postcard::prelude::*;

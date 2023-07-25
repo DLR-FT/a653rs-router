@@ -3,9 +3,32 @@
 #![allow(incomplete_features)]
 
 use a653rs::prelude::*;
-use core::{str::FromStr, time::Duration};
+
+#[cfg(any(feature = "sender", feature = "receiver"))]
+use a653rs_xng::apex::XngHypervisor;
+
+use core::str::FromStr;
+use core::time::Duration;
 use log::info;
 use once_cell::unsync::OnceCell;
+
+#[cfg(any(feature = "sender", feature = "receiver"))]
+use xng_rs_log::XalLogger;
+
+// Maximum from XNG header files
+#[cfg(any(feature = "sender", feature = "receiver"))]
+const MSG: MessageSize = 8192;
+#[cfg(any(feature = "sender", feature = "receiver"))]
+const FIFO: MessageRange = 256;
+
+// As defined in LithOS constraints
+#[cfg(any(feature = "sender", feature = "receiver"))]
+const INTERVAL: Duration = Duration::from_millis(60);
+#[cfg(any(feature = "sender", feature = "receiver"))]
+static LOGGER: XalLogger = XalLogger;
+
+#[cfg(any(feature = "sender", feature = "receiver"))]
+type Hypervisor = XngHypervisor;
 
 #[derive(Debug)]
 pub struct TrafficSender<
@@ -19,7 +42,7 @@ pub struct TrafficSender<
 }
 
 pub fn send<const M: MessageSize, const F: MessageRange, H: ApexQueuingPortP4 + ApexTimeP4Ext>(
-    port: &mut QueuingPortSender<M, F, H>,
+    port: &QueuingPortSender<M, F, H>,
     interval: &SystemTime,
 ) -> !
 where
@@ -110,7 +133,7 @@ where
 
     pub fn receive<H: ApexQueuingPortP4 + ApexTimeP4Ext>(
         &mut self,
-        port: &mut QueuingPortReceiver<M, F, H>,
+        port: &QueuingPortReceiver<M, F, H>,
         interval: &SystemTime,
     ) -> ! {
         let buf = &mut [0u8; M as usize];
@@ -194,4 +217,61 @@ impl<
     fn warm_start(&self, ctx: &mut StartContext<H>) {
         self.cold_start(ctx);
     }
+}
+
+#[cfg(any(feature = "sender", feature = "receiver"))]
+fn setup_logger() {
+    unsafe { log::set_logger_racy(&LOGGER).unwrap() };
+    log::set_max_level(log::LevelFilter::Trace);
+}
+
+#[cfg(feature = "sender")]
+static mut SENDER: OnceCell<QueuingPortSender<MSG, FIFO, Hypervisor>> = OnceCell::new();
+
+#[cfg(feature = "sender")]
+#[no_mangle]
+pub extern "C" fn main() {
+    setup_logger();
+    let part = unsafe { TrafficSender::new(&SENDER, sender, SystemTime::Normal(INTERVAL)) };
+    part.run();
+}
+
+#[cfg(feature = "sender")]
+#[no_mangle]
+pub extern "C" fn sender() {
+    send::<MSG, FIFO, Hypervisor>(
+        unsafe { SENDER.get_mut().unwrap() },
+        &SystemTime::Normal(INTERVAL),
+    );
+}
+
+#[cfg(feature = "receiver")]
+static mut RECEIVER_PORT: OnceCell<QueuingPortReceiver<MSG, FIFO, Hypervisor>> = OnceCell::new();
+
+#[cfg(feature = "receiver")]
+#[no_mangle]
+pub extern "C" fn main() {
+    setup_logger();
+    let part = unsafe { TrafficReceiverPartition::new(&RECEIVER_PORT, receiver, logger) };
+    part.run();
+}
+
+#[cfg(feature = "receiver")]
+static mut RECEIVER: TrafficReceiver<MSG, FIFO> = TrafficReceiver::new();
+
+#[cfg(feature = "receiver")]
+#[no_mangle]
+pub extern "C" fn receiver() {
+    unsafe {
+        RECEIVER.receive::<Hypervisor>(
+            RECEIVER_PORT.get_mut().unwrap(),
+            &SystemTime::Normal(INTERVAL),
+        )
+    };
+}
+
+#[cfg(feature = "receiver")]
+#[no_mangle]
+pub extern "C" fn logger() {
+    unsafe { RECEIVER.log::<Hypervisor>() }
 }

@@ -2,9 +2,14 @@
 name = "router"
 version = "0.1.0"
 edition = "2021"
+description = "Example configurations for routing echo messages between a client and server. See also test/integration.nix"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+# This example does not compile  if you do not also specify which package it
+# is located in with `-p router`, because features appear to be unified before
+# building individual examples, so some dependencies are build using std and the
+# build fails.
 [[example]]
 name = "router-echo-xng"
 crate-type = [ "staticlib" ]

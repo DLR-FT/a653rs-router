@@ -1,7 +1,6 @@
 [workspace]
 resolver = "2"
 members = [
-  "apex-throughput",
   "configurator",
   "dummy-hypervisor",
   "echo",
@@ -12,17 +11,14 @@ members = [
   "router",
   "small-trace",
   "small-trace-gpio",
+  "throughput",
 ]
-default-members = [  
-  "apex-throughput",
-  "configurator",
-  "dummy-hypervisor",
-  "echo",
+
+default-members = [
   "network-partition",
   "network-partition-linux",
   "network-partition-macros",
   "network-partition-uart",
-  "router",
   "small-trace",
   "small-trace-gpio",
 ]

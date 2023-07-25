@@ -213,7 +213,7 @@
             };
           packages =
             let
-              inherit (self.lib) allProducts mkExample;
+              inherit (self.lib) allProducts;
               rustPlatform = (pkgs.makeRustPlatform { cargo = rust-toolchain; rustc = rust-toolchain; });
               platforms = [
                 { feature = "dummy"; target = "x86_64-unknown-linux-gnu"; }
@@ -245,6 +245,16 @@
               ];
             })
             //
+            (allProducts {
+              inherit rustPlatform;
+              products = [ "throughput" ];
+              flavors = [ "sender" "receiver" ];
+              variants = [ "" ];
+              platforms = [
+                { feature = "xng"; target = "armv7a-none-eabi"; }
+              ];
+            })
+            //
             {
               xng-ops = xng-utils.lib.buildXngOps {
                 inherit pkgs;
@@ -257,24 +267,35 @@
             };
         }) // {
       lib = rec {
-        mkExample = { rustPlatform, example, features, target }: rustPlatform.buildRustPackage {
-          pname = example;
-          version = "0.1.0";
-          src = ./.;
-          cargoLock.lockFile = ./Cargo.lock;
-          cargoLock.outputHashes = {
-            "a653rs-linux-0.2.0" = "sha256-PR+gpuqY9opGNdi9rmgjBKYoX827h0jLeRD+XXSOXXM=";
-            "a653rs-postcard-0.2.0" = "sha256-xDM5PwV24ZQ3NPVl12A1zX7FvYgLUxcufMCft+BzOSU=";
-            "a653rs-xng-0.1.0" = "sha256-7vZ8eWwLXzR4Fb4UCA2GyI8HRnKVR5NFcWumrzkUMNM=";
-            "xng-rs-log-0.1.0" = "sha256-YIFFnjWsk6g9tQuRBqmPaXsY3s2+BpkAg5PCw2ZGYCU=";
+        mkExample = { rustPlatform, product, example, features, target }:
+          rustPlatform.buildRustPackage {
+            pname = example;
+            version = "0.1.0";
+            src = ./.;
+            cargoLock.lockFile = ./Cargo.lock;
+            cargoLock.outputHashes = {
+              "a653rs-linux-0.2.0" = "sha256-PR+gpuqY9opGNdi9rmgjBKYoX827h0jLeRD+XXSOXXM=";
+              "a653rs-postcard-0.2.0" = "sha256-xDM5PwV24ZQ3NPVl12A1zX7FvYgLUxcufMCft+BzOSU=";
+              "a653rs-xng-0.1.0" = "sha256-7vZ8eWwLXzR4Fb4UCA2GyI8HRnKVR5NFcWumrzkUMNM=";
+              "xng-rs-log-0.1.0" = "sha256-YIFFnjWsk6g9tQuRBqmPaXsY3s2+BpkAg5PCw2ZGYCU=";
+            };
+            buildPhase = ''
+              cargo build --release --target "${target}" -p ${product} --example=${example} --features=${nixpkgs.lib.concatStringsSep "," features}
+            '';
+            doCheck = target != "armv7a-none-eabi";
+            checkPhase = ''
+              cargo test --target "${target}" -p ${product} --example=${example} --features=${nixpkgs.lib.concatStringsSep "," features} --frozen
+            '';
+            installPhase = ''
+              mkdir -p "$out"/{bin,lib}
+              if [[ "${target}" = "armv7a-none-eabi" ]]
+              then
+                cp "target/${target}"/release/examples/*.a "$out/lib"
+              else
+                cp "target/${target}/release/examples/${example}" "$out/bin"
+              fi
+            '';
           };
-          cargoBuildFeatures = features;
-          cargoBuildFlags = "--example=${example} --target=${target} --features=${nixpkgs.lib.concatStringsSep "," features}";
-          installPhase = ''
-            mkdir -p "$out/bin"
-            cp "target/${target}/release/examples/${example}" "$out/bin"
-          '';
-        };
         allProducts = { rustPlatform, flavors, platforms, variants, products }: builtins.listToAttrs (
           map
             ({ product, flavor, platform, variant }:
@@ -284,7 +305,7 @@
               (nixpkgs.lib.nameValuePair
                 "${example}-${flavor}"
                 (mkExample {
-                  inherit rustPlatform example;
+                  inherit example product rustPlatform;
                   features = [ variant platform.feature flavor ];
                   target = platform.target;
                 })

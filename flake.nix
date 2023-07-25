@@ -81,29 +81,12 @@
         {
           inherit formatter;
 
-          # TODO merge into default dev shell
-          devShells.xng =
-            let
-              pkgs = import nixpkgs { inherit system; overlays = [ devshell.overlays.default ]; };
-              mkShell = pkgs.mkShell.override { stdenv = pkgs.gccMultiStdenv; };
-            in
-            with self.packages."${system}"; mkShell {
-              C_INCLUDE_PATH = "${xng-ops}/include";
-              inputsFrom = [ ]; #xng-sys-img-local_echo ];
-              packages = with pkgs; [
-                formatter
-                treefmt
-                rust-toolchain
-                cargo-outdated
-                cargo-udeps
-                cargo-audit
-                cargo-watch
-              ];
-            };
-
           devShells.default =
             let
               pkgs = import nixpkgs { inherit system; overlays = [ devshell.overlays.default ]; };
+              fpga = fpga-project.packages."${system}".default;
+              zynq7000Init = ./deployment/zynq7000_init_te0706.tcl;
+              vitis = xilinx-flake-utils.packages.${system}.vitis-unified-software-platform-vitis_2019-2_1106_2127;
             in
             pkgs.devshell.mkShell {
               imports = [ "${devshell}/extra/git/hooks.nix" ];
@@ -118,6 +101,8 @@
                 cargo-watch
                 formatter
                 treefmt
+                vitis
+                picocom
               ];
               git.hooks.enable = true;
               git.hooks.pre-commit.text = ''
@@ -125,33 +110,15 @@
               '';
               commands = [
                 {
-                  name = "run-echo-router-client-server";
+                  name = "run-nixos-integration-test";
                   command = ''
-                    print "TODO"
+                    nix build .#checks.${system}.integration
                   '';
                   help = "Run the echo server and client integration test";
                 }
-              ];
-            };
-
-          # Separate devshell so we do not need to build Vitis if some flake input does not match just for changing code.
-          devShells.deploy =
-            let
-              pkgs = import nixpkgs { inherit system; overlays = [ devshell.overlays.default ]; };
-              fpga = fpga-project.packages."${system}".default;
-              zynq7000Init = ./deployment/zynq7000_init_te0706.tcl;
-              vitis = xilinx-flake-utils.packages.${system}.vitis-unified-software-platform-vitis_2019-2_1106_2127;
-            in
-            pkgs.devshell.mkShell {
-              name = "network-partition-deploy";
-              packages = with pkgs; [
-                vitis
-                picocom
-              ];
-              commands = [
                 {
                   name = "run-xng";
-                  help = "Compile and flash a configuration";
+                  help = "Compile and flash a configuration. This command takes one argument, which is the name of the package in this flake output to run";
                   command = ''
                     example="''${1}"
                     cable="''${2:-210370AD5202A}"
@@ -159,7 +126,7 @@
                     mkdir -p "$dir"
                     swdir="$dir/img"
 
-                    nix build ".#xng-sys-img-$example" -o "$swdir"
+                    nix build ".#$example" -o "$swdir"
 
                     hwdir="$dir/hardware"
                     mkdir -p "$hwdir"
@@ -174,6 +141,14 @@
                       $swdir/sys_img.elf \
                       "$cable" \
                       || printf "Failed to flash target"
+                  '';
+                }
+                {
+                  name = "run-xng-echo";
+                  help = "Compile, flash and run the echo client on XNG";
+                  command = ''
+                    run-xng "xng-echo-server"
+                    run-xng "xng-echo-client"
                   '';
                 }
                 {

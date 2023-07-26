@@ -16,33 +16,15 @@ pub struct Router {
 
 impl Router {
     pub fn parse(scheduler: &Path, module: &mut ItemMod) -> syn::Result<Router> {
-        let mut acc = darling::Error::accumulator();
         let root = module.span();
         let (_, content) = module
             .content
             .as_mut()
             .ok_or_else(|| syn::Error::new(root, "Missing content"))?;
 
-        let limits = Limits::from_content(content).map_or_else(
-            |e| {
-                acc.push(e);
-                None
-            },
-            Some,
-        );
+        let limits = Limits::from_content(content)?;
 
-        let limits = limits.unwrap();
-
-        let interfaces = Interface::from_content(content, limits.mtu.bytes() as usize).map_or_else(
-            |e| {
-                acc.push(e);
-                None
-            },
-            Some,
-        );
-        acc.finish()?;
-
-        let interfaces = interfaces.unwrap();
+        let interfaces = Interface::from_content(content, limits.mtu.bytes() as usize)?;
 
         Ok(Router {
             name: module.ident.clone(),

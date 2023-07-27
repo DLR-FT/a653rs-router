@@ -4,6 +4,7 @@
   <Partitions>
     <Partition hRef="./network_partition.xml" />
     <Partition hRef="./echo_client.xml" />
+    <Partition hRef="./config.xml" />
   </Partitions>
   <MultiPartitionHMTables hRef="./multipartition_health_monitor.xml" />
   <Schedules hRef="./schedules.xml" />

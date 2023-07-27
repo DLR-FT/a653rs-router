@@ -176,8 +176,8 @@
                 } "cd ${./.} && cargo fmt --check && touch $out";
               integration = nixos-lib.runTest (import ./test/integration.nix {
                 hostPkgs = pkgs;
-                configurator-client = configurator---client;
-                configurator-server = configurator---server;
+                configurator-client = configurator--linux-client;
+                configurator-server = configurator--linux-server;
                 echo-client = echo-sampling-linux-client;
                 echo-server = echo-sampling-linux-server;
                 hypervisor = hypervisorPackage;
@@ -221,7 +221,8 @@
               flavors = [ "client" "server" ];
               variants = [ "" ];
               platforms = [
-                { feature = ""; target = "x86_64-unknown-linux-musl"; }
+                { feature = "linux"; target = "x86_64-unknown-linux-musl"; }
+                { feature = "xng"; target = "armv7a-none-eabi"; }
               ];
             })
             //
@@ -250,6 +251,7 @@
                 partitions = {
                   Router = "${self.packages."${system}".router-echo-xng-client}/lib/librouter_echo_xng.a";
                   Echo = "${self.packages."${system}".echo-sampling-xng-client}/lib/libecho_sampling_xng.a";
+                  Config = "${self.packages."${system}".configurator--xng-client}/lib/libconfigurator__xng.a";
                 };
               };
               xng-echo-server = xngImage rec {
@@ -258,6 +260,7 @@
                 partitions = {
                   Router = "${self.packages."${system}".router-echo-xng-server}/lib/librouter_echo_xng.a";
                   Echo = "${self.packages."${system}".echo-sampling-xng-server}/lib/libecho_sampling_xng.a";
+                  Config = "${self.packages."${system}".configurator--xng-server}/lib/libconfigurator__xng.a";
                 };
               };
             };

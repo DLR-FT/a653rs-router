@@ -14,5 +14,6 @@
   <Ports>
     <SamplingPort name="EchoRequest" direction="source" irq="166"/>
     <SamplingPort name="EchoReply" direction="destination" irq="167"/>
+    <SamplingPort name="RouterConfig" direction="destination" irq="168"/>
   </Ports>
 </Partition>

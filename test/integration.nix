@@ -60,7 +60,7 @@ in
               duration: 300ms
               offset: 650ms
               period: 1s
-              image: ${specialArgs.configurator-client}/bin/configurator--
+              image: ${specialArgs.configurator-client}/bin/configurator--linux
           channel:
             - !Sampling
               name: EchoRequest
@@ -143,7 +143,7 @@ in
             duration: 300ms
             offset: 700ms
             period: 1s
-            image: ${specialArgs.configurator-server}/bin/configurator--
+            image: ${specialArgs.configurator-server}/bin/configurator--linux
         channel:
           - !Sampling
             name: EchoRequest

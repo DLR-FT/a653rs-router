@@ -8,5 +8,9 @@
     <Source partition="Router" port="EchoReply" />
     <Destination partition="Echo" port="EchoReply" />
   </SamplingChannel>
+  <SamplingChannel start="0x460000" size="2KB" maxMessageSize="1KB">
+    <Source partition="Config" port="RouterConfig" />
+    <Destination partition="Router" port="RouterConfig" />
+  </SamplingChannel>
 </Channels>
 

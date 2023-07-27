@@ -1,13 +1,24 @@
 #![no_std]
 
+#[cfg(all(feature = "linux", feature = "xng"))]
+compile_error!("The features `linux` or `xng` are mutually exclusive.");
+
+#[cfg(any(feature = "linux", feature = "xng"))]
 use a653rs::partition;
+#[cfg(any(feature = "linux", feature = "xng"))]
 use a653rs::prelude::PartitionExt;
 
+#[cfg(any(feature = "linux", feature = "xng"))]
 pub fn run() {
     configurator::Partition.run();
 }
 
-#[partition(a653rs_linux::partition::ApexLinuxPartition)]
+#[cfg(any(feature = "linux", feature = "xng"))]
+#[cfg_attr(
+    feature = "linux",
+    partition(a653rs_linux::partition::ApexLinuxPartition)
+)]
+#[cfg_attr(feature = "xng", partition(a653rs_xng::apex::XngHypervisor))]
 mod configurator {
     use a653rs_postcard::sampling::SamplingPortSourceExt;
     use core::time::Duration;
@@ -79,8 +90,16 @@ mod configurator {
         deadline = "Hard"
     )]
     fn periodic(ctx: periodic::Context) {
-        a653rs_linux::partition::ApexLogger::install_panic_hook();
-        a653rs_linux::partition::ApexLogger::install_logger(LOG_LEVEL).unwrap();
+        #[cfg(feature = "linux")]
+        {
+            a653rs_linux::partition::ApexLogger::install_panic_hook();
+            a653rs_linux::partition::ApexLogger::install_logger(LOG_LEVEL).unwrap();
+        }
+        #[cfg(feature = "xng")]
+        {
+            unsafe { log::set_logger_racy(&xng_rs_log::XalLogger).unwrap() };
+            log::set_max_level(LOG_LEVEL);
+        }
         info!("Running configurator");
         let port = ctx.router_config.unwrap();
         loop {

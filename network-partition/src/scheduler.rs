@@ -64,7 +64,7 @@ impl<const SLOTS: usize> Scheduler for DeadlineRrScheduler<SLOTS> {
             let window = self.windows[next_window];
             if window.is_due(current_time) {
                 // Check if clock skipped for some reason.
-                if let Some(t) = current_time.checked_sub(Duration::from_secs(10)) {
+                if let Some(t) = current_time.checked_sub(Duration::from_secs(15)) {
                     if t > window.next {
                         warn!("The system clock is {current_time:?} and this does not seem right. Ignoring this value.");
                         return None;

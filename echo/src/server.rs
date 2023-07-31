@@ -58,7 +58,7 @@ where
             time_capacity: SystemTime::Infinite,
             entry_point: self.entry_point_aperiodic,
             // TODO make configurable
-            stack_size: 100000,
+            stack_size: 20_000,
             base_priority: 5,
             deadline: Deadline::Soft,
             name: Name::from_str("echo_server").unwrap(),

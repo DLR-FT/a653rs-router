@@ -69,72 +69,72 @@ pub fn run() {
 #[cfg(all(feature = "echo", feature = "xng", feature = "client"))]
 #[router_config(network_partition::prelude::DeadlineRrScheduler)]
 pub(crate) mod router {
-    #[limits(inputs = 1, outputs = 1, mtu = "1KB")]
+    #[limits(inputs = 1, outputs = 1, mtu = "2KB")]
     struct Limits;
 
     #[interface(interface_type = network_partition_uart::UartNetworkInterface)]
     #[interface(source = "tx", destination = "rx")]
-    #[interface(rate = "10MB", mtu = "1KB")]
-    struct Uart1;
+    #[interface(rate = "10MB", mtu = "1.5KB")]
+    struct NodeB;
 }
 
 #[cfg(all(feature = "echo", feature = "xng", feature = "server"))]
 #[router_config(network_partition::prelude::DeadlineRrScheduler)]
 pub(crate) mod router {
-    #[limits(inputs = 1, outputs = 1, mtu = "1KB")]
+    #[limits(inputs = 1, outputs = 1, mtu = "2KB")]
     struct Limits;
 
     #[interface(interface_type = network_partition_uart::UartNetworkInterface)]
     #[interface(source = "tx", destination = "rx")]
-    #[interface(rate = "10MB", mtu = "1KB")]
-    struct Uart1;
+    #[interface(rate = "10MB", mtu = "1.5KB")]
+    struct NodeA;
 }
 
 #[cfg(all(feature = "echo", feature = "linux", feature = "client"))]
 #[router_config(network_partition::prelude::DeadlineRrScheduler)]
 pub(crate) mod router {
-    #[limits(inputs = 1, outputs = 1, mtu = "1KB")]
+    #[limits(inputs = 1, outputs = 1, mtu = "2KB")]
     struct Limits;
 
     #[interface(interface_type = network_partition_linux::UdpNetworkInterface)]
     #[interface(source = "0.0.0.0:8081", destination = "192.168.1.2:8082")]
-    #[interface(rate = "10MB", mtu = "1KB")]
-    struct Udp8081;
+    #[interface(rate = "10MB", mtu = "1.5KB")]
+    struct NodeB;
 }
 
 #[cfg(all(feature = "echo", feature = "linux", feature = "server"))]
 #[router_config(network_partition::prelude::DeadlineRrScheduler)]
 pub(crate) mod router {
-    #[limits(inputs = 1, outputs = 1, mtu = "1KB")]
+    #[limits(inputs = 1, outputs = 1, mtu = "2KB")]
     struct Limits;
 
     #[interface(interface_type = network_partition_linux::UdpNetworkInterface)]
     #[interface(source = "0.0.0.0:8082", destination = "192.168.1.1:8081")]
-    #[interface(rate = "10MB", mtu = "1KB")]
-    struct Udp8082;
+    #[interface(rate = "10MB", mtu = "1.5KB")]
+    struct NodeA;
 }
 
 #[cfg(all(feature = "echo", feature = "dummy", feature = "client"))]
 #[router_config(dummy_hypervisor::DummyScheduler)]
 pub(crate) mod router {
-    #[limits(inputs = 1, outputs = 1, mtu = "1KB")]
+    #[limits(inputs = 1, outputs = 1, mtu = "2KB")]
     struct Limits;
 
     #[interface(interface_type = dummy_hypervisor::DummyInterface)]
     #[interface(source = "client:8081", destination = "server:8082")]
-    #[interface(rate = "10MB", mtu = "1KB")]
+    #[interface(rate = "10MB", mtu = "1.5KB")]
     struct Port1;
 }
 
 #[cfg(all(feature = "echo", feature = "dummy", feature = "server"))]
 #[router_config(dummy_hypervisor::DummyScheduler)]
 pub(crate) mod router {
-    #[limits(inputs = 1, outputs = 1, mtu = "1KB")]
+    #[limits(inputs = 1, outputs = 1, mtu = "2KB")]
     struct Limits;
 
     #[interface(interface_type = dummy_hypervisor::DummyInterface)]
     #[interface(source = "server:8082", destination = "client:8081")]
-    #[interface(rate = "10MB", mtu = "1KB")]
+    #[interface(rate = "10MB", mtu = "1.5KB")]
     struct Port1;
 }
 
@@ -149,7 +149,7 @@ pub(crate) mod router {
     #[interface(interface_type = network_partition_uart::UartNetworkInterface)]
     #[interface(source = "tx", destination = "rx")]
     #[interface(rate = "10MB", mtu = "1KB")]
-    struct Uart1;
+    struct NodeB;
 }
 
 #[cfg(all(feature = "throughput", feature = "xng", feature = "server"))]
@@ -161,7 +161,7 @@ pub(crate) mod router {
     #[interface(interface_type = network_partition_uart::UartNetworkInterface)]
     #[interface(source = "tx", destination = "rx")]
     #[interface(rate = "10MB", mtu = "1KB")]
-    struct Uart1;
+    struct NodeA;
 }
 
 #[cfg(all(feature = "throughput", feature = "linux", feature = "client"))]
@@ -173,7 +173,7 @@ pub(crate) mod router {
     #[interface(interface_type = network_partition_linux::UdpNetworkInterface)]
     #[interface(source = "client:8081", destination = "server:8082")]
     #[interface(rate = "10MB", mtu = "1KB")]
-    struct Udp8081;
+    struct NodeB;
 }
 
 #[cfg(all(feature = "throughput", feature = "linux", feature = "server"))]
@@ -185,7 +185,7 @@ pub(crate) mod router {
     #[interface(interface_type = network_partition_linux::UdpNetworkInterface)]
     #[interface(source = "server:8082", destination = "client:8081")]
     #[interface(rate = "10MB", mtu = "1KB")]
-    struct Udp8082;
+    struct NodeA;
 }
 
 #[cfg(all(feature = "throughput", feature = "dummy", feature = "client"))]
@@ -252,7 +252,7 @@ mod router_partition {
     #[aperiodic(
         name = "ap2",
         time_capacity = "50ms",
-        stack_size = "1MB",
+        stack_size = "30KB",
         base_priority = 5,
         deadline = "Soft"
     )]
@@ -308,7 +308,7 @@ mod router_partition {
     #[aperiodic(
         name = "ap2",
         time_capacity = "50ms",
-        stack_size = "1MB",
+        stack_size = "30KB",
         base_priority = 5,
         deadline = "Soft"
     )]
@@ -370,7 +370,7 @@ mod router_partition {
     #[aperiodic(
         name = "ap2",
         time_capacity = "50ms",
-        stack_size = "1MB",
+        stack_size = "30KB",
         base_priority = 5,
         deadline = "Soft"
     )]

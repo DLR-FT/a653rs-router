@@ -147,8 +147,8 @@
                   name = "run-xng-echo";
                   help = "Compile, flash and run the echo client on XNG";
                   command = ''
-                    run-xng "xng-echo-server"
-                    run-xng "xng-echo-client"
+                    run-xng "xng-echo-server" 210370AD5202A
+                    run-xng "xng-echo-client" 210370AD523FA
                   '';
                 }
                 {

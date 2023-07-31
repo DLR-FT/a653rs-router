@@ -47,7 +47,7 @@ type Hypervisor = a653rs_xng::apex::XngHypervisor;
 
 #[allow(dead_code)]
 #[cfg(any(feature = "dummy", feature = "xng", feature = "linux"))]
-const ECHO_SIZE: MessageSize = 100;
+const ECHO_SIZE: MessageSize = 1000;
 
 #[cfg(all(
     feature = "queuing",

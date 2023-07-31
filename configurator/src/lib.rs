@@ -8,8 +8,27 @@ use a653rs::partition;
 #[cfg(any(feature = "linux", feature = "xng"))]
 use a653rs::prelude::PartitionExt;
 
+#[allow(dead_code)]
+const LOG_LEVEL: log::LevelFilter = log::LevelFilter::Debug;
+
+#[cfg(feature = "xng")]
+static LOGGER: xng_rs_log::XalLogger = xng_rs_log::XalLogger;
+
 #[cfg(any(feature = "linux", feature = "xng"))]
 pub fn run() {
+    use log::*;
+
+    #[cfg(feature = "linux")]
+    {
+        a653rs_linux::partition::ApexLogger::install_panic_hook();
+        a653rs_linux::partition::ApexLogger::install_logger(LOG_LEVEL).unwrap();
+    }
+    #[cfg(feature = "xng")]
+    {
+        unsafe { log::set_logger_racy(&LOGGER).unwrap() };
+        log::set_max_level(LOG_LEVEL);
+    }
+    info!("Running configurator");
     configurator::Partition.run();
 }
 
@@ -22,13 +41,9 @@ pub fn run() {
 mod configurator {
     use a653rs_postcard::sampling::SamplingPortSourceExt;
     use core::time::Duration;
-    use log::error;
     use log::*;
     use network_partition::prelude::Config;
     use network_partition::prelude::*;
-
-    #[allow(dead_code)]
-    const LOG_LEVEL: LevelFilter = LevelFilter::Info;
 
     #[sampling_out(name = "RouterConfig", msg_size = "1KB")]
     struct RouterConfig;
@@ -48,18 +63,18 @@ mod configurator {
         match cfg {
             ConfigOption::EchoClient => Config::builder()
                 .virtual_link(1, "EchoRequest")?
-                .destination(1, "Udp8081")?
+                .destination(1, "NodeB")?
                 .schedule(1, Duration::from_millis(10))?
-                .virtual_link(2, "Udp8081")?
+                .virtual_link(2, "NodeB")?
                 .destination(2, "EchoReply")?
                 .schedule(2, Duration::from_millis(10))?
                 .build(),
             ConfigOption::EchoServer => Config::builder()
-                .virtual_link(1, "Udp8082")?
+                .virtual_link(1, "NodeA")?
                 .destination(1, "EchoRequest")?
                 .schedule(1, Duration::from_millis(10))?
                 .virtual_link(2, "EchoReply")?
-                .destination(2, "Udp8082")?
+                .destination(2, "NodeA")?
                 .schedule(2, Duration::from_millis(10))?
                 .build(),
             ConfigOption::Default => Ok(Config::default()),
@@ -85,22 +100,12 @@ mod configurator {
     #[periodic(
         period = "1s",
         time_capacity = "Infinite",
-        stack_size = "100KB",
-        base_priority = 1,
-        deadline = "Hard"
+        stack_size = "20KB",
+        base_priority = 5,
+        deadline = "Soft"
     )]
     fn periodic(ctx: periodic::Context) {
-        #[cfg(feature = "linux")]
-        {
-            a653rs_linux::partition::ApexLogger::install_panic_hook();
-            a653rs_linux::partition::ApexLogger::install_logger(LOG_LEVEL).unwrap();
-        }
-        #[cfg(feature = "xng")]
-        {
-            unsafe { log::set_logger_racy(&xng_rs_log::XalLogger).unwrap() };
-            log::set_max_level(LOG_LEVEL);
-        }
-        info!("Running configurator");
+        debug!("Running configurator periodic process");
         let port = ctx.router_config.unwrap();
         loop {
             let cfg = config(CONFIG).unwrap();

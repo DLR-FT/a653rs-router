@@ -3,9 +3,12 @@ use core::mem::size_of;
 use corncobs::{decode_in_place, encode_buf, max_encoded_len};
 use heapless::spsc::Queue;
 use log::trace;
-use network_partition::prelude::{
-    CreateNetworkInterfaceId, InterfaceError, NetworkInterfaceId, PlatformNetworkInterface,
-    UartInterfaceConfig, VirtualLinkId,
+use network_partition::{
+    error::InterfaceError,
+    prelude::{
+        CreateNetworkInterfaceId, InterfaceConfig, NetworkInterfaceId, PlatformNetworkInterface,
+        VirtualLinkId,
+    },
 };
 use once_cell::unsync::Lazy;
 use small_trace::small_trace;
@@ -154,7 +157,6 @@ impl<const BUFFER_LEN: usize> Drop for BufferedUart<BUFFER_LEN> {
     }
 }
 
-// TODO
 static mut UART: Lazy<BufferedUart<{ config::FRAME_BUFFER }>> = Lazy::new(|| {
     let mut b = BufferedUart::new(config::BASE_ADDRESS);
     b.init(config::CLOCK_RATE, config::BAUD_RATE);
@@ -166,7 +168,7 @@ where
     [(); UartFrame::<MTU>::max_encoded_len()]:,
     [(); UartFrame::<MTU>::max_decoded_len()]:,
 {
-    type Configuration = UartInterfaceConfig;
+    type Configuration = InterfaceConfig;
 
     fn platform_interface_receive_unchecked(
         id: NetworkInterfaceId,
@@ -177,7 +179,8 @@ where
             return Err(InterfaceError::NoData);
         }
         small_trace!(begin_network_receive, id.0 as u16);
-        // TODO Get rid of one buffer. Should be possible to decode directly inside RX-Buffer.
+        // TODO Get rid of one buffer. Should be possible to decode directly inside
+        // RX-Buffer.
         let mut limit = 0;
         let mut queue_has_eof = false;
         while limit < u8::MAX && !queue_has_eof {
@@ -253,6 +256,15 @@ where
     }
 }
 
+static mut ID: usize = 0;
+
+fn next_id() -> NetworkInterfaceId {
+    unsafe {
+        ID += 1;
+        NetworkInterfaceId::from(ID)
+    }
+}
+
 impl<const MTU: usize> CreateNetworkInterfaceId<UartNetworkInterface<MTU>>
     for UartNetworkInterface<MTU>
 where
@@ -260,8 +272,8 @@ where
     [(); UartFrame::<MTU>::max_decoded_len()]:,
 {
     fn create_network_interface_id(
-        cfg: UartInterfaceConfig,
+        _cfg: InterfaceConfig,
     ) -> Result<NetworkInterfaceId, InterfaceError> {
-        Ok(cfg.id)
+        Ok(next_id())
     }
 }

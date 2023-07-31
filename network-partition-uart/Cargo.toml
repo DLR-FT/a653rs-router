@@ -11,7 +11,7 @@ log = "0"
 once_cell = { version = "1.17", default-features = false }
 # Seems a bit newer than what is on crates.io
 uart_xilinx = "0"
-heapless = { version = "0.7" }
+heapless = { version = "0.7", default-features = false }
 corncobs = { version = "0.1" }
 crc16 = { version = "0.4.0", default-features = false }
 small-trace = { path = "../small-trace" }

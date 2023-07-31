@@ -1,11 +1,41 @@
-{ hostPkgs, hypervisor, partition, ... }:
+{ hostPkgs
+, configurator-client
+, configurator-server
+, echo-client
+, echo-server
+, hypervisor
+, router-client
+, router-server
+, ...
+}:
+let
+  hvName = "a653rs-linux-hypervisor";
+  hv = "${hypervisor}/bin/${hvName}";
+  environment = {
+    RUST_BACKTRACE = "1";
+    RUST_LOG = "debug";
+  };
+in
 {
   name = "network-partition-integration";
   hostPkgs = hostPkgs;
-  node.specialArgs = { inherit hypervisor partition; };
+  node.specialArgs = {
+    inherit configurator-client configurator-server hypervisor echo-client echo-server router-client router-server;
+  };
 
-  nodes.system1 = { config, lib, pkgs, specialArgs, ... }: {
-    environment.systemPackages = [ specialArgs.hypervisor ];
+  nodes.client = { config, lib, pkgs, specialArgs, ... }: {
+    environment.systemPackages = [ pkgs.tcpdump ];
+
+    networking.firewall.enable = false;
+    networking.interfaces.eth1.ipv4 = {
+      addresses = [
+        {
+          address = "192.168.1.1";
+          prefixLength = 24;
+        }
+      ];
+    };
+
     environment.etc."hypervisor_config_client.yml" =
       {
         text = ''
@@ -13,73 +43,138 @@
           partitions:
             - id: 1
               name: Echo
-              duration: 100ms
+              duration: 300ms
               offset: 0ms
               period: 1s
-              image: ${specialArgs.partition}/bin/echo
+              image: ${specialArgs.echo-client}/bin/echo-sampling-linux
             - id: 2
               name: Network
-              duration: 100ms
-              offset: 500ms
+              duration: 300ms
+              offset: 350ms
               period: 1s
-              image: ${specialArgs.partition}/bin/np-client
+              image: ${specialArgs.router-client}/bin/router-echo-linux
               udp_ports:
-                - "127.0.0.1:34254"
+                - "0.0.0.0:8081"
+            - id: 3
+              name: Cfgr
+              duration: 300ms
+              offset: 650ms
+              period: 1s
+              image: ${specialArgs.configurator-client}/bin/configurator--linux
           channel:
             - !Sampling
               name: EchoRequest
-              msg_size: 100B
+              msg_size: 1KB
               source: Echo
               destination:
                 - Network
             - !Sampling
               name: EchoReply
-              msg_size: 100B
-              source: Network
-              destination:
-                - Echo
-        '';
-        mode = "0444";
-      };
-    environment.etc."hypervisor_config_server.yml" =
-      {
-        text = ''
-          major_frame: 100ms
-          partitions:
-            - id: 0
-              name: Echo
-              duration: 50ms
-              offset: 50ms
-              period: 100ms
-              image: ${specialArgs.partition}/bin/echo-server
-            - id: 1
-              name: Network
-              duration: 50ms
-              offset: 0s
-              period: 100ms
-              image: ${specialArgs.partition}/bin/np-server
-              udp_ports:
-                - "127.0.0.1:34256"
-          channel:
-            - !Sampling
-              name: EchoRequest
-              msg_size: 100B
+              msg_size: 1KB
               source: Network
               destination:
                 - Echo
             - !Sampling
-              name: EchoReply
-              msg_size: 100B
-              source: Echo
+              name: RouterConfig
+              msg_size: 1KB
+              source: Cfgr
               destination:
                 - Network
         '';
         mode = "0444";
       };
+
+    systemd.services.linux-hypervisor = {
+      inherit environment;
+      enable = true;
+      description = "Echo client";
+      unitConfig.Type = "simple";
+      serviceConfig.ExecStart = "${hv} /etc/hypervisor_config_client.yml";
+      wantedBy = [ "multi-user.target" ];
+      after = [ "network-online.target" ];
+      wants = [ "network-online.target" ];
+    };
+  };
+
+  nodes.server = { config, lib, pkgs, specialArgs, ... }: {
+    environment.systemPackages = [ pkgs.tcpdump ];
+
+    systemd.services.linux-hypervisor = {
+      inherit environment;
+      enable = true;
+      description = "Echo server";
+      unitConfig.Type = "simple";
+      serviceConfig.ExecStart = "${hv} /etc/hypervisor_config_server.yml";
+      wantedBy = [ "multi-user.target" ];
+      after = [ "network-online.target" ];
+      wants = [ "network-online.target" ];
+    };
+
+    networking.firewall.enable = false;
+    networking.interfaces.eth1.ipv4 = {
+      addresses = [
+        {
+          address = "192.168.1.2";
+          prefixLength = 24;
+        }
+      ];
+    };
+
+    environment.etc."hypervisor_config_server.yml" = {
+      text = ''
+        major_frame: 1s
+        partitions:
+          - id: 0
+            name: Echo
+            duration: 300ms
+            offset: 0ms
+            period: 1s
+            image: ${specialArgs.echo-server}/bin/echo-sampling-linux
+          - id: 1
+            name: Network
+            duration: 300ms
+            offset: 400ms
+            period: 1s
+            image: ${specialArgs.router-server}/bin/router-echo-linux
+            udp_ports:
+              - "0.0.0.0:8082"
+          - id: 3
+            name: Cfgr
+            duration: 300ms
+            offset: 700ms
+            period: 1s
+            image: ${specialArgs.configurator-server}/bin/configurator--linux
+        channel:
+          - !Sampling
+            name: EchoRequest
+            msg_size: 1KB
+            source: Network
+            destination:
+              - Echo
+          - !Sampling
+            name: EchoReply
+            msg_size: 1KB
+            source: Echo
+            destination:
+              - Network
+          - !Sampling
+            name: RouterConfig
+            msg_size: 1KB
+            source: Cfgr
+            destination:
+              - Network
+
+      '';
+      mode = "0444";
+    };
   };
 
   testScript = ''
-    system1.wait_for_unit("multi-user.target")
-    system1.succeed("a653rs-linux-hypervisor --duration 10s /etc/hypervisor_config_server.yml & a653rs-linux-hypervisor --duration 10s /etc/hypervisor_config_client.yml")
+    server.wait_for_unit("linux-hypervisor.service")
+    client.wait_for_unit("linux-hypervisor.service")
+    client.wait_for_console_text("EchoRequest: seqnr = 10")
+    _status, out = client.execute("journalctl -u linux-hypervisor.service")
+    if not "EchoReply: seqnr =" in out:
+        raise Exception("Expected to see an echo reply by now")
   '';
 }

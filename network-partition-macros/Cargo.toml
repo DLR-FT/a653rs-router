@@ -1,0 +1,34 @@
+[package]
+name = "network-partition-macros"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+proc-macro = true
+
+[dependencies.syn]
+version = "2.0"
+features = ["full"]
+
+[dependencies.proc-macro2]
+version = "1.0"
+
+[dependencies.darling]
+version = "0.20"
+
+[dependencies.bytesize]
+version = "1.2"
+
+[dependencies.quote]
+version = "1.0"
+
+[dev-dependencies.network-partition]
+path = "../network-partition"
+features = [ "serde" ]
+
+[dev-dependencies.a653rs]
+workspace = true
+features = [ "macros" ]
+
+[dev-dependencies.dummy-hypervisor]
+path = "../dummy-hypervisor"

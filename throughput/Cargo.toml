@@ -1,0 +1,24 @@
+[package]
+name = "throughput"
+version = "0.1.0"
+edition = "2021"
+description = "Throughput measurement client and server example for XNG"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[features]
+sender = [ "dep:a653rs-xng" ]
+receiver = [ "dep:a653rs-xng" ]
+
+[lib]
+crate-type = [ "staticlib" ]
+
+[dependencies]
+a653rs.workspace = true
+a653rs-xng.workspace = true
+a653rs-xng.features = [ "panic_handler" ]
+a653rs-xng.optional = true
+const_format = "0.2"
+log.workspace = true
+once_cell.workspace = true
+xng-rs-log.workspace = true

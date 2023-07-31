@@ -8,11 +8,11 @@
         "systems": "systems"
       },
       "locked": {
-        "lastModified": 1683635384,
-        "narHash": "sha256-9goJTd05yOyD/McaMqZ4BUB8JW+mZMnZQJZ7VQ6C/Lw=",
+        "lastModified": 1688380630,
+        "narHash": "sha256-8ilApWVb1mAi4439zS3iFeIT0ODlbrifm/fegWwgHjA=",
         "owner": "numtide",
         "repo": "devshell",
-        "rev": "5143ea68647c4cf5227e4ad2100db6671fc4c369",
+        "rev": "f9238ec3d75cefbb2b42a44948c4e8fb1ae9a205",
         "type": "github"
       },
       "original": {
@@ -116,11 +116,11 @@
         "rust-analyzer-src": "rust-analyzer-src"
       },
       "locked": {
-        "lastModified": 1684909271,
-        "narHash": "sha256-jaBSRiB/6bQocsdAd+LGNJydB1B9BuKKn8V6spi0Nxg=",
+        "lastModified": 1690006794,
+        "narHash": "sha256-8yCkGGykFry+mH596ouLSWSqNcrwHBD7UE0uufIahq8=",
         "owner": "nix-community",
         "repo": "fenix",
-        "rev": "8f2abd362e6a93c0e0ddc3c8dc7734a6a1c9f894",
+        "rev": "90ce0d205450fceeea30b295810c8fd8b2325f18",
         "type": "github"
       },
       "original": {
@@ -248,17 +248,17 @@
         "utils": "utils"
       },
       "locked": {
-        "lastModified": 1686154896,
-        "narHash": "sha256-4C9IPB/rmy7ZjGkNZljrd+nZ3PwCPJoD798NjALZF7k=",
+        "lastModified": 1690187009,
+        "narHash": "sha256-PR+gpuqY9opGNdi9rmgjBKYoX827h0jLeRD+XXSOXXM=",
         "owner": "dadada",
         "repo": "apex-linux",
-        "rev": "299f6402b78513f61dd1fc544c57d27689a94229",
+        "rev": "f7eb6e9f7094a3b2f1804e2002a378edb26e45dc",
         "type": "github"
       },
       "original": {
         "owner": "dadada",
+        "ref": "udp-network-driver",
         "repo": "apex-linux",
-        "rev": "299f6402b78513f61dd1fc544c57d27689a94229",
         "type": "github"
       }
     },
@@ -281,26 +281,6 @@
       "original": {
         "type": "git",
         "url": "https://github.com/nix-community/naersk.git"
-      }
-    },
-    "naersk_2": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1679567394,
-        "narHash": "sha256-ZvLuzPeARDLiQUt6zSZFGOs+HZmE+3g4QURc8mkBsfM=",
-        "owner": "nix-community",
-        "repo": "naersk",
-        "rev": "88cd22380154a2c36799fe8098888f0f59861a15",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nix-community",
-        "repo": "naersk",
-        "type": "github"
       }
     },
     "nixpkgs": {
@@ -335,11 +315,11 @@
     },
     "nixpkgs_3": {
       "locked": {
-        "lastModified": 1684858140,
-        "narHash": "sha256-dQStox5GYrVlVNMvxxXs3xX9bXG7J7ttSjqUcVm8EaA=",
+        "lastModified": 1688392541,
+        "narHash": "sha256-lHrKvEkCPTUO+7tPfjIcb7Trk6k31rz18vkyqmkeJfY=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "a17f99dfcb9643200b3884ca195c69ae41d7f059",
+        "rev": "ea4c80b39be4c09702b0cb3b42eab59e2ba4f24b",
         "type": "github"
       },
       "original": {
@@ -369,7 +349,6 @@
         "fenix": "fenix",
         "fpga-project": "fpga-project",
         "hypervisor": "hypervisor",
-        "naersk": "naersk_2",
         "nixpkgs": "nixpkgs_3",
         "utils": "utils_2",
         "xilinx-flake-utils": "xilinx-flake-utils_2",
@@ -379,11 +358,11 @@
     "rust-analyzer-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1684785219,
-        "narHash": "sha256-1A1waHOB8Pf2BLPtVltsWMP4bhcvTCVUAKpfL9BmCeM=",
+        "lastModified": 1689936585,
+        "narHash": "sha256-tpEKMKIkzq3MoDviXdqE/AjDMLj3H4zlIZmeQicyPsA=",
         "owner": "rust-lang",
         "repo": "rust-analyzer",
-        "rev": "2120c913c28896ed8e6247906f8884939c268683",
+        "rev": "899dd84b4dbc53bab02553f77f6d7c3187d33637",
         "type": "github"
       },
       "original": {
@@ -478,11 +457,11 @@
         "systems": "systems_3"
       },
       "locked": {
-        "lastModified": 1681202837,
-        "narHash": "sha256-H+Rh19JDwRtpVPAWp64F+rlEtxUWBAQW28eAi3SRSzg=",
+        "lastModified": 1689068808,
+        "narHash": "sha256-6ixXo3wt24N/melDWjq70UuHQLxGV8jZvooRanIHXw0=",
         "owner": "numtide",
         "repo": "flake-utils",
-        "rev": "cfacdce06f30d2b68473a46042957675eebb3401",
+        "rev": "919d646de7be200f3bf08cb76ae1f09402b6f9b4",
         "type": "github"
       },
       "original": {
@@ -535,11 +514,11 @@
         "nixpkgs": "nixpkgs_4"
       },
       "locked": {
-        "lastModified": 1676549838,
-        "narHash": "sha256-vZ/BQz9LWlxfWQgPgA36oJl+V6/4x/aOTDa7o8l5miU=",
+        "lastModified": 1688995700,
+        "narHash": "sha256-zDgrMZaNklP0AZVXvqsT4GIl3AvdRlPurpsjySLGpkE=",
         "owner": "aeronautical-informatics",
         "repo": "xilinx-flake-utils",
-        "rev": "0ffd8d370bf63bed29646b5d3341d2574e651703",
+        "rev": "510239f778595092c37121c03393ab7b6d5ac078",
         "type": "github"
       },
       "original": {

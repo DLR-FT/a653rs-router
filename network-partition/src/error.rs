@@ -1,6 +1,5 @@
 //! Error types
 
-use a653rs::prelude::Error as ApexError;
 use core::fmt::{Display, Formatter};
 
 // TODO more precise errors
@@ -9,10 +8,10 @@ use core::fmt::{Display, Formatter};
 #[derive(Clone, Debug)]
 pub enum Error {
     /// Failed to send data to a port.
-    PortSendFail(a653rs::prelude::Error),
+    PortSendFail,
 
     /// Failed to receive data from a port.
-    PortReceiveFail(a653rs::prelude::Error),
+    PortReceiveFail,
 
     /// Failed to receive something from an interface.
     InterfaceReceiveFail(InterfaceError),
@@ -38,11 +37,11 @@ pub enum Error {
     /// Transmission is not allowed at the time.
     TransmitNotAllowed,
 
-    /// An error that occured while processing a virtual link.
-    VirtualLinkError(VirtualLinkError),
-
     /// Error while accessing the scheduler.
-    IoScheduleError(IoScheduleError),
+    IoScheduleError(ScheduleError),
+
+    /// The system time was not normal.
+    SystemTime,
 
     /// An unspecified error.
     Unknown,
@@ -50,29 +49,15 @@ pub enum Error {
 
 /// An error occureed while scheduling a virtual link.
 #[derive(Clone, Debug)]
-pub enum IoScheduleError {
+pub enum ScheduleError {
     /// Failed to create a schedule
     CreationFailed,
 }
 
-impl Display for IoScheduleError {
+impl Display for ScheduleError {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::CreationFailed => write!(f, "Failed to create the interface."),
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub enum VirtualLinkError {
-    /// A message was too long for this virtual link.
-    MtuMismatch,
-}
-
-impl Display for VirtualLinkError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        match self {
-            Self::MtuMismatch => write!(f, "A message was too long for this virtual link."),
         }
     }
 }
@@ -109,8 +94,8 @@ impl Display for Error {
         match self {
             Error::IoScheduleError(e) => write!(f, "Error while accessing the scheduler: {e}"),
             Error::InterfaceCreationError(e) => write!(f, "Failed to create interface: {e}"),
-            Error::PortSendFail(source) => write!(f, "Failed to send data: {source:?}"),
-            Error::PortReceiveFail(source) => write!(f, "Failed to receive data: {source:?}"),
+            Error::PortSendFail => write!(f, "Failed to send data"),
+            Error::PortReceiveFail => write!(f, "Failed to receive data"),
             Error::InterfaceReceiveFail(reason) => {
                 write!(f, "Failed to receive data from an interface: {reason}")
             }
@@ -123,18 +108,8 @@ impl Display for Error {
             Error::EnqueueFailed => write!(f, "Failed to enqueue a frame into queue"),
             Error::InvalidConfig => write!(f, "Invalid configuration"),
             Error::InterfaceSendFail(e) => write!(f, "Interface failed to send some data: {e}"),
-            Error::VirtualLinkError(e) => write!(f, "Virtual link encountered an error: {e}"),
+            Error::SystemTime => write!(f, "The system time was not normal."),
             Error::Unknown => write!(f, "Unknown error"),
-        }
-    }
-}
-
-impl From<a653rs::prelude::Error> for Error {
-    fn from(err: ApexError) -> Self {
-        match err {
-            ApexError::ReadError => Self::PortReceiveFail(err),
-            ApexError::WriteError => Self::PortSendFail(err),
-            _ => Self::Unknown,
         }
     }
 }

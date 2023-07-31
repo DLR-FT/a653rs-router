@@ -17,14 +17,9 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    naersk = {
-      url = "github:nix-community/naersk";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     hypervisor = {
       #url = "github:DLR-FT/a653rs-linux";
-      url = "github:dadada/apex-linux?rev=299f6402b78513f61dd1fc544c57d27689a94229";
+      url = "github:dadada/apex-linux?ref=udp-network-driver";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -50,7 +45,7 @@
     extra-trusted-public-keys = "ft-ssy-stonks.intra.dlr.de:xWBi+hGpebqGVgcYJtcPyW4BXBQ6TmI15c5OHf6htpM=";
   };
 
-  outputs = { self, nixpkgs, utils, devshell, fenix, hypervisor, naersk, xng-utils, fpga-project, xilinx-flake-utils, ... }@inputs:
+  outputs = { self, nixpkgs, utils, devshell, fenix, hypervisor, xng-utils, fpga-project, xilinx-flake-utils, ... }@inputs:
     utils.lib.eachSystem [ "x86_64-linux" ]
       (system:
         let
@@ -67,10 +62,7 @@
             targets.thumbv7m-none-eabi.latest.rust-std
             targets.armv7a-none-eabi.latest.rust-std
           ];
-          naerskLib = (naersk.lib.${system}.override {
-            cargo = rust-toolchain;
-            rustc = rust-toolchain;
-          });
+
           hypervisorPackage = hypervisor.packages.${system}.a653rs-linux-hypervisor;
 
           xngSrcs = {
@@ -85,34 +77,16 @@
               sha256 = "1b73d6x3galw3bhj5nac7ifgp15zrsyipn4imwknr24gp1l14sc8";
             };
           };
-          xng-sys-img-local_echo = self.packages.${system}.xng-sys-img-local_echo;
         in
         {
           inherit formatter;
 
-          # TODO merge into default dev shell
-          devShells.xng =
-            let
-              pkgs = import nixpkgs { inherit system; overlays = [ devshell.overlays.default ]; };
-              mkShell = pkgs.mkShell.override { stdenv = pkgs.gccMultiStdenv; };
-            in
-            with self.packages."${system}"; mkShell {
-              C_INCLUDE_PATH = "${xng-ops}/include";
-              inputsFrom = [ xng-sys-img-local_echo ];
-              packages = with pkgs; [
-                formatter
-                treefmt
-                rust-toolchain
-                cargo-outdated
-                cargo-udeps
-                cargo-audit
-                cargo-watch
-              ];
-            };
-
           devShells.default =
             let
               pkgs = import nixpkgs { inherit system; overlays = [ devshell.overlays.default ]; };
+              fpga = fpga-project.packages."${system}".default;
+              zynq7000Init = ./deployment/zynq7000_init_te0706.tcl;
+              vitis = xilinx-flake-utils.packages.${system}.vitis-unified-software-platform-vitis_2019-2_1106_2127;
             in
             pkgs.devshell.mkShell {
               imports = [ "${devshell}/extra/git/hooks.nix" ];
@@ -127,6 +101,8 @@
                 cargo-watch
                 formatter
                 treefmt
+                vitis
+                picocom
               ];
               git.hooks.enable = true;
               git.hooks.pre-commit.text = ''
@@ -134,132 +110,23 @@
               '';
               commands = [
                 {
-                  name = "build-no_std";
+                  name = "run-nixos-integration-test";
                   command = ''
-                    cd $PRJ_ROOT
-                    cargo build -p network-partition --release --target thumbv7m-none-eabi
+                    nix build .#checks.${system}.integration
                   '';
-                  help = "Verify that the library builds for no_std without std-features";
+                  help = "Run the echo server and client integration test";
                 }
                 {
-                  name = "test-run-echo-linux";
+                  name = "run-xng";
+                  help = "Compile and flash a configuration. This command takes one argument, which is the name of the package in this flake output to run";
                   command = ''
-                    cargo build --release --target x86_64-unknown-linux-musl
-                    RUST_LOG=''${RUST_LOG:=info} a653rs-linux-hypervisor --duration 10s config/linux/hv-server.yml 2> hv-server.log & \
-                    RUST_LOG=''${RUST_LOG:=info} a653rs-linux-hypervisor --duration 10s config/linux/hv-client.yml 2> hv-client.log &
-                  '';
-                  help = "Run echo example using existing scope and exit after 10 seconds";
-                }
-                {
-                  name = "test-run-echo-scoped";
-                  command = ''
-                    cargo build --release --target x86_64-unknown-linux-musl
-                    RUST_LOG=''${RUST_LOG:=info} systemd-run --user --scope -- a653rs-linux-hypervisor --duration 10s config/linux/hv-server.yml & \
-                    RUST_LOG=''${RUST_LOG:=info} systemd-run --user --scope -- a653rs-linux-hypervisor --duration 10s config/linux/hv-client.yml
-                  '';
-                  help = "Run echo example using apex-linux inside systemd scope and exit after 10 seconds";
-                }
-                {
-                  name = "test-run-echo-cora";
-                  command = ''
-                    nix develop .#deploy -c flash-echo-server && nix develop .#deploy -c flash-echo-client
-                  '';
-                  help = "Run echo example on two CoraZ7";
-                }
-                {
-                  name = "test-run-throughput-local";
-                  command = ''
-                    nix develop .#deploy -c flash-throughput-local
-                  '';
-                  help = "Run local (through IO-partition) throughput example on CoraZ7";
-                }
-                {
-                  name = "test-run-throughput-direct";
-                  command = ''
-                    nix develop .#deploy -c flash-throughput-direct
-                  '';
-                  help = "Run direct throughput example on CoraZ7";
-                }
-                {
-                  name = "test-run-throughput-remote";
-                  command = ''
-                    nix develop .#deploy -c flash-throughput-sink
-                    nix develop .#deploy -c flash-throughput-source
-                  '';
-                  help = "Run remote (through network) throughput example on CoraZ7";
-                }
-                {
-                  name = "test-run-echo-local";
-                  command = ''
-                    nix develop .#deploy -c flash-echo-local
-                  '';
-                  help = "Run local echo test on CoraZ7";
-                }
-                {
-                  name = "test-run-echo-direct";
-                  command = ''
-                    nix develop .#deploy -c flash-echo-direct
-                  '';
-                  help = "Run direct echo test on CoraZ7";
-                }
-              ];
-            };
-
-          # Separate devshell so we do not need to build Vitis if some flake input does not match just for changing code.
-          devShells.deploy =
-            let
-              pkgs = import nixpkgs { inherit system; overlays = [ devshell.overlays.default ]; };
-              fpga = fpga-project.packages."${system}".default;
-              zynq7000Init = ./deployment/zynq7000_init_te0706.tcl;
-              vitis = xilinx-flake-utils.packages.${system}.vitis-unified-software-platform-vitis_2019-2_1106_2127;
-              xng-sys-img-local_echo = self.packages."${system}".xng-sys-img-local_echo;
-            in
-            pkgs.devshell.mkShell {
-              name = "network-partition-deploy";
-              packages = with pkgs; [
-                vitis
-                picocom
-              ];
-              commands = [
-                {
-                  name = "run-local_echo";
-                  help = "Boot the network partition using JTAG";
-                  command = ''
-                    dir="outputs/local_echo"
-                    mkdir -p "$dir"
-                    swdir="$dir/img"
-
-                    nix build .#xng-sys-img-local_echo -o $swdir
-
-                    hwdir="$dir/hardware"
-                    mkdir -p "$hwdir"
-                    cp --no-preserve=all ${fpga} $hwdir/hw_export.xsa
-                    unzip -u "$hwdir/hw_export.xsa" -d "$hwdir"
-
-                    for cable in "210370AD523FA"
-                    do 
-                      xsct \
-                        ${zynq7000Init} \
-                        $hwdir/ps7_init.tcl \
-                        $hwdir/hw_export.bit \
-                        $hwdir/hw_export.xsa \
-                        $swdir/sys_img.elf \
-                        "$cable" \
-                        || printf "Failed to flash target"
-                    done
-                  '';
-                }
-                {
-                  name = "flash";
-                  help = "Compile and flash a configuration";
-                  command = ''
-                    example="''${1:-local_echo}"
+                    example="''${1}"
                     cable="''${2:-210370AD5202A}"
                     dir="outputs/$example"
                     mkdir -p "$dir"
                     swdir="$dir/img"
 
-                    nix build ".#xng-sys-img-$example" -o "$swdir"
+                    nix build ".#$example" -o "$swdir"
 
                     hwdir="$dir/hardware"
                     mkdir -p "$hwdir"
@@ -277,39 +144,15 @@
                   '';
                 }
                 {
-                  name = "flash-echo-direct";
-                  command = "flash echo_direct 210370AD523FA";
+                  name = "run-xng-echo";
+                  help = "Compile, flash and run the echo client on XNG";
+                  command = ''
+                    run-xng "xng-echo-server"
+                    run-xng "xng-echo-client"
+                  '';
                 }
                 {
-                  name = "flash-echo-local";
-                  command = "flash local_echo 210370AD523FA";
-                }
-                {
-                  name = "flash-echo-client";
-                  command = "flash echo_client 210370AD523FA";
-                }
-                {
-                  name = "flash-echo-server";
-                  command = "flash echo_server 210370AD5202A";
-                }
-                {
-                  name = "flash-throughput-local";
-                  command = "flash throughput-local 210370AD523FA";
-                }
-                {
-                  name = "flash-throughput-direct";
-                  command = "flash throughput-direct 210370AD523FA";
-                }
-                {
-                  name = "flash-throughput-source";
-                  command = "flash throughput-source 210370AD523FA";
-                }
-                {
-                  name = "flash-throughput-sink";
-                  command = "flash throughput-sink 210370AD5202A";
-                }
-                {
-                  name = "launch-picocom";
+                  name = "run-picocom";
                   help = "Launches picocom";
                   command = ''
                     picocom --imap lfcrlf --baud 115200 ''${1:-/dev/ttyUSB1} ''${@}
@@ -318,325 +161,184 @@
               ];
             };
 
-          checks = {
-            nixpkgs-fmt = pkgs.runCommand "check-format-nix"
-              {
-                nativeBuildInputs = [ formatter ];
-              } "nixpkgs-fmt --check ${./.} && touch $out";
-            cargo-fmt = pkgs.runCommand "check-format-rust"
-              {
-                nativeBuildInputs = [ rust-toolchain ];
-              } "cd ${./.} && cargo fmt --check && touch $out";
-            run-echo-with-timeout =
-              let
-                nixos-lib = nixpkgs.lib.nixos;
+          checks =
+            let
+              nixos-lib = nixpkgs.lib.nixos;
+            in
+            with self.packages.${system}; {
+              nixpkgs-fmt = pkgs.runCommand "check-format-nix"
+                {
+                  nativeBuildInputs = [ formatter ];
+                } "nixpkgs-fmt --check ${./.} && touch $out";
+              cargo-fmt = pkgs.runCommand "check-format-rust"
+                {
+                  nativeBuildInputs = [ rust-toolchain ];
+                } "cd ${./.} && cargo fmt --check && touch $out";
+              integration = nixos-lib.runTest (import ./test/integration.nix {
                 hostPkgs = pkgs;
+                configurator-client = configurator--linux-client;
+                configurator-server = configurator--linux-server;
+                echo-client = echo-sampling-linux-client;
+                echo-server = echo-sampling-linux-server;
                 hypervisor = hypervisorPackage;
-                partition = self.packages.${system}.echo-linux;
-              in
-              nixos-lib.runTest (import ./test/integration.nix { inherit hostPkgs hypervisor partition; });
-          };
-          packages = (nixpkgs.lib.concatMapAttrs
-            (name: value: {
-              ${name} = self.lib.network-partition-zynq7000 {
-                inherit naerskLib;
-                configDir = value;
-              };
+                router-client = router-echo-linux-client;
+                router-server = router-echo-linux-server;
+              });
+              all-images = nixpkgs.legacyPackages.${system}.linkFarmFromDrvs "all-images" (
+                with self.packages.${system}; [ xng-echo-client xng-echo-server ]
+              );
+            };
+          packages =
+            let
+              allProducts = self.lib.allProducts;
+              xngImage = self.lib.xngImage;
+              xngOps = self.packages.${system}.xng-ops;
+              lithOsOps = self.packages.${system}.lithos-ops;
+              rustPlatform = (pkgs.makeRustPlatform { cargo = rust-toolchain; rustc = rust-toolchain; });
+              platforms = [
+                { feature = "dummy"; target = "x86_64-unknown-linux-gnu"; }
+                { feature = "linux"; target = "x86_64-unknown-linux-musl"; }
+                { feature = "xng"; target = "armv7a-none-eabi"; }
+              ];
+            in
+            (allProducts {
+              inherit rustPlatform platforms;
+              products = [ "router" ];
+              flavors = [ "client" "server" ];
+              variants = [ "echo" "throughput" ];
             })
+            //
+            (allProducts {
+              inherit rustPlatform platforms;
+              products = [ "echo" ];
+              flavors = [ "client" "server" ];
+              variants = [ "sampling" "queuing" ];
+            })
+            //
+            (allProducts {
+              inherit rustPlatform;
+              products = [ "configurator" ];
+              flavors = [ "client" "server" ];
+              variants = [ "" ];
+              platforms = [
+                { feature = "linux"; target = "x86_64-unknown-linux-musl"; }
+                { feature = "xng"; target = "armv7a-none-eabi"; }
+              ];
+            })
+            //
+            (allProducts {
+              inherit rustPlatform;
+              products = [ "throughput" ];
+              flavors = [ "sender" "receiver" ];
+              variants = [ "" ];
+              platforms = [
+                { feature = "xng"; target = "armv7a-none-eabi"; }
+              ];
+            })
+            //
             {
-              throughput-local-np = ./config/throughput/local;
-              throughput-remote-source-np = ./config/throughput/remote/source;
-              throughput-remote-sink-np = ./config/throughput/remote/sink;
-              np-zynq7000-local_echo = ./config/local_echo;
-              np-zynq7000-echo_client = ./config/echo_client;
-              np-zynq7000-echo_server = ./config/echo_server;
-            }) // {
-            all-images = nixpkgs.legacyPackages.${system}.linkFarmFromDrvs "all-images" (
-              with self.packages.${system}; [
-                xng-sys-img-echo_client
-                xng-sys-img-echo_direct
-                xng-sys-img-echo_server
-                xng-sys-img-local_echo
-                xng-sys-img-throughput-direct
-                xng-sys-img-throughput-local
-                xng-sys-img-throughput-sink
-                xng-sys-img-throughput-source
-              ]
-            );
-            network-partition-linux-echo-local = self.lib.network-partition-linux {
-              inherit naerskLib;
-              configDir = ./config/linux;
-            };
-            throughput-source = naerskLib.buildPackage rec {
-              pname = "thoughput-source";
-              root = ./.;
-              cargoBuildOptions = x: x ++ [ "-p" "throughput-zynq7000" "--target" "armv7a-none-eabi" "--features" "sender" ];
-              doCheck = false;
-              copyLibs = true;
-              copyBins = false;
-              #doDoc = true;
-            };
-            throughput-sink = naerskLib.buildPackage rec {
-              pname = "thoughput-sink";
-              root = ./.;
-              cargoBuildOptions = x: x ++ [ "-p" "throughput-zynq7000" "--target" "armv7a-none-eabi" "--features" "receiver" ];
-              doCheck = false;
-              copyLibs = true;
-              copyBins = false;
-              #doDoc = true;
-            };
-            echo = naerskLib.buildPackage rec {
-              pname = "echo";
-              root = ./.;
-              cargoBuildOptions = x: x ++ [ "-p" pname "--target" "x86_64-unknown-linux-musl" ];
-              cargoTestOptions = x: x ++ [ "-p" pname "--target" "x86_64-unknown-linux-musl" ];
-              doCheck = true;
-              #doDoc = true;
-            };
-            echo-client-zynq7000 = naerskLib.buildPackage rec {
-              pname = "echo-client-zynq7000";
-              root = ./.;
-              cargoBuildOptions = x: x ++ [ "-p" pname "--target" "armv7a-none-eabi" ];
-              doCheck = false;
-              copyLibs = true;
-              copyBins = false;
-              #doDoc = true;
-            };
-            echo-server-zynq7000 = naerskLib.buildPackage rec {
-              pname = "echo-server-zynq7000";
-              root = ./.;
-              cargoBuildOptions = x: x ++ [ "-p" pname "--target" "armv7a-none-eabi" ];
-              doCheck = false;
-              copyLibs = true;
-              copyBins = false;
-              #doDoc = true;
-            };
-            echo-linux = naerskLib.buildPackage rec {
-              pname = "echo-linux";
-              CONFIG_DIR = ./config/linux;
-              root = ./.;
-              cargoBuildOptions = x: x ++ [ "-p" pname "--target" "x86_64-unknown-linux-musl" ];
-              cargoTestOptions = x: x ++ [ "-p" pname "--target" "x86_64-unknown-linux-musl" ];
-              doCheck = true;
-              #doDoc = true;
-            };
-            xng-ops = xng-utils.lib.buildXngOps {
-              inherit pkgs;
-              src = xngSrcs.xng;
-            };
-            lithos-ops = xng-utils.lib.buildLithOsOps {
-              inherit pkgs;
-              src = xngSrcs.lithos;
-            };
-            xng-sys-img-echo_direct = xng-utils.lib.buildXngSysImage {
-              inherit pkgs;
-              hardFp = false;
-              xngOps = self.packages.${system}.xng-ops;
-              lithOsOps = self.packages.${system}.lithos-ops;
-              xcf = pkgs.runCommandNoCC "patch-src" { } ''
-                cp -r ${./. + "/config/echo_direct/xml"} $out/
-              '';
-              name = "xng-sys-img-echo-direct";
-              partitions = {
-                EchoClient = {
-                  src = "${self.packages."${system}".echo-client-zynq7000}/lib/libecho_client_zynq7000.a";
-                  enableLithOs = true;
-                  ltcf = ./config/echo_direct/echo_client.ltcf;
+              xng-ops = xng-utils.lib.buildXngOps {
+                inherit pkgs;
+                src = xngSrcs.xng;
+              };
+              lithos-ops = xng-utils.lib.buildLithOsOps {
+                inherit pkgs;
+                src = xngSrcs.lithos;
+              };
+              xng-echo-client = xngImage rec {
+                inherit pkgs xngOps lithOsOps;
+                name = "xng-echo-client";
+                partitions = {
+                  Router = "${self.packages."${system}".router-echo-xng-client}/lib/librouter_echo_xng.a";
+                  Echo = "${self.packages."${system}".echo-sampling-xng-client}/lib/libecho_sampling_xng.a";
+                  Config = "${self.packages."${system}".configurator--xng-client}/lib/libconfigurator__xng.a";
                 };
-                EchoServer = {
-                  src = "${self.packages."${system}".echo-server-zynq7000}/lib/libecho_server_zynq7000.a";
-                  enableLithOs = true;
-                  ltcf = ./config/echo_direct/echo_server.ltcf;
+              };
+              xng-echo-server = xngImage rec {
+                inherit pkgs xngOps lithOsOps;
+                name = "xng-echo-server";
+                partitions = {
+                  Router = "${self.packages."${system}".router-echo-xng-server}/lib/librouter_echo_xng.a";
+                  Echo = "${self.packages."${system}".echo-sampling-xng-server}/lib/libecho_sampling_xng.a";
+                  Config = "${self.packages."${system}".configurator--xng-server}/lib/libconfigurator__xng.a";
                 };
               };
             };
-            xng-sys-img-local_echo = xng-utils.lib.buildXngSysImage {
-              inherit pkgs;
-              hardFp = false;
-              xngOps = self.packages.${system}.xng-ops;
-              lithOsOps = self.packages.${system}.lithos-ops;
-              xcf = pkgs.runCommandNoCC "patch-src" { } ''
-                cp -r ${./. + "/config/local_echo/xml"} $out/
-              '';
-              name = "xng-sys-img-echo-local";
-              partitions = {
-                NetworkPartition = {
-                  src = "${self.packages."${system}".np-zynq7000-local_echo}/lib/libnp_zynq7000.a";
-                  enableLithOs = true;
-                  ltcf = ./config/local_echo/network_partition.ltcf;
-                };
-                EchoClient = {
-                  src = "${self.packages."${system}".echo-client-zynq7000}/lib/libecho_client_zynq7000.a";
-                  enableLithOs = true;
-                  ltcf = ./config/local_echo/echo_client.ltcf;
-                };
-                EchoServer = {
-                  src = "${self.packages."${system}".echo-server-zynq7000}/lib/libecho_server_zynq7000.a";
-                  enableLithOs = true;
-                  ltcf = ./config/local_echo/echo_server.ltcf;
-                };
-              };
-            };
-            xng-sys-img-throughput-local = xng-utils.lib.buildXngSysImage {
-              inherit pkgs;
-              hardFp = false;
-              xngOps = self.packages.${system}.xng-ops;
-              lithOsOps = self.packages.${system}.lithos-ops;
-              xcf = pkgs.runCommandNoCC "patch-src" { } ''
-                cp -r ${./. + "/config/throughput/local/xml"} $out/
-              '';
-              name = "xng-sys-img-throughput-local";
-              partitions = {
-                NetworkPartition = {
-                  src = "${self.packages."${system}".throughput-local-np}/lib/libnp_zynq7000.a";
-                  enableLithOs = true;
-                  ltcf = ./config/throughput/local/network_partition.ltcf;
-                };
-                Source = {
-                  src = "${self.packages."${system}".throughput-source}/lib/libthroughput_zynq7000.a";
-                  enableLithOs = true;
-                  ltcf = ./config/throughput/local/source.ltcf;
-                };
-                Sink = {
-                  src = "${self.packages."${system}".throughput-sink}/lib/libthroughput_zynq7000.a";
-                  enableLithOs = true;
-                  ltcf = ./config/throughput/local/sink.ltcf;
-                };
-              };
-            };
-            xng-sys-img-throughput-direct = xng-utils.lib.buildXngSysImage {
-              inherit pkgs;
-              hardFp = false;
-              xngOps = self.packages.${system}.xng-ops;
-              lithOsOps = self.packages.${system}.lithos-ops;
-              xcf = pkgs.runCommandNoCC "patch-src" { } ''
-                cp -r ${./. + "/config/throughput/direct/xml"} $out/
-              '';
-              name = "xng-sys-img-throughput-direct";
-              partitions = {
-                Source = {
-                  src = "${self.packages."${system}".throughput-source}/lib/libthroughput_zynq7000.a";
-                  enableLithOs = true;
-                  ltcf = ./config/throughput/direct/source.ltcf;
-                };
-                Sink = {
-                  src = "${self.packages."${system}".throughput-sink}/lib/libthroughput_zynq7000.a";
-                  enableLithOs = true;
-                  ltcf = ./config/throughput/direct/sink.ltcf;
-                };
-              };
-            };
-            xng-sys-img-throughput-source = xng-utils.lib.buildXngSysImage {
-              inherit pkgs;
-              hardFp = false;
-              xngOps = self.packages.${system}.xng-ops;
-              lithOsOps = self.packages.${system}.lithos-ops;
-              xcf = pkgs.runCommandNoCC "patch-src" { } ''
-                cp -r ${./. + "/config/throughput/remote/source/xml"} $out/
-              '';
-              name = "xng-sys-img-throughput-source";
-              partitions = {
-                NetworkPartition = {
-                  src = "${self.packages."${system}".throughput-remote-source-np}/lib/libnp_zynq7000.a";
-                  enableLithOs = true;
-                  ltcf = ./config/throughput/remote/source/network_partition.ltcf;
-                };
-                Source = {
-                  src = "${self.packages."${system}".throughput-source}/lib/libthroughput_zynq7000.a";
-                  enableLithOs = true;
-                  ltcf = ./config/throughput/remote/source/source.ltcf;
-                };
-              };
-            };
-            xng-sys-img-throughput-sink = xng-utils.lib.buildXngSysImage {
-              inherit pkgs;
-              hardFp = false;
-              xngOps = self.packages.${system}.xng-ops;
-              lithOsOps = self.packages.${system}.lithos-ops;
-              xcf = pkgs.runCommandNoCC "patch-src" { } ''
-                cp -r ${./. + "/config/throughput/remote/sink/xml"} $out/
-              '';
-              name = "xng-sys-img-throughput-sink";
-              partitions = {
-                NetworkPartition = {
-                  src = "${self.packages."${system}".throughput-remote-sink-np}/lib/libnp_zynq7000.a";
-                  enableLithOs = true;
-                  ltcf = ./config/throughput/remote/sink/network_partition.ltcf;
-                };
-                Sink = {
-                  src = "${self.packages."${system}".throughput-sink}/lib/libthroughput_zynq7000.a";
-                  enableLithOs = true;
-                  ltcf = ./config/throughput/remote/sink/sink.ltcf;
-                };
-              };
-            };
-            xng-sys-img-echo_client = xng-utils.lib.buildXngSysImage {
-              inherit pkgs;
-              hardFp = false;
-              xngOps = self.packages.${system}.xng-ops;
-              lithOsOps = self.packages.${system}.lithos-ops;
-              xcf = pkgs.runCommandNoCC "patch-src" { } ''
-                cp -r ${./. + "/config/echo_client/xml"} $out/
-              '';
-              name = "xng-sys-img-echo-client";
-              partitions = {
-                NetworkPartition = {
-                  src = "${self.packages."${system}".np-zynq7000-echo_client}/lib/libnp_zynq7000.a";
-                  enableLithOs = true;
-                  ltcf = ./config/echo_client/network_partition.ltcf;
-                };
-                EchoClient = {
-                  src = "${self.packages."${system}".echo-client-zynq7000}/lib/libecho_client_zynq7000.a";
-                  enableLithOs = true;
-                  ltcf = ./config/echo_client/echo_client.ltcf;
-                };
-              };
-            };
-            xng-sys-img-echo_server = xng-utils.lib.buildXngSysImage {
-              inherit pkgs;
-              hardFp = false;
-              xngOps = self.packages.${system}.xng-ops;
-              lithOsOps = self.packages.${system}.lithos-ops;
-              xcf = pkgs.runCommandNoCC "patch-src" { } ''
-                cp -r ${./. + "/config/echo_server/xml"} $out/
-              '';
-              name = "xng-sys-img-echo-server";
-              partitions = {
-                NetworkPartition = {
-                  src = "${self.packages."${system}".np-zynq7000-echo_server}/lib/libnp_zynq7000.a";
-                  enableLithOs = true;
-                  ltcf = ./config/echo_server/network_partition.ltcf;
-                };
-                EchoServer = {
-                  src = "${self.packages."${system}".echo-server-zynq7000}/lib/libecho_server_zynq7000.a";
-                  enableLithOs = true;
-                  ltcf = ./config/echo_server/echo_server.ltcf;
-                };
-              };
-            };
-          };
         }) // {
-      lib = {
-        network-partition-zynq7000 = { naerskLib, configDir }: naerskLib.buildPackage rec {
-          pname = "np-zynq7000";
-          CONFIG_DIR = configDir;
-          root = ./.;
-          cargoBuildOptions = x: x ++ [ "-p" pname "--target" "armv7a-none-eabi" ];
-          doCheck = false;
-          copyLibs = true;
-          copyBins = false;
-          #doDoc = true;
-        };
-        network-partition-linux = { naerskLib, configDir }: naerskLib.buildPackage rec {
-          pname = "network-partition-linux";
-          CONFIG_DIR = configDir;
-          root = ./.;
-          copyLibs = true;
-          copyBins = false;
-          cargoBuildOptions = x: x ++ [ "-p" pname "--target" "x86_64-unknown-linux-musl" ];
-          cargoTestOptions = x: x ++ [ "-p" pname "--target" "x86_64-unknown-linux-musl" ];
-          doCheck = true;
-        };
+      lib = rec {
+        mkExample = { rustPlatform, product, example, features, target }:
+          rustPlatform.buildRustPackage {
+            pname = example;
+            version = "0.1.0";
+            src = ./.;
+            cargoLock.lockFile = ./Cargo.lock;
+            cargoLock.outputHashes = {
+              "a653rs-linux-0.2.0" = "sha256-PR+gpuqY9opGNdi9rmgjBKYoX827h0jLeRD+XXSOXXM=";
+              "a653rs-postcard-0.2.0" = "sha256-xDM5PwV24ZQ3NPVl12A1zX7FvYgLUxcufMCft+BzOSU=";
+              "a653rs-xng-0.1.0" = "sha256-7vZ8eWwLXzR4Fb4UCA2GyI8HRnKVR5NFcWumrzkUMNM=";
+              "xng-rs-log-0.1.0" = "sha256-YIFFnjWsk6g9tQuRBqmPaXsY3s2+BpkAg5PCw2ZGYCU=";
+            };
+            buildPhase = ''
+              cargo build --release --target "${target}" -p ${product} --example=${example} --features=${nixpkgs.lib.concatStringsSep "," features}
+            '';
+            doCheck = target != "armv7a-none-eabi";
+            checkPhase = ''
+              cargo test --target "${target}" -p ${product} --example=${example} --features=${nixpkgs.lib.concatStringsSep "," features} --frozen
+            '';
+            installPhase = ''
+              mkdir -p "$out"/{bin,lib}
+              if [[ "${target}" = "armv7a-none-eabi" ]]
+              then
+                cp "target/${target}"/release/examples/*.a "$out/lib"
+              else
+                cp "target/${target}/release/examples/${example}" "$out/bin"
+              fi
+            '';
+          };
+        allProducts = { rustPlatform, flavors, platforms, variants, products }: builtins.listToAttrs (
+          map
+            ({ product, flavor, platform, variant }:
+              let
+                example = "${product}-${variant}-${platform.feature}";
+              in
+              (nixpkgs.lib.nameValuePair
+                "${example}-${flavor}"
+                (mkExample {
+                  inherit example product rustPlatform;
+                  features = [ variant platform.feature flavor ];
+                  target = platform.target;
+                })
+              )
+            )
+            (nixpkgs.lib.cartesianProductOfSets {
+              "flavor" = flavors;
+              "platform" = platforms;
+              "variant" = variants;
+              "product" = products;
+            })
+        );
+        xngImage =
+          { pkgs
+          , name
+          , xngOps
+          , lithOsOps
+          , partitions
+          }: xng-utils.lib.buildXngSysImage {
+            inherit pkgs name xngOps lithOsOps;
+            hardFp = false;
+            xcf = pkgs.runCommandNoCC "patch-src" { } ''
+              cp -r "${./config/${name}/xml}" $out/
+            '';
+            partitions = pkgs.lib.concatMapAttrs
+              (partName: value: {
+                "${partName}" = {
+                  src = value;
+                  enableLithOs = true;
+                  ltcf = ./config/${name}/${nixpkgs.lib.toLower partName}.ltcf;
+                };
+              })
+              partitions;
+          };
       };
     };
 }

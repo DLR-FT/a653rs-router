@@ -66,6 +66,13 @@ pub fn run() {
 
 // ========================== Echo Router  ============================
 
+#[cfg(all(feature = "echo", feature = "local"))]
+#[router_config(network_partition::prelude::DeadlineRrScheduler)]
+pub(crate) mod router {
+    #[limits(inputs = 2, outputs = 2, mtu = "2KB")]
+    struct Limits;
+}
+
 #[cfg(all(feature = "echo", feature = "xng", feature = "client"))]
 #[router_config(network_partition::prelude::DeadlineRrScheduler)]
 pub(crate) mod router {
@@ -210,6 +217,77 @@ pub(crate) mod router {
     #[interface(source = "server:8082", destination = "client:8081")]
     #[interface(rate = "10MB", mtu = "1KB")]
     struct Port1;
+}
+
+// ======================= Router for echo-local example
+// ============================
+
+#[cfg(all(
+    feature = "local",
+    feature = "echo",
+    any(feature = "dummy", feature = "linux", feature = "xng")
+))]
+#[cfg_attr(feature = "dummy", partition(dummy_hypervisor::DummyHypervisor))]
+#[cfg_attr(
+    feature = "linux",
+    partition(a653rs_linux::partition::ApexLinuxPartition)
+)]
+#[cfg_attr(feature = "xng", partition(a653rs_xng::apex::XngHypervisor))]
+mod router_partition {
+
+    #[sampling_in(msg_size = "1KB", refresh_period = "10s")]
+    struct EchoRequestCl;
+
+    #[sampling_out(msg_size = "1KB")]
+    struct EchoRequestSrv;
+
+    #[sampling_in(msg_size = "1KB", refresh_period = "10s")]
+    struct EchoReplySrv;
+
+    #[sampling_out(msg_size = "1KB")]
+    struct EchoReplyCl;
+
+    #[sampling_in(name = "RouterConfig", refresh_period = "10s", msg_size = "1KB")]
+    struct RouterConfig;
+
+    #[start(cold)]
+    fn cold_start(ctx: start::Context) {
+        warm_start(ctx);
+    }
+
+    #[start(warm)]
+    fn warm_start(mut ctx: start::Context) {
+        ctx.create_echo_request_cl().unwrap();
+        ctx.create_echo_request_srv().unwrap();
+        ctx.create_echo_reply_cl().unwrap();
+        ctx.create_echo_reply_srv().unwrap();
+        ctx.create_router_config().unwrap();
+        ctx.create_aperiodic2().unwrap().start().unwrap();
+    }
+
+    #[aperiodic(
+        name = "ap2",
+        time_capacity = "50ms",
+        stack_size = "30KB",
+        base_priority = 5,
+        deadline = "Soft"
+    )]
+    fn aperiodic2(ctx: aperiodic2::Context) {
+        let router_config = ctx.router_config.unwrap();
+        network_partition::run_router!(
+            crate::router,
+            Hypervisor {},
+            router_config,
+            [
+                ("EchoRequestCl", ctx.echo_request_cl.unwrap()),
+                ("EchoReplySrv", ctx.echo_reply_srv.unwrap()),
+            ],
+            [
+                ("EchoRequestSrv", ctx.echo_request_srv.unwrap()),
+                ("EchoReplyCl", ctx.echo_reply_cl.unwrap()),
+            ]
+        );
+    }
 }
 
 // ======================= Echo Partition Client ============================

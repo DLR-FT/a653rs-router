@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<Channels xmlns="http://www.fentiss.com/xngChannelsXml">
+  <SamplingChannel start="0x400000" size="2KB" maxMessageSize="1000B">
+    <Source partition="EchoClient" port="EchoRequest" />
+    <Destination partition="EchoServer" port="EchoRequest" />
+  </SamplingChannel>
+  <SamplingChannel start="0x410000" size="2KB" maxMessageSize="1000B">
+    <Source partition="EchoServer" port="EchoReply" />
+    <Destination partition="EchoClient" port="EchoReply" />
+  </SamplingChannel>
+</Channels>
+

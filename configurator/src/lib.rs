@@ -77,6 +77,14 @@ mod configurator {
                 .destination(2, "NodeA")?
                 .schedule(2, Duration::from_millis(10))?
                 .build(),
+            ConfigOption::EchoLocal => Config::builder()
+                .virtual_link(1, "EchoRequestCl")?
+                .destination(1, "EchoRequestSrv")?
+                .schedule(1, Duration::from_millis(5))?
+                .virtual_link(2, "EchoReplySrv")?
+                .destination(2, "EchoReplyCl")?
+                .schedule(2, Duration::from_millis(5))?
+                .build(),
             ConfigOption::Default => Ok(Config::default()),
         }
     }
@@ -85,6 +93,7 @@ mod configurator {
     enum ConfigOption {
         EchoClient,
         EchoServer,
+        EchoLocal,
         Default,
     }
 
@@ -94,7 +103,10 @@ mod configurator {
     #[cfg(feature = "server")]
     const CONFIG: ConfigOption = ConfigOption::EchoServer;
 
-    #[cfg(not(any(feature = "server", feature = "client")))]
+    #[cfg(feature = "local")]
+    const CONFIG: ConfigOption = ConfigOption::EchoLocal;
+
+    #[cfg(not(any(feature = "local", feature = "server", feature = "client")))]
     const CONFIG: ConfigOption = ConfigOption::Default;
 
     #[periodic(

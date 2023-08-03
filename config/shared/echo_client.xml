@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<Partition xmlns="http://www.fentiss.com/xngPartitionXml" name="Echo" entryPoint="0x8000000" attributes="system boot">
+<Partition xmlns="http://www.fentiss.com/xngPartitionXml" name="EchoClient" entryPoint="0x8000000" attributes="system boot">
   <MemoryAreas>
     <Area start="0x8000000" size="64MB" type="nonSharedNormal" access="readwrite executable" cachePolicy="l1WriteBackWa l2WriteBackWa" />
     <!-- GPIO --> <Area start="0x80000000" size="32KB" type="shareableDevice" access="readwrite" cachePolicy="none" />
@@ -12,4 +12,3 @@
     <SamplingPort name="EchoReply" direction="destination" irq="167"/>
   </Ports>
 </Partition>
-

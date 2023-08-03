@@ -120,6 +120,11 @@
                   name = "run-xng";
                   help = "Compile and flash a configuration. This command takes one argument, which is the name of the package in this flake output to run";
                   command = ''
+                    if [ "$#" -lt 1 ]
+                    then
+                      printf "usage: run-xng <example> <cable-id>\n"
+                      exit 1
+                    fi
                     example="''${1}"
                     cable="''${2:-210370AD5202A}"
                     dir="outputs/$example"
@@ -144,11 +149,25 @@
                   '';
                 }
                 {
-                  name = "run-xng-echo";
-                  help = "Compile, flash and run the echo client on XNG";
+                  name = "run-echo-direct-xng";
+                  help = "Compile, flash and run the echo client and server on XNG";
                   command = ''
-                    run-xng "xng-echo-server" 210370AD5202A
-                    run-xng "xng-echo-client" 210370AD523FA
+                    run-xng "echo-direct-xng" 210370AD5202A
+                  '';
+                }
+                {
+                  name = "run-echo-local-xng";
+                  help = "Compile, flash and run the echo client and server on XNG, with an itermediary router";
+                  command = ''
+                    run-xng "echo-local-xng" 210370AD5202A
+                  '';
+                }
+                {
+                  name = "run-echo-remote-xng";
+                  help = "Compile, flash and run the echo client and server on XNG, on two distributed nodes";
+                  command = ''
+                    run-xng "echo-remote-xng-server" 210370AD5202A
+                    run-xng "echo-remote-xng-client" 210370AD523FA
                   '';
                 }
                 {
@@ -184,8 +203,13 @@
                 router-client = router-echo-linux-client;
                 router-server = router-echo-linux-server;
               });
-              all-images = nixpkgs.legacyPackages.${system}.linkFarmFromDrvs "all-images" (
-                with self.packages.${system}; [ xng-echo-client xng-echo-server ]
+              xng-images = nixpkgs.legacyPackages.${system}.linkFarmFromDrvs "all-images" (
+                with self.packages.${system}; [
+                  echo-direct-xng
+                  echo-local-xng
+                  echo-remote-xng-client
+                  echo-remote-xng-server
+                ]
               );
             };
           packages =
@@ -204,7 +228,7 @@
             (allProducts {
               inherit rustPlatform platforms;
               products = [ "router" ];
-              flavors = [ "client" "server" ];
+              flavors = [ "client" "server" "local" ];
               variants = [ "echo" "throughput" ];
             })
             //
@@ -218,7 +242,7 @@
             (allProducts {
               inherit rustPlatform;
               products = [ "configurator" ];
-              flavors = [ "client" "server" ];
+              flavors = [ "client" "server" "local" ];
               variants = [ "" ];
               platforms = [
                 { feature = "linux"; target = "x86_64-unknown-linux-musl"; }
@@ -245,22 +269,40 @@
                 inherit pkgs;
                 src = xngSrcs.lithos;
               };
-              xng-echo-client = xngImage rec {
+              echo-remote-xng-client = xngImage rec {
                 inherit pkgs xngOps lithOsOps;
-                name = "xng-echo-client";
+                name = "echo-remote-xng-client";
                 partitions = {
                   Router = "${self.packages."${system}".router-echo-xng-client}/lib/librouter_echo_xng.a";
-                  Echo = "${self.packages."${system}".echo-sampling-xng-client}/lib/libecho_sampling_xng.a";
+                  EchoClient = "${self.packages."${system}".echo-sampling-xng-client}/lib/libecho_sampling_xng.a";
                   Config = "${self.packages."${system}".configurator--xng-client}/lib/libconfigurator__xng.a";
                 };
               };
-              xng-echo-server = xngImage rec {
+              echo-remote-xng-server = xngImage rec {
                 inherit pkgs xngOps lithOsOps;
-                name = "xng-echo-server";
+                name = "echo-remote-xng-server";
                 partitions = {
                   Router = "${self.packages."${system}".router-echo-xng-server}/lib/librouter_echo_xng.a";
-                  Echo = "${self.packages."${system}".echo-sampling-xng-server}/lib/libecho_sampling_xng.a";
+                  EchoServer = "${self.packages."${system}".echo-sampling-xng-server}/lib/libecho_sampling_xng.a";
                   Config = "${self.packages."${system}".configurator--xng-server}/lib/libconfigurator__xng.a";
+                };
+              };
+              echo-direct-xng = xngImage rec {
+                inherit pkgs xngOps lithOsOps;
+                name = "echo-direct-xng";
+                partitions = {
+                  EchoClient = "${self.packages."${system}".echo-sampling-xng-client}/lib/libecho_sampling_xng.a";
+                  EchoServer = "${self.packages."${system}".echo-sampling-xng-server}/lib/libecho_sampling_xng.a";
+                };
+              };
+              echo-local-xng = xngImage rec {
+                inherit pkgs xngOps lithOsOps;
+                name = "echo-local-xng";
+                partitions = {
+                  EchoClient = "${self.packages."${system}".echo-sampling-xng-client}/lib/libecho_sampling_xng.a";
+                  EchoServer = "${self.packages."${system}".echo-sampling-xng-server}/lib/libecho_sampling_xng.a";
+                  Router = "${self.packages."${system}".router-echo-xng-local}/lib/librouter_echo_xng.a";
+                  Config = "${self.packages."${system}".configurator--xng-local}/lib/libconfigurator__xng.a";
                 };
               };
             };
@@ -327,14 +369,16 @@
             inherit pkgs name xngOps lithOsOps;
             hardFp = false;
             xcf = pkgs.runCommandNoCC "patch-src" { } ''
-              cp -r "${./config/${name}/xml}" $out/
+              mkdir -p merged
+              cp -r "${./config/shared}"/* "${./config/${name}/xml}"/* merged/
+              cp -r merged $out
             '';
             partitions = pkgs.lib.concatMapAttrs
               (partName: value: {
                 "${partName}" = {
                   src = value;
                   enableLithOs = true;
-                  ltcf = ./config/${name}/${nixpkgs.lib.toLower partName}.ltcf;
+                  ltcf = ./config/shared/${nixpkgs.lib.toLower partName}.ltcf;
                 };
               })
               partitions;

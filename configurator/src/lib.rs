@@ -9,7 +9,7 @@ use a653rs::partition;
 use a653rs::prelude::PartitionExt;
 
 #[allow(dead_code)]
-const LOG_LEVEL: log::LevelFilter = log::LevelFilter::Debug;
+const LOG_LEVEL: log::LevelFilter = log::LevelFilter::Info;
 
 #[cfg(feature = "xng")]
 static LOGGER: xng_rs_log::XalLogger = xng_rs_log::XalLogger;
@@ -121,7 +121,7 @@ mod configurator {
         let port = ctx.router_config.unwrap();
         loop {
             let cfg = config(CONFIG).unwrap();
-            info!("Sending configuration: {cfg:?}");
+            debug!("Sending configuration: {cfg:?}");
             if let Err(e) = port.send_type(cfg) {
                 error!("Failed to update config: {e:?}");
             }

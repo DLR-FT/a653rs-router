@@ -31,7 +31,7 @@ use once_cell::unsync::OnceCell;
 use serde::{Deserialize, Serialize};
 
 #[allow(dead_code)]
-const LOG_LEVEL: log::LevelFilter = log::LevelFilter::Debug;
+const LOG_LEVEL: log::LevelFilter = log::LevelFilter::Info;
 
 #[allow(dead_code)]
 #[cfg(feature = "dummy")]

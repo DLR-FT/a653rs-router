@@ -99,7 +99,7 @@ where
                         small_trace!(begin_echo_reply_send);
                         match send.send(data) {
                             Ok(_) => {
-                                info!("Replied to echo");
+                                debug!("Replied to echo");
                             }
                             Err(err) => {
                                 error!("Failed to reply to echo: {err:?}");
@@ -107,12 +107,12 @@ where
                         }
                         small_trace!(end_echo_reply_send);
                     } else {
-                        warn!("Ignoring invalid data");
+                        debug!("Ignoring invalid data");
                     }
                     small_trace!(end_echo_request_received);
                 }
                 Err(Error::NotAvailable) | Err(Error::NoAction) => {
-                    warn!("No echo request available yet");
+                    trace!("No echo request available yet");
                 }
                 Err(e) => {
                     error!("Failed to receive echo: ${e:?}");

@@ -36,7 +36,7 @@ where
                     small_trace!(end_echo_request_send);
                     match result {
                         Ok(_) => {
-                            debug!(
+                            info!(
                                 "EchoRequest: seqnr = {:?}, time = {:?} us",
                                 data.sequence, data.when_us
                             );
@@ -107,7 +107,7 @@ where
                     trace!("Failed to decode echo reply: {e:?}");
                 }
                 _ => {
-                    error!("Failed to receive echo reply");
+                    debug!("Failed to receive echo reply");
                 }
             }
         }

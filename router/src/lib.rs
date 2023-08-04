@@ -34,7 +34,7 @@ static TRACER: small_trace_gpio::GpioTracer = small_trace_gpio::GpioTracer::new(
 static TRACER: network_partition_linux::LinuxTracer = network_partition_linux::LinuxTracer;
 
 #[cfg(any(feature = "dummy", feature = "xng", feature = "linux"))]
-static LOG_LEVEL: log::LevelFilter = log::LevelFilter::Trace;
+static LOG_LEVEL: log::LevelFilter = log::LevelFilter::Info;
 
 #[cfg(any(feature = "dummy", feature = "xng", feature = "linux"))]
 pub fn run() {

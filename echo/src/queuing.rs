@@ -22,8 +22,13 @@ where
         info!("Running echo client periodic process");
         let mut i: u32 = 0;
         loop {
+            let now = match <H as ApexTimeP4Ext>::get_time() {
+                SystemTime::Infinite => {
+                    continue;
+                }
+                SystemTime::Normal(now) => now,
+            };
             i += 1;
-            let now = <H as ApexTimeP4Ext>::get_time().unwrap_duration();
             let data = Echo {
                 sequence: i,
                 when_us: now.as_micros() as u64,
@@ -65,7 +70,12 @@ where
         loop {
             trace!("Running echo client aperiodic process");
             let result = port.recv_type::<Echo>(SystemTime::Normal(Duration::from_millis(10)));
-            let now = <H as ApexTimeP4Ext>::get_time().unwrap_duration();
+            let now = match <H as ApexTimeP4Ext>::get_time() {
+                SystemTime::Infinite => {
+                    continue;
+                }
+                SystemTime::Normal(now) => now,
+            };
 
             match result {
                 Ok(data) => {

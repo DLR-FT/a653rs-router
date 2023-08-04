@@ -12,6 +12,9 @@ use crate::{
     scheduler::Scheduler,
 };
 
+#[cfg(feature = "serde")]
+use crate::{error::Error, prelude::Router};
+
 /// Runs the router
 /// TODO make config from port optional
 #[cfg(feature = "serde")]

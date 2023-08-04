@@ -134,7 +134,7 @@ impl Configurator {
     pub fn fetch_config<const I: usize, const O: usize>(
         config_port: &dyn RouterInput,
     ) -> Result<Config<I, O>, Error> {
-        let buf = &mut [0u8; 10000];
+        let buf = &mut [0u8; 1000];
         let (_vl, buf) = config_port.receive(&VirtualLinkId::from(0u16), buf)?;
         postcard::from_bytes::<Config<I, O>>(buf).or(Err(Error::InvalidConfig))
     }

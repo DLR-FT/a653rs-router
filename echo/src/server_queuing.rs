@@ -62,7 +62,8 @@ where
             period: SystemTime::Infinite,
             time_capacity: SystemTime::Infinite,
             entry_point: self.entry_point_aperiodic,
-            stack_size: 100000,
+            // TODO make configurable
+            stack_size: 20_000,
             base_priority: 5,
             deadline: Deadline::Soft,
             name: Name::from_str("echo_server").unwrap(),
@@ -114,7 +115,7 @@ where
                     small_trace!(end_echo_request_received);
                 }
                 Err(Error::NotAvailable) | Err(Error::NoAction) | Err(Error::TimedOut) => {
-                    warn!("No echo request available yet");
+                    trace!("No echo request available yet");
                 }
                 Err(e) => {
                     error!("Failed to receive echo: ${e:?}");

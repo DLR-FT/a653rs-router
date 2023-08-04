@@ -219,32 +219,22 @@ pub(crate) mod router {
     struct Port1;
 }
 
-// ======================= Router for echo-local example
-// ============================
+// ======================= Router for echo-local example ======================
 
-#[cfg(all(
-    feature = "local",
-    feature = "echo",
-    any(feature = "dummy", feature = "linux", feature = "xng")
-))]
-#[cfg_attr(feature = "dummy", partition(dummy_hypervisor::DummyHypervisor))]
-#[cfg_attr(
-    feature = "linux",
-    partition(a653rs_linux::partition::ApexLinuxPartition)
-)]
+#[cfg(all(feature = "local", feature = "echo", feature = "xng"))]
 #[cfg_attr(feature = "xng", partition(a653rs_xng::apex::XngHypervisor))]
 mod router_partition {
 
-    #[sampling_in(msg_size = "1KB", refresh_period = "10s")]
+    #[queuing_in(msg_size = "1KB", msg_count = "10", discipline = "Fifo")]
     struct EchoRequestCl;
 
-    #[sampling_out(msg_size = "1KB")]
+    #[queuing_out(msg_size = "1KB", msg_count = "10", discipline = "Fifo")]
     struct EchoRequestSrv;
 
-    #[sampling_in(msg_size = "1KB", refresh_period = "10s")]
+    #[queuing_in(msg_size = "1KB", msg_count = "10", discipline = "Fifo")]
     struct EchoReplySrv;
 
-    #[sampling_out(msg_size = "1KB")]
+    #[queuing_out(msg_size = "1KB", msg_count = "10", discipline = "Fifo")]
     struct EchoReplyCl;
 
     #[sampling_in(name = "RouterConfig", refresh_period = "10s", msg_size = "1KB")]
@@ -290,19 +280,108 @@ mod router_partition {
     }
 }
 
-// ======================= Echo Partition Client ============================
+// ======================= XNG Echo client ===========================
 
-#[cfg(all(
-    feature = "client",
-    feature = "echo",
-    any(feature = "dummy", feature = "linux", feature = "xng")
-))]
-#[cfg_attr(feature = "dummy", partition(dummy_hypervisor::DummyHypervisor))]
+#[cfg(all(feature = "client", feature = "echo", feature = "xng"))]
+#[cfg_attr(feature = "xng", partition(a653rs_xng::apex::XngHypervisor))]
+mod router_partition {
+
+    #[queuing_in(msg_size = "1KB", msg_count = "10", discipline = "Fifo")]
+    struct EchoRequest;
+
+    #[queuing_out(msg_size = "1KB", msg_count = "10", discipline = "Fifo")]
+    struct EchoReply;
+
+    #[sampling_in(name = "RouterConfig", refresh_period = "10s", msg_size = "1KB")]
+    struct RouterConfig;
+
+    #[start(cold)]
+    fn cold_start(ctx: start::Context) {
+        warm_start(ctx);
+    }
+
+    #[start(warm)]
+    fn warm_start(mut ctx: start::Context) {
+        ctx.create_echo_request().unwrap();
+        ctx.create_echo_reply().unwrap();
+        ctx.create_router_config().unwrap();
+        ctx.create_aperiodic2().unwrap().start().unwrap();
+    }
+
+    #[aperiodic(
+        name = "ap2",
+        time_capacity = "50ms",
+        stack_size = "30KB",
+        base_priority = 5,
+        deadline = "Soft"
+    )]
+    fn aperiodic2(ctx: aperiodic2::Context) {
+        let router_config = ctx.router_config.unwrap();
+        network_partition::run_router!(
+            crate::router,
+            Hypervisor {},
+            router_config,
+            [("EchoRequest", ctx.echo_request.unwrap())],
+            [("EchoReply", ctx.echo_reply.unwrap())]
+        );
+    }
+}
+
+// ======================= XNG Echo server ===========================
+
+#[cfg(all(feature = "server", feature = "echo", feature = "xng",))]
+#[cfg_attr(feature = "xng", partition(a653rs_xng::apex::XngHypervisor))]
+mod router_partition {
+
+    #[queuing_out(msg_size = "1KB", msg_count = "10", discipline = "Fifo")]
+    struct EchoRequest;
+
+    #[queuing_in(msg_size = "1KB", msg_count = "10", discipline = "Fifo")]
+    struct EchoReply;
+
+    #[sampling_in(name = "RouterConfig", refresh_period = "10s", msg_size = "1KB")]
+    struct RouterConfig;
+
+    #[start(cold)]
+    fn cold_start(ctx: start::Context) {
+        warm_start(ctx);
+    }
+
+    #[start(warm)]
+    fn warm_start(mut ctx: start::Context) {
+        ctx.create_echo_request().unwrap();
+        ctx.create_echo_reply().unwrap();
+        ctx.create_router_config().unwrap();
+        ctx.create_aperiodic2().unwrap().start().unwrap();
+    }
+
+    #[aperiodic(
+        name = "ap2",
+        time_capacity = "50ms",
+        stack_size = "30KB",
+        base_priority = 5,
+        deadline = "Soft"
+    )]
+    fn aperiodic2(ctx: aperiodic2::Context) {
+        let router_config = ctx.router_config.unwrap();
+        network_partition::run_router!(
+            crate::router,
+            Hypervisor {},
+            router_config,
+            [("EchoReply", ctx.echo_reply.unwrap())],
+            [("EchoRequest", ctx.echo_request.unwrap())]
+        );
+    }
+}
+
+// ======================= Linux Echo Partition Client
+// ============================
+
+#[cfg(all(feature = "client", feature = "echo", feature = "linux",))]
 #[cfg_attr(
     feature = "linux",
     partition(a653rs_linux::partition::ApexLinuxPartition)
 )]
-#[cfg_attr(feature = "xng", partition(a653rs_xng::apex::XngHypervisor))]
 mod router_partition {
 
     #[sampling_in(msg_size = "1KB", refresh_period = "10s")]
@@ -346,19 +425,13 @@ mod router_partition {
     }
 }
 
-// ======================= Echo server ===========================
+// ======================= Linux Echo server ===========================
 
-#[cfg(all(
-    feature = "server",
-    feature = "echo",
-    any(feature = "dummy", feature = "linux", feature = "xng")
-))]
-#[cfg_attr(feature = "dummy", partition(dummy_hypervisor::DummyHypervisor))]
+#[cfg(all(feature = "server", feature = "echo", feature = "linux",))]
 #[cfg_attr(
     feature = "linux",
     partition(a653rs_linux::partition::ApexLinuxPartition)
 )]
-#[cfg_attr(feature = "xng", partition(a653rs_xng::apex::XngHypervisor))]
 mod router_partition {
 
     #[sampling_out(msg_size = "1KB")]

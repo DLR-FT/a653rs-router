@@ -8,7 +8,7 @@
   <Devices>
   </Devices>
   <Ports>
-    <SamplingPort name="EchoRequest" direction="source" irq="166"/>
-    <SamplingPort name="EchoReply" direction="destination" irq="167"/>
+    <QueuingPort name="EchoRequest" direction="source" irq="166"/>
+    <QueuingPort name="EchoReply" direction="destination" irq="167"/>
   </Ports>
 </Partition>

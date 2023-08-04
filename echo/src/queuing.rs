@@ -33,7 +33,7 @@ where
             small_trace!(end_echo_request_send);
             match result {
                 Ok(_) => {
-                    debug!(
+                    info!(
                         "EchoRequest: seqnr = {:?}, time = {:?} us",
                         data.sequence, data.when_us
                     );
@@ -99,7 +99,7 @@ where
                     trace!("Failed to decode echo reply: {e:?}");
                 }
                 Err(e) => {
-                    error!("Failed to receive reply: {e:?}");
+                    warn!("Failed to receive reply: {e:?}");
                 }
             }
         }
@@ -129,7 +129,10 @@ where
 
         // Check if configured to use sampling port
         let send_port = ctx
-            .create_queuing_port_sender(Name::from_str("EchoOut").unwrap(), QueuingDiscipline::Fifo)
+            .create_queuing_port_sender(
+                Name::from_str("EchoRequest").unwrap(),
+                QueuingDiscipline::Fifo,
+            )
             .unwrap();
 
         _ = self.sender.set(send_port);
@@ -148,7 +151,7 @@ where
             period: SystemTime::Normal(Duration::from_secs(1)),
             time_capacity: SystemTime::Infinite,
             entry_point: self.entry_point_periodic,
-            stack_size: 10000,
+            stack_size: 20_000,
             base_priority: 5,
             deadline: Deadline::Soft,
             name: Name::from_str("EchoSend").unwrap(),

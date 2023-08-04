@@ -274,7 +274,7 @@
                 name = "echo-remote-xng-client";
                 partitions = {
                   Router = "${self.packages."${system}".router-echo-xng-client}/lib/librouter_echo_xng.a";
-                  EchoClient = "${self.packages."${system}".echo-sampling-xng-client}/lib/libecho_sampling_xng.a";
+                  EchoClient = "${self.packages."${system}".echo-queuing-xng-client}/lib/libecho_queuing_xng.a";
                   Config = "${self.packages."${system}".configurator--xng-client}/lib/libconfigurator__xng.a";
                 };
               };
@@ -283,7 +283,7 @@
                 name = "echo-remote-xng-server";
                 partitions = {
                   Router = "${self.packages."${system}".router-echo-xng-server}/lib/librouter_echo_xng.a";
-                  EchoServer = "${self.packages."${system}".echo-sampling-xng-server}/lib/libecho_sampling_xng.a";
+                  EchoServer = "${self.packages."${system}".echo-queuing-xng-server}/lib/libecho_queuing_xng.a";
                   Config = "${self.packages."${system}".configurator--xng-server}/lib/libconfigurator__xng.a";
                 };
               };
@@ -291,16 +291,16 @@
                 inherit pkgs xngOps lithOsOps;
                 name = "echo-direct-xng";
                 partitions = {
-                  EchoClient = "${self.packages."${system}".echo-sampling-xng-client}/lib/libecho_sampling_xng.a";
-                  EchoServer = "${self.packages."${system}".echo-sampling-xng-server}/lib/libecho_sampling_xng.a";
+                  EchoClient = "${self.packages."${system}".echo-queuing-xng-client}/lib/libecho_queuing_xng.a";
+                  EchoServer = "${self.packages."${system}".echo-queuing-xng-server}/lib/libecho_queuing_xng.a";
                 };
               };
               echo-local-xng = xngImage rec {
                 inherit pkgs xngOps lithOsOps;
                 name = "echo-local-xng";
                 partitions = {
-                  EchoClient = "${self.packages."${system}".echo-sampling-xng-client}/lib/libecho_sampling_xng.a";
-                  EchoServer = "${self.packages."${system}".echo-sampling-xng-server}/lib/libecho_sampling_xng.a";
+                  EchoClient = "${self.packages."${system}".echo-queuing-xng-client}/lib/libecho_queuing_xng.a";
+                  EchoServer = "${self.packages."${system}".echo-queuing-xng-server}/lib/libecho_queuing_xng.a";
                   Router = "${self.packages."${system}".router-echo-xng-local}/lib/librouter_echo_xng.a";
                   Config = "${self.packages."${system}".configurator--xng-local}/lib/libconfigurator__xng.a";
                 };

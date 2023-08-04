@@ -142,7 +142,11 @@ pub fn run() {
 
     #[cfg(feature = "server")]
     {
+        #[cfg(feature = "sampling")]
         use server::EchoServerPartition;
+
+        #[cfg(feature = "queuing")]
+        use server_queuing::EchoServerPartition;
 
         info!("Echo server main");
         let partition = EchoServerPartition::new(

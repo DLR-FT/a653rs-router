@@ -12,10 +12,10 @@
     </Device>
   </Devices>
   <Ports>
-    <SamplingPort name="EchoRequestCl" direction="destination" irq="166"/>
-    <SamplingPort name="EchoReplyCl" direction="source" irq="167"/>
-    <SamplingPort name="EchoRequestSrv" direction="source" irq="168"/>
-    <SamplingPort name="EchoReplySrv" direction="destination" irq="169"/>
+    <QueuingPort name="EchoRequestCl" direction="destination" irq="166"/>
+    <QueuingPort name="EchoReplyCl" direction="source" irq="167"/>
+    <QueuingPort name="EchoRequestSrv" direction="source" irq="168"/>
+    <QueuingPort name="EchoReplySrv" direction="destination" irq="169"/>
     <SamplingPort name="RouterConfig" direction="destination" irq="170"/>
   </Ports>
 </Partition>

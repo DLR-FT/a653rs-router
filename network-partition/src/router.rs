@@ -201,7 +201,7 @@ impl<const M: MessageSize, const R: MessageRange, Q: ApexQueuingPortP4> RouterIn
         let res = self.receive(buf, timeout);
         small_trace!(end_apex_send, vl.0 as u16);
         match res {
-            Err(_e) => Err(Error::PortSendFail),
+            Err(_e) => Err(Error::PortReceiveFail),
             Ok(buf) => {
                 if buf.is_empty() {
                     Err(Error::InvalidData)

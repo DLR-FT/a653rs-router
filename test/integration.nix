@@ -19,12 +19,8 @@ in
 {
   name = "network-partition-integration";
   hostPkgs = hostPkgs;
-  node.specialArgs = {
-    inherit configurator-client configurator-server hypervisor echo-client echo-server router-client router-server;
-  };
 
-  nodes.client = { config, lib, pkgs, specialArgs, ... }: {
-    environment.systemPackages = [ pkgs.tcpdump ];
+  nodes.client = { config, lib, pkgs, ... }: {
 
     networking.firewall.enable = false;
     networking.interfaces.eth1.ipv4 = {
@@ -36,53 +32,10 @@ in
       ];
     };
 
-    environment.etc."hypervisor_config_client.yml" =
-      {
-        text = ''
-          major_frame: 1s
-          partitions:
-            - id: 1
-              name: Echo
-              duration: 300ms
-              offset: 0ms
-              period: 1s
-              image: ${specialArgs.echo-client}/bin/echo-sampling-linux
-            - id: 2
-              name: Network
-              duration: 300ms
-              offset: 350ms
-              period: 1s
-              image: ${specialArgs.router-client}/bin/router-echo-linux
-              udp_ports:
-                - "0.0.0.0:8081"
-            - id: 3
-              name: Cfgr
-              duration: 300ms
-              offset: 650ms
-              period: 1s
-              image: ${specialArgs.configurator-client}/bin/configurator--linux
-          channel:
-            - !Sampling
-              name: EchoRequest
-              msg_size: 1KB
-              source: Echo
-              destination:
-                - Network
-            - !Sampling
-              name: EchoReply
-              msg_size: 1KB
-              source: Network
-              destination:
-                - Echo
-            - !Sampling
-              name: RouterConfig
-              msg_size: 1KB
-              source: Cfgr
-              destination:
-                - Network
-        '';
-        mode = "0444";
-      };
+    environment.etc."hypervisor_config_client.yml" = {
+      source = ./client.yml;
+      mode = "0444";
+    };
 
     systemd.services.linux-hypervisor = {
       inherit environment;
@@ -93,12 +46,16 @@ in
       wantedBy = [ "multi-user.target" ];
       after = [ "network-online.target" ];
       wants = [ "network-online.target" ];
+      path = [
+        configurator-client
+        echo-client
+        hypervisor
+        router-client
+      ];
     };
   };
 
   nodes.server = { config, lib, pkgs, specialArgs, ... }: {
-    environment.systemPackages = [ pkgs.tcpdump ];
-
     systemd.services.linux-hypervisor = {
       inherit environment;
       enable = true;
@@ -108,6 +65,12 @@ in
       wantedBy = [ "multi-user.target" ];
       after = [ "network-online.target" ];
       wants = [ "network-online.target" ];
+      path = [
+        configurator-server
+        echo-server
+        hypervisor
+        router-server
+      ];
     };
 
     networking.firewall.enable = false;
@@ -121,50 +84,7 @@ in
     };
 
     environment.etc."hypervisor_config_server.yml" = {
-      text = ''
-        major_frame: 1s
-        partitions:
-          - id: 0
-            name: Echo
-            duration: 300ms
-            offset: 0ms
-            period: 1s
-            image: ${specialArgs.echo-server}/bin/echo-sampling-linux
-          - id: 1
-            name: Network
-            duration: 300ms
-            offset: 400ms
-            period: 1s
-            image: ${specialArgs.router-server}/bin/router-echo-linux
-            udp_ports:
-              - "0.0.0.0:8082"
-          - id: 3
-            name: Cfgr
-            duration: 300ms
-            offset: 700ms
-            period: 1s
-            image: ${specialArgs.configurator-server}/bin/configurator--linux
-        channel:
-          - !Sampling
-            name: EchoRequest
-            msg_size: 1KB
-            source: Network
-            destination:
-              - Echo
-          - !Sampling
-            name: EchoReply
-            msg_size: 1KB
-            source: Echo
-            destination:
-              - Network
-          - !Sampling
-            name: RouterConfig
-            msg_size: 1KB
-            source: Cfgr
-            destination:
-              - Network
-
-      '';
+      source = ./server.yml;
       mode = "0444";
     };
   };

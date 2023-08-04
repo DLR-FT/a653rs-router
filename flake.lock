@@ -248,11 +248,11 @@
         "utils": "utils"
       },
       "locked": {
-        "lastModified": 1690187009,
-        "narHash": "sha256-PR+gpuqY9opGNdi9rmgjBKYoX827h0jLeRD+XXSOXXM=",
+        "lastModified": 1691147762,
+        "narHash": "sha256-r7VzFSs+5Or2zclJD8gFlvCSDwqk8qutHvxbqyNhSPw=",
         "owner": "dadada",
         "repo": "apex-linux",
-        "rev": "f7eb6e9f7094a3b2f1804e2002a378edb26e45dc",
+        "rev": "92d24ecaf5021721a5bd30183e3c3cb14dcfea17",
         "type": "github"
       },
       "original": {

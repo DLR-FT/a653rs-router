@@ -1,0 +1,41 @@
+major_frame: 1s
+partitions:
+  - id: 0
+    name: Echo
+    duration: 300ms
+    offset: 0ms
+    period: 1s
+    image: echo-sampling-linux
+  - id: 1
+    name: Network
+    duration: 300ms
+    offset: 400ms
+    period: 1s
+    image: router-echo-linux
+    udp_ports:
+      - "0.0.0.0:8082"
+  - id: 3
+    name: Cfgr
+    duration: 300ms
+    offset: 700ms
+    period: 1s
+    image: configurator--linux
+channel:
+  - !Sampling
+    name: EchoRequest
+    msg_size: 1KB
+    source: Network
+    destination:
+      - Echo
+  - !Sampling
+    name: EchoReply
+    msg_size: 1KB
+    source: Echo
+    destination:
+      - Network
+  - !Sampling
+    name: RouterConfig
+    msg_size: 1KB
+    source: Cfgr
+    destination:
+      - Network

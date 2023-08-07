@@ -31,7 +31,7 @@ use once_cell::unsync::OnceCell;
 use serde::{Deserialize, Serialize};
 
 #[allow(dead_code)]
-const LOG_LEVEL: log::LevelFilter = log::LevelFilter::Debug;
+const LOG_LEVEL: log::LevelFilter = log::LevelFilter::Info;
 
 #[allow(dead_code)]
 #[cfg(feature = "dummy")]
@@ -47,7 +47,7 @@ type Hypervisor = a653rs_xng::apex::XngHypervisor;
 
 #[allow(dead_code)]
 #[cfg(any(feature = "dummy", feature = "xng", feature = "linux"))]
-const ECHO_SIZE: MessageSize = 100;
+const ECHO_SIZE: MessageSize = 1000;
 
 #[cfg(all(
     feature = "queuing",
@@ -142,7 +142,11 @@ pub fn run() {
 
     #[cfg(feature = "server")]
     {
+        #[cfg(feature = "sampling")]
         use server::EchoServerPartition;
+
+        #[cfg(feature = "queuing")]
+        use server_queuing::EchoServerPartition;
 
         info!("Echo server main");
         let partition = EchoServerPartition::new(

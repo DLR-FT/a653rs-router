@@ -11,7 +11,7 @@ use a653rs::prelude::{
 };
 use core::{fmt::Debug, time::Duration};
 use heapless::{LinearMap, Vec};
-use log::{debug, trace, warn};
+use log::debug;
 use small_trace::small_trace;
 
 /// An input to a virtual link.
@@ -76,12 +76,10 @@ impl<'a, const I: usize, const O: usize> Router<'a, I, O> {
         let time = time_source.get_time()?;
         if let Some(next) = scheduler.schedule_next(&time) {
             small_trace!(begin_virtual_link_scheduled, next.0 as u16);
-            trace!("Scheduled VL {next}");
             let res = self.route::<B>(&next);
             small_trace!(end_virtual_link_scheduled, next.0 as u16);
             res.map(|_| Some(next))
         } else {
-            trace!("Scheduled no VL");
             Ok(None)
         }
     }
@@ -161,16 +159,12 @@ impl<const M: MessageSize, S: ApexSamplingPortP4> RouterInput for SamplingPortDe
         match res {
             Ok((val, data)) => {
                 if val == Validity::Invalid {
-                    warn!("Reading invalid data from port");
                     Err(Error::InvalidData)
                 } else {
                     Ok((*vl, data))
                 }
             }
-            Err(_e) => {
-                warn!("Failed to receive data from port");
-                Err(Error::PortReceiveFail)
-            }
+            Err(_e) => Err(Error::PortReceiveFail),
         }
     }
 }
@@ -184,10 +178,8 @@ impl<const M: MessageSize, S: ApexSamplingPortP4> RouterOutput for SamplingPortS
         let res = self.send(buf);
         small_trace!(end_apex_send, vl.0 as u16);
         if let Err(_e) = res {
-            warn!("Failed to write to sampling port");
             Err(Error::PortSendFail)
         } else {
-            trace!("Wrote to source: {buf:?}");
             Ok(())
         }
     }
@@ -209,14 +201,9 @@ impl<const M: MessageSize, const R: MessageRange, Q: ApexQueuingPortP4> RouterIn
         let res = self.receive(buf, timeout);
         small_trace!(end_apex_send, vl.0 as u16);
         match res {
-            Err(_e) => {
-                warn!("Failed to write to queuing port");
-                Err(Error::PortSendFail)
-            }
+            Err(_e) => Err(Error::PortReceiveFail),
             Ok(buf) => {
-                trace!("Received data from local queueing port");
                 if buf.is_empty() {
-                    warn!("Dropping empty message");
                     Err(Error::InvalidData)
                 } else {
                     Ok((*vl, buf))
@@ -238,10 +225,8 @@ impl<const M: MessageSize, const R: MessageRange, Q: ApexQueuingPortP4> RouterOu
         let res = self.send(buf, timeout);
         small_trace!(end_apex_send, vl.0 as u16);
         if let Err(_e) = res {
-            warn!("Failed to write to queuing port");
             Err(Error::PortSendFail)
         } else {
-            trace!("Wrote to source: {buf:?}");
             Ok(())
         }
     }

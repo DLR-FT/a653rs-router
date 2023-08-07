@@ -22,6 +22,7 @@ linux = [ "dep:a653rs-linux" ]
 xng = [ "dep:a653rs-xng", "dep:xng-rs-log" ]
 client = [ ]
 server = [ ]
+local = [ ]
 
 [dependencies.a653rs]
 workspace = true

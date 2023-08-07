@@ -22,8 +22,13 @@ where
         info!("Running echo client periodic process");
         let mut i: u32 = 0;
         loop {
+            let now = match <H as ApexTimeP4Ext>::get_time() {
+                SystemTime::Infinite => {
+                    continue;
+                }
+                SystemTime::Normal(now) => now,
+            };
             i += 1;
-            let now = <H as ApexTimeP4Ext>::get_time().unwrap_duration();
             let data = Echo {
                 sequence: i,
                 when_us: now.as_micros() as u64,
@@ -33,7 +38,7 @@ where
             small_trace!(end_echo_request_send);
             match result {
                 Ok(_) => {
-                    debug!(
+                    info!(
                         "EchoRequest: seqnr = {:?}, time = {:?} us",
                         data.sequence, data.when_us
                     );
@@ -65,7 +70,12 @@ where
         loop {
             trace!("Running echo client aperiodic process");
             let result = port.recv_type::<Echo>(SystemTime::Normal(Duration::from_millis(10)));
-            let now = <H as ApexTimeP4Ext>::get_time().unwrap_duration();
+            let now = match <H as ApexTimeP4Ext>::get_time() {
+                SystemTime::Infinite => {
+                    continue;
+                }
+                SystemTime::Normal(now) => now,
+            };
 
             match result {
                 Ok(data) => {
@@ -99,7 +109,7 @@ where
                     trace!("Failed to decode echo reply: {e:?}");
                 }
                 Err(e) => {
-                    error!("Failed to receive reply: {e:?}");
+                    warn!("Failed to receive reply: {e:?}");
                 }
             }
         }
@@ -129,7 +139,10 @@ where
 
         // Check if configured to use sampling port
         let send_port = ctx
-            .create_queuing_port_sender(Name::from_str("EchoOut").unwrap(), QueuingDiscipline::Fifo)
+            .create_queuing_port_sender(
+                Name::from_str("EchoRequest").unwrap(),
+                QueuingDiscipline::Fifo,
+            )
             .unwrap();
 
         _ = self.sender.set(send_port);
@@ -148,7 +161,7 @@ where
             period: SystemTime::Normal(Duration::from_secs(1)),
             time_capacity: SystemTime::Infinite,
             entry_point: self.entry_point_periodic,
-            stack_size: 10000,
+            stack_size: 20_000,
             base_priority: 5,
             deadline: Deadline::Soft,
             name: Name::from_str("EchoSend").unwrap(),

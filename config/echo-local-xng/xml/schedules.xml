@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<Schedules xmlns="http://www.fentiss.com/xngScheduleXml">
+  <Schedule name="sched0" majorFrame="5ms">
+    <Cpu id="0">
+      <PartitionWindow id="0" partition="Config" offset="0ms" duration="1ms" startPoint="true" />
+      <PartitionWindow id="1" partition="EchoClient" offset="1ms" duration="1ms" startPoint="true" />
+      <PartitionWindow id="3" partition="EchoServer" offset="2ms" duration="1ms" startPoint="true" />
+      <PartitionWindow id="2" partition="Router" offset="3ms" duration="2ms" startPoint="true" />
+    </Cpu>
+  </Schedule>
+</Schedules>

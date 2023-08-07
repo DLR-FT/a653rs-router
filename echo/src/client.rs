@@ -36,7 +36,7 @@ where
                     small_trace!(end_echo_request_send);
                     match result {
                         Ok(_) => {
-                            debug!(
+                            info!(
                                 "EchoRequest: seqnr = {:?}, time = {:?} us",
                                 data.sequence, data.when_us
                             );
@@ -107,7 +107,7 @@ where
                     trace!("Failed to decode echo reply: {e:?}");
                 }
                 _ => {
-                    error!("Failed to receive echo reply");
+                    debug!("Failed to receive echo reply");
                 }
             }
         }
@@ -151,7 +151,7 @@ where
             period: SystemTime::Normal(Duration::from_secs(1)),
             time_capacity: SystemTime::Infinite,
             entry_point: self.entry_point_periodic,
-            stack_size: 100000,
+            stack_size: 20_000,
             base_priority: 5,
             deadline: Deadline::Soft,
             name: Name::from_str("EchoSend").unwrap(),
@@ -167,7 +167,7 @@ where
             period: SystemTime::Infinite,
             time_capacity: SystemTime::Infinite,
             entry_point: self.entry_point_aperiodic,
-            stack_size: 100000,
+            stack_size: 20_000,
             base_priority: 1,
             deadline: Deadline::Soft,
             name: Name::from_str("EchoReceive").unwrap(),

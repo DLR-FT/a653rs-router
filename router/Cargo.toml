@@ -50,6 +50,7 @@ throughput = []
 # Component configuration
 client = []
 server = []
+local = []
 
 # Platform configuration
 dummy = [ "dep:dummy-hypervisor" ]

@@ -69,7 +69,7 @@ where
         let mut last = 0;
         loop {
             trace!("Running echo client aperiodic process");
-            let result = port.recv_type::<Echo>(SystemTime::Normal(Duration::from_millis(10)));
+            let result = port.recv_type::<Echo>(SystemTime::Normal(Duration::from_millis(100)));
             let now = match <H as ApexTimeP4Ext>::get_time() {
                 SystemTime::Infinite => {
                     continue;

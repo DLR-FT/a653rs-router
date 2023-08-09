@@ -85,6 +85,14 @@ mod configurator {
                 .destination(2, "EchoReplyCl")?
                 .schedule(2, Duration::from_millis(5))?
                 .build(),
+            ConfigOption::EchoLocalClientRemote => Config::builder()
+                .virtual_link(1, "EchoRequestCl")?
+                .destination(1, "NodeB")?
+                .schedule(1, Duration::from_millis(10))?
+                .virtual_link(2, "NodeB")?
+                .destination(2, "EchoReplyCl")?
+                .schedule(2, Duration::from_millis(10))?
+                .build(),
             ConfigOption::Default => Ok(Config::default()),
         }
     }
@@ -94,6 +102,7 @@ mod configurator {
         EchoClient,
         EchoServer,
         EchoLocal,
+        EchoLocalClientRemote,
         Default,
     }
 
@@ -119,8 +128,21 @@ mod configurator {
     fn periodic(ctx: periodic::Context) {
         debug!("Running configurator periodic process");
         let port = ctx.router_config.unwrap();
+        #[cfg(feature = "alt-local-client")]
+        let mut counter = 0usize;
         loop {
+            #[cfg(not(feature = "alt-local-client"))]
             let cfg = config(CONFIG).unwrap();
+            #[cfg(feature = "alt-local-client")]
+            let cfg = {
+                counter += 1;
+                counter %= 20;
+                if counter < 10 {
+                    config(ConfigOption::EchoLocalClientRemote).unwrap()
+                } else {
+                    config(ConfigOption::EchoLocal).unwrap()
+                }
+            };
             debug!("Sending configuration: {cfg:?}");
             if let Err(e) = port.send_type(cfg) {
                 error!("Failed to update config: {e:?}");

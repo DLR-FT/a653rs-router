@@ -171,6 +171,15 @@
                   '';
                 }
                 {
+                  name = "run-echo-alt-local-remote-xng";
+                  help =
+                    "Compile, flash and run the echo client and server on XNG, on two distributed nodes and locally";
+                  command = ''
+                    run-xng "echo-remote-xng-server" 210370AD5202A
+                    run-xng "echo-alt-local-client-xng" 210370AD523FA
+                  '';
+                }
+                {
                   name = "run-picocom";
                   help = "Launches picocom";
                   command = ''
@@ -209,6 +218,7 @@
                   echo-local-xng
                   echo-remote-xng-client
                   echo-remote-xng-server
+                  echo-alt-local-client-xng
                 ]
               );
             };
@@ -228,7 +238,7 @@
             (allProducts {
               inherit rustPlatform platforms;
               products = [ "router" ];
-              flavors = [ "client" "server" "local" ];
+              flavors = [ "client" "server" "local" "alt-local-client" ];
               variants = [ "echo" "throughput" ];
             })
             //
@@ -242,7 +252,7 @@
             (allProducts {
               inherit rustPlatform;
               products = [ "configurator" ];
-              flavors = [ "client" "server" "local" ];
+              flavors = [ "client" "server" "local" "alt-local-client" ];
               variants = [ "" ];
               platforms = [
                 { feature = "linux"; target = "x86_64-unknown-linux-musl"; }
@@ -303,6 +313,16 @@
                   EchoServer = "${self.packages."${system}".echo-queuing-xng-server}/lib/libecho_queuing_xng.a";
                   Router = "${self.packages."${system}".router-echo-xng-local}/lib/librouter_echo_xng.a";
                   Config = "${self.packages."${system}".configurator--xng-local}/lib/libconfigurator__xng.a";
+                };
+              };
+              echo-alt-local-client-xng = xngImage rec {
+                inherit pkgs xngOps lithOsOps;
+                name = "echo-alt-local-client-xng";
+                partitions = {
+                  EchoClient = "${self.packages."${system}".echo-queuing-xng-client}/lib/libecho_queuing_xng.a";
+                  EchoServer = "${self.packages."${system}".echo-queuing-xng-server}/lib/libecho_queuing_xng.a";
+                  Router = "${self.packages."${system}".router-echo-xng-alt-local-client}/lib/librouter_echo_xng.a";
+                  Config = "${self.packages."${system}".configurator--xng-alt-local-client}/lib/libconfigurator__xng.a";
                 };
               };
             };

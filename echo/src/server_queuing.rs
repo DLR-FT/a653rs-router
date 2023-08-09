@@ -81,7 +81,7 @@ where
 #[derive(Debug)]
 pub struct EchoServerProcess<const ECHO_SIZE: MessageSize, const RANGE: MessageRange>;
 
-const TIMEOUT: SystemTime = SystemTime::Normal(Duration::from_millis(10));
+const TIMEOUT: SystemTime = SystemTime::Normal(Duration::from_millis(100));
 
 impl<const ECHO_SIZE: MessageSize, const RANGE: MessageRange> EchoServerProcess<ECHO_SIZE, RANGE>
 where

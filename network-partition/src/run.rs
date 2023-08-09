@@ -27,26 +27,30 @@ pub fn run<const IN: usize, const OUT: usize, const BUF_LEN: usize>(
     info!("Running network-partition");
     let mut cfg: Config<IN, OUT> = Config::default();
     let mut router: Option<Router<IN, OUT>> = None;
+    let mut reconfigure_timer: u32 = 0;
     loop {
-        let new_config = Configurator::fetch_config(router_config);
-        match new_config {
-            Ok(new_cfg) => {
-                if new_cfg != cfg {
-                    debug!("New config = {new_cfg:?}");
-                    match Configurator::reconfigure(&resources, scheduler, &new_cfg) {
-                        Ok(r) => {
-                            router = Some(r);
-                            cfg = new_cfg;
-                            info!("Reconfigured");
+        if reconfigure_timer == 0 {
+            let new_config = Configurator::fetch_config(router_config);
+            match new_config {
+                Ok(new_cfg) => {
+                    if new_cfg != cfg {
+                        debug!("New config = {new_cfg:?}");
+                        match Configurator::reconfigure(&resources, scheduler, &new_cfg) {
+                            Ok(r) => {
+                                router = Some(r);
+                                cfg = new_cfg;
+                                info!("Reconfigured");
+                            }
+                            Err(e) => warn!("Failed to reconfigure: {e:?}"),
                         }
-                        Err(e) => warn!("Failed to reconfigure: {e:?}"),
                     }
                 }
+                Err(Error::InterfaceReceiveFail(e)) => debug!("{e:?}"),
+                Err(Error::PortReceiveFail) => debug!("{new_config:?}"),
+                Err(e) => error!("Failed to fetch config: {e:?}"),
             }
-            Err(Error::InterfaceReceiveFail(e)) => debug!("{e:?}"),
-            Err(Error::PortReceiveFail) => debug!("{new_config:?}"),
-            Err(e) => error!("Failed to fetch config: {e:?}"),
         }
+        reconfigure_timer = (reconfigure_timer + 1) % 0x10000;
         if let Some(ref router) = router {
             let res = router.forward::<BUF_LEN>(scheduler, time_source);
             match res {

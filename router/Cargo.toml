@@ -51,6 +51,7 @@ throughput = []
 client = []
 server = []
 local = []
+alt-local-client = []
 
 # Platform configuration
 dummy = [ "dep:dummy-hypervisor" ]

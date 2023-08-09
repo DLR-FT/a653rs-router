@@ -23,6 +23,7 @@ xng = [ "dep:a653rs-xng", "dep:xng-rs-log" ]
 client = [ ]
 server = [ ]
 local = [ ]
+alt-local-client = []
 
 [dependencies.a653rs]
 workspace = true

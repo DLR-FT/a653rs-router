@@ -1,10 +1,10 @@
-//! A small tracer that writes 8 bit GPIO. See https://docs.xilinx.com/v/u/en-US/pg144-axi-gpio
+//! A small tracer that writes 8 bit GPIO. See <https://docs.xilinx.com/v/u/en-US/pg144-axi-gpi>
 //!
 //! Only the first of two GPIO channels is enabled. It is set to output only
 //! with a width of 8 bit. The bits are mapped to ports IO 26 to 33 on the
 //! CoraZ7.
 //!
-//! The fpga design files are at https://github.com/dadada/vivado-coraz7-uart
+//! The fpga design files are at <https://gitlab.dlr.de/projekt-resilienz/vivado-coraz7-uart>
 
 use core::marker::{Send, Sync};
 use small_trace::{TraceEvent, Tracer};

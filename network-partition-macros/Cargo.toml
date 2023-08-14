@@ -24,7 +24,7 @@ version = "1.0"
 
 [dev-dependencies.network-partition]
 path = "../network-partition"
-features = [ "serde" ]
+features = [ "macros", "serde" ]
 
 [dev-dependencies.a653rs]
 workspace = true

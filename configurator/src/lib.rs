@@ -1,3 +1,6 @@
+//! This crate contains a stub mitigator that demonstrates how to provide the
+//! router with a runtime configuration using a sampling port.
+
 #![no_std]
 
 #[cfg(all(feature = "linux", feature = "xng"))]

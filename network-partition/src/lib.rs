@@ -1,4 +1,65 @@
-//! Network partition for ARINC653 P1/P2/P4 based on apex-rs
+//! Message router and IO-partition for ARINC 653 P4 based on [`a653rs`](https://github.com/DLR-FT/a653rs).
+//!
+//! The router concept is explained in more detail in [*Towards Enabling Level 3A AI in Avionic Platforms*](https://doi.org/10.18420/se2023-ws-18).
+//!
+//! ## Using as a Partition
+//!
+//! To create a partition containing the message router, it is recommended to
+//! use the macros [`macro@router_config`], [`macro@run_router`] and
+//! [`a653rs::partition`] that are available when requiring the `macros` feature
+//! in both crates. For a full example see
+//! [`network_partition_macros`](../network_partition_macros/index.html).
+//!
+//! ## Configuration
+//! The configuration of the router consists of two stages that depend on each
+//! other. The compile-time configuration declares what inputs and outputs are
+//! available to the router. The run-time configuration contains the routing
+//! information that enables the router to forward messages between
+//! attached partitions and between partitions and the network.
+//!
+//! ### Compile-Time Configuration
+//!
+//! The static part of the configuration can only be defined at compile time,
+//! because it defines the maximum size of the data structures, such as the
+//! route table. This has the advantage of providing a deterministic memory
+//! consumption when the router is deployed. The size of these data-structures
+//! is defined using const generics on types such as [`prelude::Router`].
+//!
+//! Each compile-time configuration provides a superset of the resources
+//! required by all runtime configurations used in a specific deployment.
+//!
+//! ### Runtime Configuration
+//!
+//! The dynamic part of the configuration is defined at runtime. It is regularly
+//! read from an external source that implements [`prelude::RouterInput`].
+//! If the router detects a change to the configuration, it first checks that
+//! the provided configuration is correct, and then attempts to reconfigure
+//! itself.
+//!
+//! A configuration is correct only if all inputs and outputs that are
+//! named by it are also part of the compile-time configuration. An individual
+//! configuration may leave some statically configured inputs and outputs
+//! unused.
+//!
+//! See [`prelude::Config`] for an example of the run-time configuration.
+//!
+//! ## Running the Router
+//!
+//! This crate defines a [`run()`] entry-point that continuously runs the
+//! router. The entry-point is only available if the `serde` feature is enabled,
+//! since it reads the serialized configuration from a [`prelude::RouterInput`].
+//!
+//! ## Adding New Network Interface Implementations
+//!
+//! To add support for new network interface types, only
+//! [`prelude::PlatformNetworkInterface`] and
+//! [`prelude::CreateNetworkInterfaceId`] need to be implmeneted, one
+//! providing the driver implementation for the interface type and the other
+//! providing a way to create individual network interfaces of this type.
+//!
+//! ## Required APEX Services
+//!
+//! The router requires the hypervisor to implement at least `ApexTimeP4`.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(incomplete_features)]
@@ -22,10 +83,12 @@ mod run;
 mod scheduler;
 mod types;
 
+#[cfg(feature = "serde")]
+#[cfg_attr(doc_cfg, doc(cfg(feature = "serde")))]
 pub use crate::run::*;
 
-/// Standard Prelude to be used by network partition implementations (e.g.
-/// network_partition_linux)
+/// Standard Prelude to be used by router partitions and network interface
+/// implementations.
 pub mod prelude {
     pub use crate::config::{BuilderResult, Config, ConfigResult, RouterConfigError};
     pub use crate::network::{
@@ -38,9 +101,6 @@ pub mod prelude {
     pub use crate::types::*;
 }
 
-mod sealed {
-    pub(crate) trait Sealed {}
-}
-
 #[cfg(feature = "macros")]
+#[cfg_attr(doc_cfg, doc(cfg(feature = "serde")))]
 pub use network_partition_macros::*;

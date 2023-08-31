@@ -1,3 +1,10 @@
+//! This crate contains the static part of the router configurations used in the
+//! examples. For a full list of the examples, see `nix flake show`. The
+//! different combinations of hypervisors, static router configurations, network
+//! interfaces, and channel types are expressed using features. Do not depend on
+//! this crate. It is meant for the examples only. Instead create a new router
+//! as described in the module level documentation of `network-partition`.
+
 #![no_std]
 
 #[cfg(any(

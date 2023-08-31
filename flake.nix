@@ -92,17 +92,20 @@
               imports = [ "${devshell}/extra/git/hooks.nix" ];
               name = "network-partition-devshell";
               packages = with pkgs; [
-                hypervisorPackage
-                gcc
-                rust-toolchain
+                cargo-audit
+                cargo-llvm-cov
+                cargo-nextest
                 cargo-outdated
                 cargo-udeps
-                cargo-audit
                 cargo-watch
                 formatter
+                gcc
+                gitlab-clippy
+                hypervisorPackage
+                picocom
+                rust-toolchain
                 treefmt
                 vitis
-                picocom
               ];
               git.hooks.enable = true;
               git.hooks.pre-commit.text = ''

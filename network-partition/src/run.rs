@@ -15,9 +15,9 @@ use crate::{
 #[cfg(feature = "serde")]
 use crate::{error::Error, prelude::Router};
 
-/// Runs the router
-/// TODO make config from port optional
+/// Runs the router.
 #[cfg(feature = "serde")]
+#[cfg_attr(doc_cfg, doc(cfg(feature = "serde")))]
 pub fn run<const IN: usize, const OUT: usize, const BUF_LEN: usize>(
     time_source: &'_ dyn TimeSource,
     router_config: &'_ dyn RouterInput,

@@ -93,11 +93,11 @@ impl Router {
                 use super::*;
 
                 pub fn inputs<'a>() ->[(&'static str, &'a dyn RouterInput); #io ] {
-                    [ #( ( #interfaces ::NAME , unsafe { #interfaces ::VALUE.as_ref().unwrap() } ) ),* ]
+                    [ #( ( #interfaces ::NAME , unsafe { #interfaces ::VALUE.as_ref().expect("Interface not initialized") } ) ),* ]
                 }
 
                 pub fn outputs<'a>() -> [(&'static str, &'a dyn RouterOutput); #io ] {
-                    [ #( ( #interfaces ::NAME , unsafe { #interfaces ::VALUE.as_ref().unwrap() } ) ),* ]
+                    [ #( ( #interfaces ::NAME , unsafe { #interfaces ::VALUE.as_ref().expect("Interface not initialized") } ) ),* ]
                 }
 
                 pub fn init() -> Result<(), Error> {

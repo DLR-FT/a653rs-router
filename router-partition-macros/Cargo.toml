@@ -1,0 +1,39 @@
+[package]
+name = "router-partition-macros"
+version = "0.1.0"
+edition = "2021"
+description = "Macros for generating a module that runs a router of a given configuration as a ARINC 653 partition."
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+proc-macro = true
+
+[dependencies]
+convert_case = "0.6"
+darling = "0.20"
+humantime = "2.1"
+quote = "1.0"
+proc-macro2 = "1.0"
+
+[dependencies.bytesize]
+version = "1.3"
+features = [ "serde" ]
+
+[dependencies.syn]
+version = "2.0"
+features = [ "full" ]
+
+[dev-dependencies.a653rs]
+workspace = true
+features = ["macros"]
+
+[dev-dependencies.a653rs-linux]
+workspace = true
+
+[dev-dependencies.network-partition]
+path = "../network-partition"
+features = ["macros"]
+
+[dev-dependencies.network-partition-linux]
+path = "../network-partition-linux"

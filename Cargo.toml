@@ -9,6 +9,7 @@ members = [
   "network-partition-macros",
   "network-partition-uart",
   "router",
+  "router-partition-macros",
   "small-trace",
   "small-trace-gpio",
   "throughput",
@@ -19,6 +20,7 @@ default-members = [
   "network-partition-linux",
   "network-partition-macros",
   "network-partition-uart",
+  "router-partition-macros",
   "small-trace",
   "small-trace-gpio",
 ]

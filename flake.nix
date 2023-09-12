@@ -211,8 +211,8 @@
                 echo-client = echo-sampling-linux-client;
                 echo-server = echo-sampling-linux-server;
                 hypervisor = hypervisorPackage;
-                router-client = router-echo-linux-client;
-                router-server = router-echo-linux-server;
+                router-client = router-echo-client-linux;
+                router-server = router-echo-server-linux;
               });
               xng-images = nixpkgs.legacyPackages.${system}.linkFarmFromDrvs "all-images" (
                 with self.packages.${system}; [
@@ -227,6 +227,7 @@
           packages =
             let
               allProducts = self.lib.allProducts;
+              mkExample = self.lib.mkExample;
               xngImage = self.lib.xngImage;
               xngOps = self.packages.${system}.xng-ops;
               lithOsOps = self.packages.${system}.lithos-ops;
@@ -237,13 +238,6 @@
                 { feature = "xng"; target = "armv7a-none-eabi"; }
               ];
             in
-            (allProducts {
-              inherit rustPlatform platforms;
-              products = [ "router" ];
-              flavors = [ "client" "server" "local" "alt-local-client" ];
-              variants = [ "echo" "throughput" ];
-            })
-            //
             (allProducts {
               inherit rustPlatform platforms;
               products = [ "echo" ];
@@ -273,6 +267,41 @@
             })
             //
             {
+              router-echo-client-linux = mkExample {
+                inherit rustPlatform;
+                example = "router-echo-client-linux";
+                product = "router";
+                features = [ "linux" ];
+                target = "x86_64-unknown-linux-musl";
+              };
+              router-echo-server-linux = mkExample {
+                inherit rustPlatform;
+                example = "router-echo-server-linux";
+                product = "router";
+                features = [ "linux" ];
+                target = "x86_64-unknown-linux-musl";
+              };
+              router-echo-client-xng = mkExample {
+                inherit rustPlatform;
+                example = "router-echo-client-xng";
+                product = "router";
+                features = [ "xng" ];
+                target = "armv7a-none-eabi";
+              };
+              router-echo-server-xng = mkExample {
+                inherit rustPlatform;
+                example = "router-echo-server-xng";
+                product = "router";
+                features = [ "xng" ];
+                target = "armv7a-none-eabi";
+              };
+              router-echo-local-xng = mkExample {
+                inherit rustPlatform;
+                example = "router-echo-local-xng";
+                product = "router";
+                features = [ "xng" ];
+                target = "armv7a-none-eabi";
+              };
               xng-ops = xng-utils.lib.buildXngOps {
                 inherit pkgs;
                 src = xngSrcs.xng;
@@ -285,7 +314,7 @@
                 inherit pkgs xngOps lithOsOps;
                 name = "echo-remote-xng-client";
                 partitions = {
-                  Router = "${self.packages."${system}".router-echo-xng-client}/lib/librouter_echo_xng.a";
+                  Router = "${self.packages."${system}".router-echo-client-xng}/lib/librouter_echo_client_xng.a";
                   EchoClient = "${self.packages."${system}".echo-queuing-xng-client}/lib/libecho_queuing_xng.a";
                   Config = "${self.packages."${system}".configurator--xng-client}/lib/libconfigurator__xng.a";
                 };
@@ -294,7 +323,7 @@
                 inherit pkgs xngOps lithOsOps;
                 name = "echo-remote-xng-server";
                 partitions = {
-                  Router = "${self.packages."${system}".router-echo-xng-server}/lib/librouter_echo_xng.a";
+                  Router = "${self.packages."${system}".router-echo-server-xng}/lib/librouter_echo_server_xng.a";
                   EchoServer = "${self.packages."${system}".echo-queuing-xng-server}/lib/libecho_queuing_xng.a";
                   Config = "${self.packages."${system}".configurator--xng-server}/lib/libconfigurator__xng.a";
                 };
@@ -313,7 +342,7 @@
                 partitions = {
                   EchoClient = "${self.packages."${system}".echo-queuing-xng-client}/lib/libecho_queuing_xng.a";
                   EchoServer = "${self.packages."${system}".echo-queuing-xng-server}/lib/libecho_queuing_xng.a";
-                  Router = "${self.packages."${system}".router-echo-xng-local}/lib/librouter_echo_xng.a";
+                  Router = "${self.packages."${system}".router-echo-local-xng}/lib/librouter_echo_local_xng.a";
                   Config = "${self.packages."${system}".configurator--xng-local}/lib/libconfigurator__xng.a";
                 };
               };
@@ -323,7 +352,7 @@
                 partitions = {
                   EchoClient = "${self.packages."${system}".echo-queuing-xng-client}/lib/libecho_queuing_xng.a";
                   EchoServer = "${self.packages."${system}".echo-queuing-xng-server}/lib/libecho_queuing_xng.a";
-                  Router = "${self.packages."${system}".router-echo-xng-alt-local-client}/lib/librouter_echo_xng.a";
+                  Router = "${self.packages."${system}".router-echo-client-xng}/lib/librouter_echo_client_xng.a";
                   Config = "${self.packages."${system}".configurator--xng-alt-local-client}/lib/libconfigurator__xng.a";
                 };
               };

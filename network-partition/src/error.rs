@@ -94,7 +94,7 @@ impl Display for Error {
         match self {
             Error::IoScheduleError(e) => write!(f, "Error while accessing the scheduler: {e}"),
             Error::InterfaceCreationError(e) => write!(f, "Failed to create interface: {e}"),
-            Error::PortSendFail => write!(f, "Failed to send data"),
+            Error::PortSendFail => write!(f, "Failed to send data to the hypervisor"),
             Error::PortReceiveFail => write!(f, "Failed to receive data"),
             Error::InterfaceReceiveFail(reason) => {
                 write!(f, "Failed to receive data from an interface: {reason}")

@@ -181,7 +181,6 @@
 mod attrs;
 mod generate;
 mod parse;
-mod types;
 
 use generate::GenerateStream;
 use parse::{args::RunArgs, router::Router};

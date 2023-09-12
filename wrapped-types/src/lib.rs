@@ -1,5 +1,3 @@
-// TODO extract into crate
-
 use std::{str::FromStr, time::Duration};
 
 use bytesize::ByteSize;

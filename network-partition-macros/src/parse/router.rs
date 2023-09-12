@@ -1,6 +1,5 @@
 use syn::{spanned::Spanned, ItemMod, Path};
-
-use crate::types::WrappedByteSize;
+use wrapped_types::WrappedByteSize;
 
 use super::{interface::Interface, limits::Limits};
 

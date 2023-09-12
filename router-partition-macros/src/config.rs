@@ -1,7 +1,5 @@
 use darling::FromMeta;
-use syn::parse_quote;
-
-use crate::utils::{WrappedByteSize, WrappedDuration};
+use wrapped_types::{WrappedByteSize, WrappedDuration};
 
 #[derive(Debug, Clone, FromMeta)]
 pub struct StaticRouterConfig {

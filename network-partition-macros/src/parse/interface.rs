@@ -1,10 +1,8 @@
 use darling::{FromAttributes, FromMeta};
 use syn::{Attribute, Expr, Ident, Item};
+use wrapped_types::WrappedByteSize;
 
-use crate::{
-    attrs::{contains_attr, no_struct_body, remove_attr, MayFromAttributes},
-    types::WrappedByteSize,
-};
+use crate::attrs::{contains_attr, no_struct_body, remove_attr, MayFromAttributes};
 
 #[derive(Debug, Clone)]
 pub struct WrappedPath {

@@ -1,10 +1,8 @@
 use darling::FromAttributes;
 use syn::Item;
+use wrapped_types::WrappedByteSize;
 
-use crate::{
-    attrs::{no_struct_body, remove_attr, MayFromAttributes},
-    types::WrappedByteSize,
-};
+use crate::attrs::{no_struct_body, remove_attr, MayFromAttributes};
 
 use crate::attrs::contains_attr;
 

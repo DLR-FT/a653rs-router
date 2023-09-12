@@ -51,7 +51,6 @@ use syn::parse_macro_input;
 
 mod config;
 mod router_partition;
-mod utils;
 
 /// Produces a module for the router partition with the configuration file that
 /// is given as the first argument.

@@ -1,10 +1,8 @@
-use crate::{
-    config::{Interface, Port, StaticRouterConfig},
-    utils::{WrappedByteSize, WrappedDuration},
-};
+use crate::config::{Interface, Port, StaticRouterConfig};
 use proc_macro2::{Literal, TokenStream};
 use quote::{format_ident, quote};
 use syn::parse_quote;
+use wrapped_types::{WrappedByteSize, WrappedDuration};
 
 pub fn router_partition(name: syn::Ident, config: StaticRouterConfig) -> TokenStream {
     let router_mod: syn::Item = router_mod(&config).into();

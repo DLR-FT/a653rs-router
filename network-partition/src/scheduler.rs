@@ -51,6 +51,13 @@ pub struct DeadlineRrScheduler<const SLOTS: usize> {
     windows: Vec<Window, SLOTS>,
 }
 
+impl<const SLOTS: usize> DeadlineRrScheduler<SLOTS> {
+    /// Constructs a new DeadlineRrScheduler.
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
 impl<const SLOTS: usize> Scheduler for DeadlineRrScheduler<SLOTS> {
     fn schedule_next(&mut self, current_time: &Duration) -> Option<VirtualLinkId> {
         if self.windows.is_empty() {

@@ -20,7 +20,7 @@
 //!     inputs = 1,
 //!     outputs = 1,
 //!     mtu = "1.5KB",
-//!     port(sampling_in(name = "IGS", msg_size = "1KB", refresh_period = "10s")),
+//!     port(sampling_in(name = "[IGS]", msg_size = "1KB", refresh_period = "10s")),
 //!     port(sampling_out(name = "CAS", msg_size = "1KB")),
 //!     stack_size = "50MB",
 //!     time_capacity = "5ms"

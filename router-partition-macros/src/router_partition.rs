@@ -385,15 +385,15 @@ mod tests {
             router_partition(
               hypervisor = foo::bar,
               interface(
-                name = "51234",
-                kind = "UDP",
+                name = "[51234-",
+                kind = foo::bar,
                 destination = "127.0.0.1:51234",
                 mtu = "1KB",
                 rate = "100MB",
                 source = "127.0.0.1:54234"
               ),
               inputs = 2, outputs = 2, mtu = "1.5KB",
-              port(queuing_in(name = "IGS", discipline = "FIFO", msg_size = "1KB", msg_count = "10")),
+              port(queuing_in(name = "[[IGS]]", discipline = "FIFO", msg_size = "1KB", msg_count = "10")),
               port(queuing_out(name = "CAS", discipline = "FIFO", msg_size = "1KB", msg_count = "10")),
               stack_size = "50MB",
               time_capacity = "5ms"

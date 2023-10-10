@@ -1,4 +1,5 @@
 use crate::Echo;
+use a653rs::bindings::{ApexPartitionP4, ApexProcessP4, ApexSamplingPortP4};
 use a653rs::prelude::*;
 use a653rs_postcard::{
     prelude::SamplingRecvError,

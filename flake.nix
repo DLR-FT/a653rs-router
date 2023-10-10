@@ -366,6 +366,7 @@
             src = ./.;
             cargoLock.lockFile = ./Cargo.lock;
             cargoLock.outputHashes = {
+              "a653rs-0.3.2" = "sha256-Fg2mCZSJEU7jgM303HRLiLqIsrL3uJFfKXTlbR4mSJg=";
               "a653rs-linux-0.2.0" = "sha256-r7VzFSs+5Or2zclJD8gFlvCSDwqk8qutHvxbqyNhSPw=";
               "a653rs-postcard-0.2.0" = "sha256-xDM5PwV24ZQ3NPVl12A1zX7FvYgLUxcufMCft+BzOSU=";
               "a653rs-xng-0.1.0" = "sha256-7vZ8eWwLXzR4Fb4UCA2GyI8HRnKVR5NFcWumrzkUMNM=";

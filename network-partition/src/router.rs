@@ -5,9 +5,12 @@ use crate::{
     scheduler::{Scheduler, TimeSource},
     types::VirtualLinkId,
 };
-use a653rs::prelude::{
-    ApexQueuingPortP4, ApexSamplingPortP4, MessageRange, MessageSize, QueuingPortReceiver,
-    QueuingPortSender, SamplingPortDestination, SamplingPortSource, SystemTime, Validity,
+use a653rs::{
+    bindings::{ApexQueuingPortP4, ApexSamplingPortP4},
+    prelude::{
+        MessageRange, MessageSize, QueuingPortReceiver, QueuingPortSender, SamplingPortDestination,
+        SamplingPortSource, SystemTime, Validity,
+    },
 };
 use core::{fmt::Debug, time::Duration};
 use heapless::{LinearMap, Vec};

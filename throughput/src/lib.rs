@@ -2,6 +2,7 @@
 #![feature(generic_const_exprs)]
 #![allow(incomplete_features)]
 
+use a653rs::bindings::{ApexPartitionP4, ApexProcessP4, ApexQueuingPortP4};
 use a653rs::prelude::*;
 
 #[cfg(any(feature = "sender", feature = "receiver"))]

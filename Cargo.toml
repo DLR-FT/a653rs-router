@@ -27,9 +27,12 @@ default-members = [
   "wrapped-types",
 ]
 
+[patch.crates-io]
+a653rs = { git = "https://github.com/DLR-FT/a653rs.git", branch = "main" }
+
 [workspace.dependencies]
+a653rs = { version = "0.3.2", default-features = false }
 log = "0"
-a653rs = { version = "0.3", default-features = false }
 # For UDP socket support
 a653rs-linux = { git = "https://github.com/dadada/apex-linux.git", branch = "udp-network-driver", default-features = false }
 # A bit newer than the published version

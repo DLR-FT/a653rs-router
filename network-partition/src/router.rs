@@ -135,9 +135,7 @@ impl<'a, const I: usize, const O: usize> RouterBuilder<'a, I, O> {
             if inputs.contains_key(id) || outputs.contains_key(id) {
                 return Err(Error::InvalidConfig);
             }
-            _ = inputs
-                .insert(*id, (*i).clone())
-                .or(Err(Error::InvalidConfig));
+            _ = inputs.insert(*id, *i).or(Err(Error::InvalidConfig));
             _ = outputs.insert(*id, o.clone()).or(Err(Error::InvalidConfig));
         }
         Ok(Router::<'a, I, O> { inputs, outputs })

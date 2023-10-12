@@ -836,6 +836,7 @@ dependencies = [
  "a653rs-linux",
  "convert_case",
  "darling",
+ "itertools 0.11.0",
  "network-partition",
  "network-partition-linux",
  "proc-macro2",

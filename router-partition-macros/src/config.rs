@@ -50,34 +50,12 @@ type InterfaceType = syn::Path;
 
 #[derive(Debug, FromMeta, Clone)]
 pub struct Interface {
-    name: String,
-    kind: InterfaceType,
-    destination: String,
-    mtu: WrappedByteSize,
-    rate: WrappedByteSize,
-    source: String,
-}
-
-impl Interface {
-    pub fn into_inner(
-        self,
-    ) -> (
-        String,
-        InterfaceType,
-        String,
-        String,
-        WrappedByteSize,
-        WrappedByteSize,
-    ) {
-        (
-            self.name,
-            self.kind,
-            self.source,
-            self.destination,
-            self.rate,
-            self.mtu,
-        )
-    }
+    pub name: String,
+    pub kind: InterfaceType,
+    pub destination: String,
+    pub mtu: WrappedByteSize,
+    pub rate: WrappedByteSize,
+    pub source: String,
 }
 
 #[derive(Debug, FromMeta, Clone)]
@@ -106,12 +84,21 @@ pub enum Port {
 }
 
 impl Port {
-    fn name(&self) -> &String {
+    pub(crate) fn name(&self) -> &String {
         match self {
             Port::SamplingIn { name, .. } => name,
             Port::SamplingOut { name, .. } => name,
             Port::QueuingIn { name, .. } => name,
             Port::QueuingOut { name, .. } => name,
+        }
+    }
+
+    pub(crate) fn msg_size(&self) -> &WrappedByteSize {
+        match self {
+            Port::SamplingIn { msg_size, .. } => msg_size,
+            Port::SamplingOut { msg_size, .. } => msg_size,
+            Port::QueuingIn { msg_size, .. } => msg_size,
+            Port::QueuingOut { msg_size, .. } => msg_size,
         }
     }
 }

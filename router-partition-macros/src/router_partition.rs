@@ -66,7 +66,14 @@ impl<'a> IdedInterface<'a> {
 
 impl<'a> From<IdedInterface<'a>> for syn::ItemStruct {
     fn from(value: IdedInterface) -> Self {
-        let (name, kind, src, dst, rate, mtu) = value.interface.clone().into_inner();
+        let Interface {
+            name,
+            kind,
+            rate,
+            mtu,
+            destination,
+            source,
+        } = value.interface.clone();
         let id = format_ident!("Interface{}", value.id);
         let rate = rate.to_string();
         let mtu = mtu.to_string();
@@ -74,8 +81,8 @@ impl<'a> From<IdedInterface<'a>> for syn::ItemStruct {
             #[interface(
                 name = #name,
                 interface_type = #kind,
-                source = #src,
-                destination = #dst,
+                source = #source,
+                destination = #destination,
                 rate = #rate,
                 mtu = #mtu
             )]
@@ -135,13 +142,10 @@ impl<'a> From<&IdedPort<'a>> for syn::ItemStruct {
         let id = value.id;
         let id = format_ident!("Channel{}", id);
         let port = &value.port;
+        let msg_size = port.msg_size().to_string();
+        let name = port.name();
         match port {
-            Port::SamplingIn {
-                name,
-                msg_size,
-                refresh_period,
-            } => {
-                let msg_size = msg_size.to_string();
+            Port::SamplingIn { refresh_period, .. } => {
                 let refresh_period = format!("{}ns", refresh_period.as_nanos());
                 parse_quote! {
                     #[sampling_in(
@@ -152,8 +156,7 @@ impl<'a> From<&IdedPort<'a>> for syn::ItemStruct {
                     struct #id;
                 }
             }
-            Port::SamplingOut { name, msg_size } => {
-                let msg_size = msg_size.to_string();
+            Port::SamplingOut { .. } => {
                 parse_quote! {
                     #[sampling_out(
                         name = #name,
@@ -163,12 +166,10 @@ impl<'a> From<&IdedPort<'a>> for syn::ItemStruct {
                 }
             }
             Port::QueuingIn {
-                name,
                 discipline,
-                msg_size,
                 msg_count,
+                ..
             } => {
-                let msg_size = msg_size.to_string();
                 let msg_count = msg_count.to_string();
                 parse_quote! {
                     #[queuing_in(
@@ -181,10 +182,9 @@ impl<'a> From<&IdedPort<'a>> for syn::ItemStruct {
                 }
             }
             Port::QueuingOut {
-                name,
                 discipline,
-                msg_size,
                 msg_count,
+                ..
             } => {
                 let msg_size = msg_size.to_string();
                 let msg_count = msg_count.to_string();
@@ -327,10 +327,13 @@ fn warm_start_fn(in_port_ids: &[syn::Ident], out_port_ids: &[syn::Ident]) -> syn
     parse_quote! {
         #[start(warm)]
         fn warm_start(mut ctx: start::Context) {
-            ctx.create_router_config().unwrap();
-            #( ctx.#in_port_creates().unwrap(); )*
-            #( ctx.#out_port_creates().unwrap(); )*
-            ctx.create_router_process().unwrap().start().unwrap();
+            ctx.create_router_config().expect("Failed to create router config port");
+            #( ctx.#in_port_creates().expect("Failed to create input port {in_port_creates}"); )*
+            #( ctx.#out_port_creates().expect("Failed to create output port {out_port_creates}"); )*
+            ctx.create_router_process()
+                .expect("Failed to create router process")
+                .start()
+                .expect("Failed to start router process");
         }
     }
 }

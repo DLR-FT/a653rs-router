@@ -59,18 +59,12 @@ pub fn router_partition(args: TokenStream, input: TokenStream) -> TokenStream {
     let module = parse_macro_input!(input as syn::ItemMod);
     let name = module.ident;
 
-    let attr_args = match NestedMeta::parse_meta_list(args.into()) {
-        Ok(v) => v,
-        Err(e) => {
-            return TokenStream::from(darling::Error::from(e).write_errors());
-        }
-    };
-    let config = match StaticRouterConfig::from_list(&attr_args) {
-        Ok(v) => v,
-        Err(e) => {
-            return e.write_errors().into();
-        }
-    };
-
-    router_partition::router_partition(name, config).into()
+    NestedMeta::parse_meta_list(args.into())
+        .map_err(darling::Error::from)
+        .and_then(|meta_list| {
+            StaticRouterConfig::from_list(&meta_list)
+                .map(|config| router_partition::router_partition(name, config))
+        })
+        .unwrap_or_else(|e| e.write_errors())
+        .into()
 }

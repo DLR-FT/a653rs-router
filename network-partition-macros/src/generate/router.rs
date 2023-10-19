@@ -69,7 +69,7 @@ impl Router {
                     inputs: [(&str, &'_ dyn RouterInput); INPUTS],
                     outputs: [(&str, &'_ dyn RouterOutput); OUTPUTS]
                 ) -> ! {
-                    super::interfaces::init().unwrap();
+                    super::interfaces::init().expect("Failed to initialize interfaces");
                     let mut resources = Resources::<TOTAL_INPUTS, TOTAL_OUTPUTS>::new();
                     inputs.into_iter().for_each(|(n,v)| resources.insert_input(n, v).unwrap());
                     outputs.into_iter().for_each(|(n,v)| resources.insert_output(n, v).unwrap());
@@ -93,11 +93,11 @@ impl Router {
                 use super::*;
 
                 pub fn inputs<'a>() ->[(&'static str, &'a dyn RouterInput); #io ] {
-                    [ #( ( #interfaces ::NAME , unsafe { #interfaces ::VALUE.as_ref().unwrap() } ) ),* ]
+                    [ #( ( #interfaces ::NAME , unsafe { #interfaces ::VALUE.as_ref().expect("Interface not initialized") } ) ),* ]
                 }
 
                 pub fn outputs<'a>() -> [(&'static str, &'a dyn RouterOutput); #io ] {
-                    [ #( ( #interfaces ::NAME , unsafe { #interfaces ::VALUE.as_ref().unwrap() } ) ),* ]
+                    [ #( ( #interfaces ::NAME , unsafe { #interfaces ::VALUE.as_ref().expect("Interface not initialized") } ) ),* ]
                 }
 
                 pub fn init() -> Result<(), Error> {

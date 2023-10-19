@@ -1,5 +1,6 @@
 use crate::Echo;
 
+use a653rs::bindings::{ApexPartitionP4, ApexProcessP4, ApexQueuingPortP4};
 use a653rs::prelude::*;
 use a653rs_postcard::prelude::*;
 use core::str::FromStr;

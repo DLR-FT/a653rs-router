@@ -13,7 +13,7 @@ let
   hv = "${hypervisor}/bin/${hvName}";
   environment = {
     RUST_BACKTRACE = "1";
-    RUST_LOG = "debug";
+    RUST_LOG = "info";
   };
 in
 {

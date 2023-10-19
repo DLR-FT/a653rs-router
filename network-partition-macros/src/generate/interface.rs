@@ -7,8 +7,8 @@ use super::GenMod;
 
 impl GenMod for Interface {
     fn gen_mod(&self) -> syn::Result<ItemMod> {
-        let name = &self.name.to_string();
-        let ident = format_ident!("{name}");
+        let name = &self.name;
+        let ident = format_ident!("{}", self.id);
         let interface_type = &self.interface_type.path;
         let mtu = self.mtu.bytes() as usize;
         let rate = self.rate.bytes();

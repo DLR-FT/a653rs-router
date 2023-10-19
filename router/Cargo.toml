@@ -6,55 +6,41 @@ description = "Example configurations for routing echo messages between a client
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-# This example does not compile  if you do not also specify which package it
+# The XNG examples do not compile if you do not also specify which package it
 # is located in with `-p router`, because features appear to be unified before
 # building individual examples, so some dependencies are build using std and the
 # build fails.
+
 [[example]]
-name = "router-echo-xng"
+name = "router-echo-local-xng"
 crate-type = [ "staticlib" ]
-path = "examples/echo/xng.rs"
-required-features = [ "echo", "xng" ]
+path = "examples/echo-local-xng.rs"
+required-features = [ "xng" ]
 
 [[example]]
-name = "router-echo-linux"
-path = "examples/echo/linux.rs"
-required-features = [ "echo", "linux" ]
-
-[[example]]
-name = "router-echo-dummy"
-path = "examples/echo/dummy.rs"
-required-features = [ "echo", "dummy" ]
-
-[[example]]
-name = "router-throughput-xng"
+name = "router-echo-client-xng"
 crate-type = [ "staticlib" ]
-path = "examples/throughput/xng.rs"
-required-features = [ "throughput", "xng" ]
+path = "examples/echo-client-xng.rs"
+required-features = [ "xng" ]
 
 [[example]]
-name = "router-throughput-linux"
-path = "examples/throughput/linux.rs"
-required-features = [ "throughput", "linux" ]
+name = "router-echo-server-xng"
+crate-type = [ "staticlib" ]
+path = "examples/echo-server-xng.rs"
+required-features = [ "xng" ]
 
 [[example]]
-name = "router-throughput-dummy"
-path = "examples/throughput/dummy.rs"
-required-features = ["throughput",  "dummy" ]
+name = "router-echo-client-linux"
+path = "examples/echo-client-linux.rs"
+required-features = [ "linux" ]
+
+[[example]]
+name = "router-echo-server-linux"
+path = "examples/echo-server-linux.rs"
+required-features = [ "linux" ]
 
 [features]
-# System configuration
-echo = []
-throughput = []
-
-# Component configuration
-client = []
-server = []
-local = []
-alt-local-client = []
-
 # Platform configuration
-dummy = [ "dep:dummy-hypervisor" ]
 linux = [
   "dep:a653rs-linux",
   "dep:network-partition-linux",
@@ -103,6 +89,5 @@ optional = true
 workspace = true
 optional = true
 
-[dependencies.dummy-hypervisor]
-path = "../dummy-hypervisor"
-optional = true
+[dependencies.router-partition-macros]
+path = "../router-partition-macros"

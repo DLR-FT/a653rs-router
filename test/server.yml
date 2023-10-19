@@ -11,7 +11,7 @@ partitions:
     duration: 300ms
     offset: 400ms
     period: 1s
-    image: router-echo-linux
+    image: router-echo-server-linux
     udp_ports:
       - "0.0.0.0:8082"
   - id: 3

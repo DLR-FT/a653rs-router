@@ -1,10 +1,8 @@
 use darling::{FromAttributes, FromMeta};
 use syn::{Attribute, Expr, Ident, Item};
+use wrapped_types::WrappedByteSize;
 
-use crate::{
-    attrs::{contains_attr, no_struct_body, remove_attr, MayFromAttributes},
-    types::WrappedByteSize,
-};
+use crate::attrs::{contains_attr, no_struct_body, remove_attr, MayFromAttributes};
 
 #[derive(Debug, Clone)]
 pub struct WrappedPath {
@@ -32,8 +30,9 @@ impl FromMeta for WrappedPath {
 #[derive(Debug, FromAttributes, Clone)]
 #[darling(attributes(interface))]
 pub struct Interface {
-    #[darling(default = "String::default")]
-    pub name: String,
+    #[darling(default)]
+    pub id: String,
+    pub name: Option<String>,
     pub interface_type: WrappedPath,
     pub rate: WrappedByteSize,
     pub mtu: WrappedByteSize,
@@ -110,7 +109,10 @@ impl MayFromAttributes for Interface {
             return None;
         }
         let i = Self::from_attributes(attrs.as_slice()).map(|mut i| {
-            i.name = ident.to_string();
+            i.id = ident.to_string();
+            if i.name.is_none() {
+                i.name = Some(i.id.clone());
+            }
             i
         });
         Some(remove_attr(attrs, "interface"))?.ok();

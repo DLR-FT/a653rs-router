@@ -1,0 +1,34 @@
+[package]
+name = "echo-xng-server-sampling"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = [ "staticlib" ]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+a653rs-postcard.workspace = true
+log = "0"
+once_cell.workspace = true
+small-trace = { path = "../../../small-trace" }
+echo = { path = "../../echo" }
+
+[dependencies.a653rs]
+workspace = true
+features = [ "macros" ]
+
+[dependencies.a653rs-xng]
+workspace = true
+features = [ "panic_handler" ]
+
+[dependencies.serde]
+features = ["derive"]
+workspace = true
+
+[dependencies.small-trace-gpio]
+path = "../../../small-trace-gpio"
+
+[dependencies.xng-rs-log]
+workspace = true

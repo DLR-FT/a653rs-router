@@ -5,7 +5,7 @@ partitions:
     duration: 300ms
     offset: 0ms
     period: 1s
-    image: echo-sampling-linux
+    image: echo-linux-server-sampling
   - id: 1
     name: Network
     duration: 300ms

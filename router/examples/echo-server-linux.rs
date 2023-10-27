@@ -1,6 +1,6 @@
 use router_partition_macros::router_partition;
 
-static TRACER: network_partition_linux::LinuxTracer = network_partition_linux::LinuxTracer;
+static TRACER: a653rs_router_linux::LinuxTracer = a653rs_router_linux::LinuxTracer;
 static LOG_LEVEL: log::LevelFilter = log::LevelFilter::Info;
 
 fn main() {
@@ -14,7 +14,7 @@ fn main() {
     hypervisor = a653rs_linux::partition::ApexLinuxPartition,
     interface(
         name = "NodeA",
-        kind = network_partition_linux::UdpNetworkInterface,
+        kind = a653rs_router_linux::UdpNetworkInterface,
         destination = "192.168.1.1:8081",
         mtu = "1.5KB",
         rate = "10MB",

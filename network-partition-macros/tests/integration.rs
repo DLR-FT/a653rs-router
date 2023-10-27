@@ -7,7 +7,7 @@ mod example_router {
     struct Limits;
 
     #[interface(
-        interface_type = network_partition_linux::UdpNetworkInterface,
+        interface_type = a653rs_router_linux::UdpNetworkInterface,
         rate = "10MB",
         mtu = "1.5KB",
         source = "127.0.0.1:8081",

@@ -43,7 +43,7 @@ required-features = [ "linux" ]
 # Platform configuration
 linux = [
   "dep:a653rs-linux",
-  "dep:network-partition-linux",
+  "dep:a653rs-router-linux",
 ]
 xng = [
   "dep:a653rs-xng",
@@ -60,8 +60,8 @@ log.workspace = true
 path = "../network-partition-uart"
 optional = true
 
-[dependencies.network-partition-linux]
-path = "../network-partition-linux"
+[dependencies.a653rs-router-linux]
+path = "../a653rs-router-linux"
 optional = true
 
 [dependencies.a653rs-router]

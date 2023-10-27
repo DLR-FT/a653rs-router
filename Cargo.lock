@@ -82,6 +82,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "a653rs-router-linux"
+version = "0.1.0"
+dependencies = [
+ "a653rs-linux",
+ "a653rs-router",
+ "bytesize",
+ "heapless",
+ "log",
+ "once_cell",
+ "small-trace",
+]
+
+[[package]]
 name = "a653rs-xng"
 version = "0.1.0"
 source = "git+https://github.com/DLR-FT/a653rs-xng.git?branch=main#e5ac9689281acf73a16cd4c9e213c4f14253d09c"
@@ -651,28 +664,15 @@ dependencies = [
 ]
 
 [[package]]
-name = "network-partition-linux"
-version = "0.1.0"
-dependencies = [
- "a653rs-linux",
- "a653rs-router",
- "bytesize",
- "heapless",
- "log",
- "once_cell",
- "small-trace",
-]
-
-[[package]]
 name = "network-partition-macros"
 version = "0.1.0"
 dependencies = [
  "a653rs",
  "a653rs-linux",
  "a653rs-router",
+ "a653rs-router-linux",
  "convert_case",
  "darling",
- "network-partition-linux",
  "proc-macro2",
  "quote",
  "syn",
@@ -810,9 +810,9 @@ dependencies = [
  "a653rs",
  "a653rs-linux",
  "a653rs-router",
+ "a653rs-router-linux",
  "a653rs-xng",
  "log",
- "network-partition-linux",
  "network-partition-uart",
  "router-partition-macros",
  "small-trace",
@@ -827,10 +827,10 @@ dependencies = [
  "a653rs",
  "a653rs-linux",
  "a653rs-router",
+ "a653rs-router-linux",
  "convert_case",
  "darling",
  "itertools 0.11.0",
- "network-partition-linux",
  "proc-macro2",
  "quote",
  "syn",

@@ -11,7 +11,7 @@
 //!     hypervisor = a653rs_linux::partition::ApexLinuxPartition,
 //!     interface(
 //!         name = "51234",
-//!         kind = network_partition_linux::UdpNetworkInterface,
+//!         kind = a653rs_router_linux::UdpNetworkInterface,
 //!         destination = "127.0.0.1:51234",
 //!         mtu = "1KB",
 //!         rate = "100MB",

@@ -2,9 +2,9 @@
 resolver = "2"
 members = [
   "a653rs-router",
+  "a653rs-router-linux",
   "examples/configurator",
   "examples/echo",
-  "network-partition-linux",
   "network-partition-macros",
   "network-partition-uart",
   "router",
@@ -17,7 +17,7 @@ members = [
 
 default-members = [
   "a653rs-router",
-  "network-partition-linux",
+  "a653rs-router-linux",
   "network-partition-macros",
   "network-partition-uart",
   "router-partition-macros",

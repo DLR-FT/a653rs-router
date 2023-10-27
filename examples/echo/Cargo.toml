@@ -13,18 +13,18 @@ required-features = [ "sampling", "xng" ]
 
 [[example]]
 name = "echo-sampling-linux"
-path = "examples/sampling/linux.rs"
+path = "./examples/sampling/linux.rs"
 required-features = [ "sampling", "linux" ]
 
 [[example]]
 name = "echo-queuing-xng"
 crate-type = [ "staticlib" ]
-path = "examples/queuing/xng.rs"
+path = "./examples/queuing/xng.rs"
 required-features = [ "queuing", "xng" ]
 
 [[example]]
 name = "echo-queuing-linux"
-path = "examples/queuing/linux.rs"
+path = "./examples/queuing/linux.rs"
 required-features = [ "queuing", "linux" ]
 
 [features]
@@ -48,7 +48,7 @@ a653rs.workspace = true
 a653rs-postcard.workspace = true
 log = "0"
 once_cell.workspace = true
-small-trace = { path = "../small-trace" }
+small-trace = { path = "../../small-trace" }
 
 [dependencies.a653rs-linux]
 workspace = true
@@ -64,7 +64,7 @@ features = ["derive"]
 workspace = true
 
 [dependencies.small-trace-gpio]
-path = "../small-trace-gpio"
+path = "../../small-trace-gpio"
 optional = true
 
 [dependencies.xng-rs-log]

@@ -1,9 +1,9 @@
 [workspace]
 resolver = "2"
 members = [
-  "echo",
   "a653rs-router",
   "examples/configurator",
+  "examples/echo",
   "network-partition-linux",
   "network-partition-macros",
   "network-partition-uart",

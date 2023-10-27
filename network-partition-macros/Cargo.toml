@@ -22,5 +22,8 @@ features = [ "macros", "serde" ]
 workspace = true
 features = [ "macros" ]
 
-[dev-dependencies.dummy-hypervisor]
-path = "../dummy-hypervisor"
+[dev-dependencies.a653rs-linux]
+workspace = true
+
+[dev-dependencies.network-partition-linux]
+path = "../network-partition-linux"

@@ -16,23 +16,23 @@
 //! use a653rs::partition;
 //! use a653rs_router::router_config;
 //!
-//! #[router_config(dummy_hypervisor::DummyScheduler)]
+//! #[router_config(a653rs_router::prelude::DeadlineRrScheduler)]
 //! pub(crate) mod router {
 //!     #[limits(inputs = 1, outputs = 1, mtu = "2KB")]
 //!     struct Limits;
 //!
-//!     #[interface(interface_type = dummy_hypervisor::DummyInterface)]
+//!     #[interface(interface_type = network_partition_linux::UdpNetworkInterface)]
 //!     #[interface(source = "tx", destination = "rx")]
 //!     #[interface(rate = "10MB", mtu = "1.5KB")]
 //!     struct NodeB;
 //! }
 //!
-//! #[partition(dummy_hypervisor::DummyHypervisor)]
+//! #[partition(a653rs_linux::partition::ApexLinuxPartition)]
 //! mod router_partition {
-//!     #[queuing_in(msg_size = "1KB", msg_count = "10", discipline = "Fifo")]
+//!     #[sampling_in(msg_size = "1KB", refresh_period = "1s")]
 //!     struct EchoRequest;
 //!
-//!     #[queuing_out(msg_size = "1KB", msg_count = "10", discipline = "Fifo")]
+//!     #[sampling_out(msg_size = "1KB")]
 //!     struct EchoReply;
 //!
 //!     #[sampling_in(name = "RouterConfig", refresh_period = "10s", msg_size = "1KB")]
@@ -59,7 +59,7 @@
 //!         deadline = "Soft"
 //!     )]
 //!     fn aperiodic2(ctx: aperiodic2::Context) {
-//!         let time_source = dummy_hypervisor::DummyHypervisor {};
+//!         let time_source = a653rs_linux::partition::ApexLinuxPartition {};
 //!         let router_config = ctx.router_config.unwrap();
 //!         let echo_request = ctx.echo_request.unwrap();
 //!         let echo_reply = ctx.echo_reply.unwrap();
@@ -131,12 +131,12 @@
 //! #
 //! use a653rs_router::router_config;
 //!
-//! #[router_config(dummy_hypervisor::DummyScheduler)]
+//! #[router_config(a653rs_router::prelude::DeadlineRrScheduler)]
 //! pub mod router {
 //!     #[limits(inputs = 1, outputs = 1, mtu = "2KB")]
 //!     struct Limits;
 //!
-//!     #[interface(interface_type = dummy_hypervisor::DummyInterface)]
+//!     #[interface(interface_type = network_partition_linux::UdpNetworkInterface)]
 //!     #[interface(source = "tx", destination = "rx")]
 //!     #[interface(rate = "10MB", mtu = "1.5KB")]
 //!     struct NodeB;

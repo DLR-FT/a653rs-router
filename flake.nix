@@ -233,7 +233,6 @@
               lithOsOps = self.packages.${system}.lithos-ops;
               rustPlatform = (pkgs.makeRustPlatform { cargo = rust-toolchain; rustc = rust-toolchain; });
               platforms = [
-                { feature = "dummy"; target = "x86_64-unknown-linux-gnu"; }
                 { feature = "linux"; target = "x86_64-unknown-linux-musl"; }
                 { feature = "xng"; target = "armv7a-none-eabi"; }
               ];

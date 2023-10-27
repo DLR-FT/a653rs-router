@@ -366,14 +366,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dummy-hypervisor"
-version = "0.1.0"
-dependencies = [
- "a653rs",
- "a653rs-router",
-]
-
-[[package]]
 name = "echo"
 version = "0.1.0"
 dependencies = [
@@ -381,7 +373,6 @@ dependencies = [
  "a653rs-linux",
  "a653rs-postcard",
  "a653rs-xng",
- "dummy-hypervisor",
  "log",
  "once_cell",
  "serde",
@@ -677,10 +668,11 @@ name = "network-partition-macros"
 version = "0.1.0"
 dependencies = [
  "a653rs",
+ "a653rs-linux",
  "a653rs-router",
  "convert_case",
  "darling",
- "dummy-hypervisor",
+ "network-partition-linux",
  "proc-macro2",
  "quote",
  "syn",

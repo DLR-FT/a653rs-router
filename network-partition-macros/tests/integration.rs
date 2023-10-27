@@ -1,13 +1,13 @@
 use a653rs::partition;
 use network_partition_macros::router_config;
 
-#[router_config(dummy_hypervisor::DummyScheduler)]
+#[router_config(a653rs_router::prelude::DeadlineRrScheduler)]
 mod example_router {
     #[limits(inputs = 1, outputs = 1, mtu = "10KB")]
     struct Limits;
 
     #[interface(
-        interface_type = dummy_hypervisor::DummyInterface,
+        interface_type = network_partition_linux::UdpNetworkInterface,
         rate = "10MB",
         mtu = "1.5KB",
         source = "127.0.0.1:8081",
@@ -16,7 +16,7 @@ mod example_router {
     struct Dummy8081;
 }
 
-#[partition(dummy_hypervisor::DummyHypervisor)]
+#[partition(a653rs_linux::partition::ApexLinuxPartition)]
 mod example {
     #[sampling_in(msg_size = "1KB", refresh_period = "3s")]
     struct Channel1;
@@ -50,7 +50,7 @@ mod example {
         let router_config = ctx.router_config.unwrap();
         network_partition_macros::run_router!(
             crate::example_router,
-            dummy_hypervisor::DummyHypervisor,
+            a653rs_linux::partition::ApexLinuxPartition,
             router_config,
             [("Ch1", ctx.channel_1.unwrap())],
             [("Ch2", ctx.channel_2.unwrap())]

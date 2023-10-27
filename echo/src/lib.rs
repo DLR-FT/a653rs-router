@@ -16,11 +16,10 @@ mod server;
 mod server_queuing;
 
 #[cfg(any(
-    all(feature = "dummy", any(feature = "linux", feature = "xng")),
-    all(feature = "linux", any(feature = "xng", feature = "dummy")),
-    all(feature = "xng", any(feature = "dummy", feature = "linux")),
+    all(feature = "linux", feature = "xng"),
+    all(feature = "xng", feature = "linux"),
 ))]
-compile_error!("The features dummy, linux and xng are mutually exclusive, because they are meant for different platforms.");
+compile_error!("The features linux and xng are mutually exclusive, because they are meant for different platforms.");
 
 #[cfg(all(feature = "sampling", feature = "queuing"))]
 compile_error!("The features `sampling` and `queuing` are mutually exclusive.");
@@ -34,10 +33,6 @@ use serde::{Deserialize, Serialize};
 const LOG_LEVEL: log::LevelFilter = log::LevelFilter::Info;
 
 #[allow(dead_code)]
-#[cfg(feature = "dummy")]
-type Hypervisor = dummy_hypervisor::DummyHypervisor;
-
-#[allow(dead_code)]
 #[cfg(feature = "linux")]
 type Hypervisor = a653rs_linux::partition::ApexLinuxPartition;
 
@@ -46,13 +41,10 @@ type Hypervisor = a653rs_linux::partition::ApexLinuxPartition;
 type Hypervisor = a653rs_xng::apex::XngHypervisor;
 
 #[allow(dead_code)]
-#[cfg(any(feature = "dummy", feature = "xng", feature = "linux"))]
+#[cfg(any(feature = "xng", feature = "linux"))]
 const ECHO_SIZE: MessageSize = 1000;
 
-#[cfg(all(
-    feature = "queuing",
-    any(feature = "dummy", feature = "xng", feature = "linux")
-))]
+#[cfg(all(feature = "queuing", any(feature = "xng", feature = "linux")))]
 const FIFO_DEPTH: MessageRange = 10;
 
 #[derive(Serialize, Deserialize, Copy, Clone, Debug)]
@@ -65,29 +57,17 @@ pub struct Echo {
     pub when_us: u64,
 }
 
-#[cfg(all(
-    feature = "queuing",
-    any(feature = "dummy", feature = "xng", feature = "linux")
-))]
+#[cfg(all(feature = "queuing", any(feature = "xng", feature = "linux")))]
 static mut SENDER: OnceCell<QueuingPortSender<ECHO_SIZE, FIFO_DEPTH, Hypervisor>> = OnceCell::new();
 
-#[cfg(all(
-    feature = "queuing",
-    any(feature = "dummy", feature = "xng", feature = "linux")
-))]
+#[cfg(all(feature = "queuing", any(feature = "xng", feature = "linux")))]
 static mut RECEIVER: OnceCell<QueuingPortReceiver<ECHO_SIZE, FIFO_DEPTH, Hypervisor>> =
     OnceCell::new();
 
-#[cfg(all(
-    feature = "sampling",
-    any(feature = "dummy", feature = "xng", feature = "linux")
-))]
+#[cfg(all(feature = "sampling", any(feature = "xng", feature = "linux")))]
 static mut SENDER: OnceCell<SamplingPortSource<ECHO_SIZE, Hypervisor>> = OnceCell::new();
 
-#[cfg(all(
-    feature = "sampling",
-    any(feature = "dummy", feature = "xng", feature = "linux")
-))]
+#[cfg(all(feature = "sampling", any(feature = "xng", feature = "linux")))]
 static mut RECEIVER: OnceCell<SamplingPortDestination<ECHO_SIZE, Hypervisor>> = OnceCell::new();
 
 #[cfg(feature = "xng")]
@@ -96,7 +76,7 @@ static LOGGER: xng_rs_log::XalLogger = xng_rs_log::XalLogger;
 #[cfg(feature = "xng")]
 static TRACER: small_trace_gpio::GpioTracer = small_trace_gpio::GpioTracer::new();
 
-#[cfg(any(feature = "dummy", feature = "xng", feature = "linux"))]
+#[cfg(any(feature = "xng", feature = "linux"))]
 pub fn run() {
     #[cfg(feature = "xng")]
     {
@@ -161,7 +141,7 @@ pub fn run() {
 #[cfg(all(
     feature = "client",
     any(feature = "sampling", feature = "queuing"),
-    any(feature = "dummy", feature = "xng", feature = "linux")
+    any(feature = "xng", feature = "linux")
 ))]
 extern "C" fn entry_point_periodic() {
     #[cfg(feature = "queuing")]
@@ -176,7 +156,7 @@ extern "C" fn entry_point_periodic() {
 #[cfg(all(
     feature = "client",
     any(feature = "sampling", feature = "queuing"),
-    any(feature = "dummy", feature = "xng", feature = "linux")
+    any(feature = "xng", feature = "linux")
 ))]
 extern "C" fn entry_point_aperiodic() {
     #[cfg(feature = "queuing")]
@@ -192,7 +172,7 @@ extern "C" fn entry_point_aperiodic() {
 #[cfg(all(
     feature = "server",
     any(feature = "sampling", feature = "queuing"),
-    any(feature = "dummy", feature = "xng", feature = "linux")
+    any(feature = "xng", feature = "linux")
 ))]
 extern "C" fn entry_point_aperiodic() {
     #[cfg(feature = "queuing")]

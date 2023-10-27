@@ -1,7 +1,6 @@
 [workspace]
 resolver = "2"
 members = [
-  "dummy-hypervisor",
   "echo",
   "a653rs-router",
   "examples/configurator",

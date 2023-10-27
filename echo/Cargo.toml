@@ -17,11 +17,6 @@ path = "examples/sampling/linux.rs"
 required-features = [ "sampling", "linux" ]
 
 [[example]]
-name = "echo-sampling-dummy"
-path = "examples/sampling/dummy.rs"
-required-features = [ "sampling", "dummy" ]
-
-[[example]]
 name = "echo-queuing-xng"
 crate-type = [ "staticlib" ]
 path = "examples/queuing/xng.rs"
@@ -32,11 +27,6 @@ name = "echo-queuing-linux"
 path = "examples/queuing/linux.rs"
 required-features = [ "queuing", "linux" ]
 
-[[example]]
-name = "echo-queuing-dummy"
-path = "examples/queuing/dummy.rs"
-required-features = [ "queuing", "dummy" ]
-
 [features]
 client = []
 server = []
@@ -44,7 +34,6 @@ server = []
 sampling = []
 queuing = []
 
-dummy = [ "dep:dummy-hypervisor" ]
 linux = [
   "dep:a653rs-linux",
 ]
@@ -69,10 +58,6 @@ optional = true
 workspace = true
 optional = true
 features = [ "panic_handler" ]
-
-[dependencies.dummy-hypervisor]
-path = "../dummy-hypervisor"
-optional = true
 
 [dependencies.serde]
 features = ["derive"]

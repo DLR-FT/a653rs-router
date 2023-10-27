@@ -4,8 +4,8 @@
 //! ## Example
 //!
 //! ```no_run
-//! # #[macro_use] extern crate router_partition_macros;
-//! use router_partition_macros::router_partition;
+//! # #[macro_use] extern crate a653rs_router_partition_macros;
+//! use a653rs_router_partition_macros::router_partition;
 //!
 //! #[router_partition(
 //!     hypervisor = a653rs_linux::partition::ApexLinuxPartition,

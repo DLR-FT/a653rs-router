@@ -1,5 +1,5 @@
 [package]
-name = "router-partition-macros"
+name = "a653rs-router-partition-macros"
 version = "0.1.0"
 edition = "2021"
 description = "Macros for generating a module that runs a router of a given configuration as a ARINC 653 partition."

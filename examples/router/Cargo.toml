@@ -89,5 +89,5 @@ optional = true
 workspace = true
 optional = true
 
-[dependencies.router-partition-macros]
-path = "../../router-partition-macros"
+[dependencies.a653rs-router-partition-macros]
+path = "../../a653rs-router-partition-macros"

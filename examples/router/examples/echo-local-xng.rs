@@ -1,6 +1,6 @@
 #![no_std]
 
-use router_partition_macros::router_partition;
+use a653rs_router_partition_macros::router_partition;
 
 static LOGGER: xng_rs_log::XalLogger = xng_rs_log::XalLogger;
 static TRACER: small_trace_gpio::GpioTracer = small_trace_gpio::GpioTracer::new();

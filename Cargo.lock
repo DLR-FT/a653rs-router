@@ -111,6 +111,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "a653rs-router-partition-macros"
+version = "0.1.0"
+dependencies = [
+ "a653rs",
+ "a653rs-linux",
+ "a653rs-router",
+ "a653rs-router-linux",
+ "convert_case",
+ "darling",
+ "itertools 0.11.0",
+ "proc-macro2",
+ "quote",
+ "syn",
+ "wrapped-types",
+]
+
+[[package]]
 name = "a653rs-router-zynq7000"
 version = "0.1.0"
 dependencies = [
@@ -791,30 +808,13 @@ dependencies = [
  "a653rs-linux",
  "a653rs-router",
  "a653rs-router-linux",
+ "a653rs-router-partition-macros",
  "a653rs-router-zynq7000",
  "a653rs-xng",
  "log",
- "router-partition-macros",
  "small-trace",
  "small-trace-gpio",
  "xng-rs-log",
-]
-
-[[package]]
-name = "router-partition-macros"
-version = "0.1.0"
-dependencies = [
- "a653rs",
- "a653rs-linux",
- "a653rs-router",
- "a653rs-router-linux",
- "convert_case",
- "darling",
- "itertools 0.11.0",
- "proc-macro2",
- "quote",
- "syn",
- "wrapped-types",
 ]
 
 [[package]]

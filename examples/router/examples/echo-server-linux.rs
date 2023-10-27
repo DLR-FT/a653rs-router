@@ -1,4 +1,4 @@
-use a653rs_router_partition_macros::router_partition;
+use a653rs_router::router_partition;
 
 static TRACER: a653rs_router_linux::LinuxTracer = a653rs_router_linux::LinuxTracer;
 static LOG_LEVEL: log::LevelFilter = log::LevelFilter::Info;

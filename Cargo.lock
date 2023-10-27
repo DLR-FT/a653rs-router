@@ -71,6 +71,7 @@ version = "0.1.0"
 dependencies = [
  "a653rs",
  "a653rs-router-macros",
+ "a653rs-router-partition-macros",
  "bytesize",
  "heapless",
  "humantime-serde",
@@ -808,7 +809,6 @@ dependencies = [
  "a653rs-linux",
  "a653rs-router",
  "a653rs-router-linux",
- "a653rs-router-partition-macros",
  "a653rs-router-zynq7000",
  "a653rs-xng",
  "log",

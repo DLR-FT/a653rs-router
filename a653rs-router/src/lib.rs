@@ -139,5 +139,7 @@ pub mod prelude {
 }
 
 #[cfg(feature = "macros")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "serde")))]
 pub use a653rs_router_macros::*;
+
+#[cfg(feature = "partition")]
+pub use a653rs_router_partition_macros::*;

@@ -66,8 +66,9 @@ optional = true
 
 [dependencies.a653rs-router]
 path = "../../a653rs-router"
-features = [ "macros" ]
+features = [ "partition" ]
 
+# Needs to be included because of nested macros :-(
 [dependencies.a653rs]
 workspace = true
 features = [ "macros" ]
@@ -88,6 +89,3 @@ optional = true
 [dependencies.xng-rs-log]
 workspace = true
 optional = true
-
-[dependencies.a653rs-router-partition-macros]
-path = "../../a653rs-router-partition-macros"

@@ -95,7 +95,7 @@
 //! - **OUTPUTS**: The number of outputs from the router.
 //! - **MTU**: The maximum buffer size and its unit.
 //!
-//! This macro is processed as part of [`router_config`]. It defines the
+//! This macro is processed as part of [`macro@router_config`]. It defines the
 //! memory resource limits of the router. For more information see the
 //! documentation of [`a653rs-router`].
 //!
@@ -111,7 +111,7 @@
 //!   second.
 //! - **MTU**: Maximum transfer unit or frame size of the interface.
 //!
-//! This macro is processed as part of [`router_config`]. It defines the
+//! This macro is processed as part of [`macro@router_config`]. It defines the
 //! configuration for an individual network interface. For more information see
 //! the documentation of [`a653rs-router`].
 //!

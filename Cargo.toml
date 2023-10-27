@@ -11,7 +11,6 @@ members = [
   "router-partition-macros",
   "small-trace",
   "small-trace-gpio",
-  "throughput",
   "wrapped-types",
 ]
 

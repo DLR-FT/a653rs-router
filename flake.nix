@@ -255,16 +255,6 @@
               ];
             })
             //
-            (allProducts {
-              inherit rustPlatform;
-              products = [ "throughput" ];
-              flavors = [ "sender" "receiver" ];
-              variants = [ "" ];
-              platforms = [
-                { feature = "xng"; target = "armv7a-none-eabi"; }
-              ];
-            })
-            //
             {
               router-echo-client-linux = mkExample {
                 inherit rustPlatform;

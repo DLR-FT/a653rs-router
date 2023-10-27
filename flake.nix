@@ -422,7 +422,7 @@
             hardFp = false;
             xcf = pkgs.runCommandNoCC "patch-src" { } ''
               mkdir -p merged
-              cp -r "${./config/shared}"/* "${./config/${name}/xml}"/* merged/
+              cp -r "${./examples/config/shared}"/* "${./examples/config/${name}/xml}"/* merged/
               cp -r merged $out
             '';
             partitions = pkgs.lib.concatMapAttrs
@@ -430,7 +430,7 @@
                 "${partName}" = {
                   src = value;
                   enableLithOs = true;
-                  ltcf = ./config/shared/${nixpkgs.lib.toLower partName}.ltcf;
+                  ltcf = ./examples/config/shared/${nixpkgs.lib.toLower partName}.ltcf;
                 };
               })
               partitions;

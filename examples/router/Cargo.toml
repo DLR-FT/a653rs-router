@@ -14,29 +14,29 @@ description = "Example configurations for routing echo messages between a client
 [[example]]
 name = "router-echo-local-xng"
 crate-type = [ "staticlib" ]
-path = "examples/echo-local-xng.rs"
+path = "./examples/echo-local-xng.rs"
 required-features = [ "xng" ]
 
 [[example]]
 name = "router-echo-client-xng"
 crate-type = [ "staticlib" ]
-path = "examples/echo-client-xng.rs"
+path = "./examples/echo-client-xng.rs"
 required-features = [ "xng" ]
 
 [[example]]
 name = "router-echo-server-xng"
 crate-type = [ "staticlib" ]
-path = "examples/echo-server-xng.rs"
+path = "./examples/echo-server-xng.rs"
 required-features = [ "xng" ]
 
 [[example]]
 name = "router-echo-client-linux"
-path = "examples/echo-client-linux.rs"
+path = "./examples/echo-client-linux.rs"
 required-features = [ "linux" ]
 
 [[example]]
 name = "router-echo-server-linux"
-path = "examples/echo-server-linux.rs"
+path = "./examples/echo-server-linux.rs"
 required-features = [ "linux" ]
 
 [features]
@@ -53,19 +53,19 @@ xng = [
 ]
 
 [dependencies]
-small-trace.path = "../small-trace"
+small-trace.path = "../../small-trace"
 log.workspace = true
 
 [dependencies.a653rs-router-zynq7000]
-path = "../a653rs-router-zynq7000"
+path = "../../a653rs-router-zynq7000"
 optional = true
 
 [dependencies.a653rs-router-linux]
-path = "../a653rs-router-linux"
+path = "../../a653rs-router-linux"
 optional = true
 
 [dependencies.a653rs-router]
-path = "../a653rs-router"
+path = "../../a653rs-router"
 features = [ "macros" ]
 
 [dependencies.a653rs]
@@ -82,7 +82,7 @@ optional = true
 features = [ "panic_handler" ]
 
 [dependencies.small-trace-gpio]
-path = "../small-trace-gpio"
+path = "../../small-trace-gpio"
 optional = true
 
 [dependencies.xng-rs-log]
@@ -90,4 +90,4 @@ workspace = true
 optional = true
 
 [dependencies.router-partition-macros]
-path = "../router-partition-macros"
+path = "../../router-partition-macros"

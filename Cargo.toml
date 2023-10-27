@@ -1,10 +1,10 @@
 [workspace]
 resolver = "2"
 members = [
-  "configurator",
   "dummy-hypervisor",
   "echo",
   "a653rs-router",
+  "examples/configurator",
   "network-partition-linux",
   "network-partition-macros",
   "network-partition-uart",

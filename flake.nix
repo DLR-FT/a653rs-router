@@ -204,7 +204,7 @@
                 {
                   nativeBuildInputs = [ rust-toolchain ];
                 } "cd ${./.} && cargo fmt --check && touch $out";
-              integration = nixos-lib.runTest (import ./test/integration.nix {
+              integration = nixos-lib.runTest (import ./examples/nixos-integration-test {
                 hostPkgs = pkgs;
                 configurator-client = configurator--linux-client;
                 configurator-server = configurator--linux-server;

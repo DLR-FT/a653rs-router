@@ -84,7 +84,7 @@
             let
               pkgs = import nixpkgs { inherit system; overlays = [ devshell.overlays.default ]; };
               fpga = fpga-project.packages."${system}".default;
-              zynq7000Init = ./deployment/zynq7000_init_te0706.tcl;
+              zynq7000Init = ./network-partition-uart/zynq7000_init_te0706.tcl;
               vitis = xilinx-flake-utils.packages.${system}.vitis-unified-software-platform-vitis_2019-2_1106_2127;
             in
             pkgs.devshell.mkShell {

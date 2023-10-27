@@ -1,5 +1,5 @@
 use a653rs::partition;
-use network_partition_macros::router_config;
+use a653rs_router_macros::router_config;
 
 #[router_config(a653rs_router::prelude::DeadlineRrScheduler)]
 mod example_router {
@@ -48,7 +48,7 @@ mod example {
     )]
     fn aperiodic2(ctx: aperiodic2::Context) {
         let router_config = ctx.router_config.unwrap();
-        network_partition_macros::run_router!(
+        a653rs_router_macros::run_router!(
             crate::example_router,
             a653rs_linux::partition::ApexLinuxPartition,
             router_config,

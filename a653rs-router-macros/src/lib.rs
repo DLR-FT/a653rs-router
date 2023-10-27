@@ -11,7 +11,7 @@
 //! ## Example
 //!
 //! ```no_run
-//! # #[macro_use] extern crate network_partition_macros;
+//! # #[macro_use] extern crate a653rs_router_macros;
 //! #
 //! use a653rs::partition;
 //! use a653rs_router::router_config;

@@ -70,11 +70,11 @@ name = "a653rs-router"
 version = "0.1.0"
 dependencies = [
  "a653rs",
+ "a653rs-router-macros",
  "bytesize",
  "heapless",
  "humantime-serde",
  "log",
- "network-partition-macros",
  "postcard",
  "serde",
  "serde_yaml",
@@ -92,6 +92,22 @@ dependencies = [
  "log",
  "once_cell",
  "small-trace",
+]
+
+[[package]]
+name = "a653rs-router-macros"
+version = "0.1.0"
+dependencies = [
+ "a653rs",
+ "a653rs-linux",
+ "a653rs-router",
+ "a653rs-router-linux",
+ "convert_case",
+ "darling",
+ "proc-macro2",
+ "quote",
+ "syn",
+ "wrapped-types",
 ]
 
 [[package]]
@@ -655,22 +671,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e7810e0be55b428ada41041c41f32c9f1a42817901b4ccf45fa3d4b6561e74c7"
 dependencies = [
  "adler",
-]
-
-[[package]]
-name = "network-partition-macros"
-version = "0.1.0"
-dependencies = [
- "a653rs",
- "a653rs-linux",
- "a653rs-router",
- "a653rs-router-linux",
- "convert_case",
- "darling",
- "proc-macro2",
- "quote",
- "syn",
- "wrapped-types",
 ]
 
 [[package]]

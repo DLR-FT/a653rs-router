@@ -8,7 +8,7 @@
 //! use the macros [`macro@router_config`], [`macro@run_router`] and
 //! [`a653rs::partition`] that are available when requiring the `macros` feature
 //! in both crates. For a full example see
-//! [`network_partition_macros`](../network_partition_macros/index.html).
+//! [`a653rs_router_macros`](../a653rs_router_macros/index.html).
 //!
 //! ## Configuration
 //! The configuration of the router consists of two stages that depend on each
@@ -140,4 +140,4 @@ pub mod prelude {
 
 #[cfg(feature = "macros")]
 #[cfg_attr(doc_cfg, doc(cfg(feature = "serde")))]
-pub use network_partition_macros::*;
+pub use a653rs_router_macros::*;

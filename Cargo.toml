@@ -2,12 +2,12 @@
 resolver = "2"
 members = [
   "a653rs-router",
+  "a653rs-router-macros",
   "a653rs-router-linux",
   "a653rs-router-zynq7000",
   "examples/configurator",
   "examples/echo",
   "examples/router",
-  "network-partition-macros",
   "router-partition-macros",
   "small-trace",
   "small-trace-gpio",
@@ -16,9 +16,9 @@ members = [
 
 default-members = [
   "a653rs-router",
+  "a653rs-router-macros",
   "a653rs-router-linux",
   "a653rs-router-zynq7000",
-  "network-partition-macros",
   "router-partition-macros",
   "small-trace",
   "small-trace-gpio",

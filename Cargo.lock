@@ -95,6 +95,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "a653rs-router-zynq7000"
+version = "0.1.0"
+dependencies = [
+ "a653rs-router",
+ "corncobs",
+ "crc16",
+ "heapless",
+ "log",
+ "once_cell",
+ "small-trace",
+ "uart_xilinx",
+]
+
+[[package]]
 name = "a653rs-xng"
 version = "0.1.0"
 source = "git+https://github.com/DLR-FT/a653rs-xng.git?branch=main#e5ac9689281acf73a16cd4c9e213c4f14253d09c"
@@ -680,20 +694,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "network-partition-uart"
-version = "0.1.0"
-dependencies = [
- "a653rs-router",
- "corncobs",
- "crc16",
- "heapless",
- "log",
- "once_cell",
- "small-trace",
- "uart_xilinx",
-]
-
-[[package]]
 name = "nix"
 version = "0.25.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -811,9 +811,9 @@ dependencies = [
  "a653rs-linux",
  "a653rs-router",
  "a653rs-router-linux",
+ "a653rs-router-zynq7000",
  "a653rs-xng",
  "log",
- "network-partition-uart",
  "router-partition-macros",
  "small-trace",
  "small-trace-gpio",

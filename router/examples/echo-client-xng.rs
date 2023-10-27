@@ -24,7 +24,7 @@ pub extern "C" fn main() {
     stack_size = "30KB",
     interface(
         name = "NodeB",
-        kind = network_partition_uart::UartNetworkInterface,
+        kind = a653rs_router_zynq7000::UartNetworkInterface,
         destination = "tx",
         mtu = "1.5KB",
         rate = "10MB",

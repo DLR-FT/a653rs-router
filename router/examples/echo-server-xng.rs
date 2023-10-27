@@ -19,7 +19,7 @@ pub extern "C" fn main() {
     hypervisor = a653rs_xng::apex::XngHypervisor,
     interface(
         name = "NodeA",
-        kind = network_partition_uart::UartNetworkInterface,
+        kind = a653rs_router_zynq7000::UartNetworkInterface,
         destination = "tx",
         mtu = "1.5KB",
         rate = "10MB",

@@ -64,8 +64,8 @@ optional = true
 path = "../network-partition-linux"
 optional = true
 
-[dependencies.network-partition]
-path = "../network-partition"
+[dependencies.a653rs-router]
+path = "../a653rs-router"
 features = [ "macros" ]
 
 [dependencies.a653rs]

@@ -3,8 +3,8 @@
 
 use a653rs::bindings::*;
 use a653rs::prelude::Partition;
-use network_partition::error::*;
-use network_partition::prelude::{
+use a653rs_router::error::*;
+use a653rs_router::prelude::{
     CreateNetworkInterfaceId, InterfaceConfig, PlatformNetworkInterface, Scheduler,
 };
 
@@ -251,16 +251,13 @@ impl<const SLOTS: usize> Scheduler for DummyScheduler<SLOTS> {
     fn schedule_next(
         &mut self,
         current_time: &core::time::Duration,
-    ) -> Option<network_partition::prelude::VirtualLinkId> {
+    ) -> Option<a653rs_router::prelude::VirtualLinkId> {
         todo!()
     }
 
     fn reconfigure(
         &mut self,
-        vls: &[(
-            network_partition::prelude::VirtualLinkId,
-            core::time::Duration,
-        )],
+        vls: &[(a653rs_router::prelude::VirtualLinkId, core::time::Duration)],
     ) -> Result<(), Error> {
         todo!()
     }
@@ -272,7 +269,7 @@ pub struct DummyInterface<const MTU: usize>;
 impl<const MTU: usize> CreateNetworkInterfaceId<Self> for DummyInterface<MTU> {
     fn create_network_interface_id(
         cfg: InterfaceConfig,
-    ) -> Result<network_partition::prelude::NetworkInterfaceId, InterfaceError> {
+    ) -> Result<a653rs_router::prelude::NetworkInterfaceId, InterfaceError> {
         todo!()
     }
 }
@@ -281,17 +278,17 @@ impl<const MTU: usize> PlatformNetworkInterface for DummyInterface<MTU> {
     type Configuration = InterfaceConfig;
 
     fn platform_interface_send_unchecked(
-        id: network_partition::prelude::NetworkInterfaceId,
-        vl: network_partition::prelude::VirtualLinkId,
+        id: a653rs_router::prelude::NetworkInterfaceId,
+        vl: a653rs_router::prelude::VirtualLinkId,
         buffer: &[u8],
     ) -> Result<usize, InterfaceError> {
         todo!()
     }
 
     fn platform_interface_receive_unchecked(
-        id: network_partition::prelude::NetworkInterfaceId,
+        id: a653rs_router::prelude::NetworkInterfaceId,
         buffer: &'_ mut [u8],
-    ) -> Result<(network_partition::prelude::VirtualLinkId, &'_ [u8]), InterfaceError> {
+    ) -> Result<(a653rs_router::prelude::VirtualLinkId, &'_ [u8]), InterfaceError> {
         todo!()
     }
 }

@@ -1,7 +1,7 @@
 use a653rs_linux::partition::ApexLinuxPartition;
+use a653rs_router::error::*;
+use a653rs_router::prelude::*;
 use log::{debug, error, trace};
-use network_partition::error::*;
-use network_partition::prelude::*;
 use small_trace::small_trace;
 use std::{mem::size_of, net::UdpSocket};
 

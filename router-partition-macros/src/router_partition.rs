@@ -11,7 +11,7 @@ pub fn router_partition(name: syn::Ident, config: StaticRouterConfig) -> TokenSt
         pub mod #name {
             use a653rs::partition;
             use a653rs::prelude::PartitionExt;
-            use network_partition::router_config;
+            use a653rs_router::router_config;
 
             #router_mod
 
@@ -101,7 +101,7 @@ fn router_mod(config: &StaticRouterConfig) -> syn::ItemMod {
         .map(|(id, interface)| syn::ItemStruct::from(IdedInterface::new(id, interface)));
 
     parse_quote! {
-        #[router_config(network_partition::prelude::DeadlineRrScheduler)]
+        #[router_config(a653rs_router::prelude::DeadlineRrScheduler)]
         pub(crate) mod __router_config {
             #limits
             #(#interfaces)*
@@ -252,7 +252,7 @@ fn router_partition_mod(
     parse_quote! {
         #[partition(#hypervisor)]
         mod __router_partition {
-            use network_partition::run_router;
+            use a653rs_router::run_router;
 
             #[sampling_in(name = "RouterConfig", refresh_period = "10s", msg_size = "1KB")]
             struct RouterConfig;

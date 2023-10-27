@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-network-partition = { path = "../network-partition" }
+a653rs-router = { path = "../a653rs-router" }
 log = "0"
 once_cell = { version = "1.17", default-features = false }
 # Seems a bit newer than what is on crates.io

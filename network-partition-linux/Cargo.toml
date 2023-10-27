@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-network-partition = { path = "../network-partition" }
+a653rs-router = { path = "../a653rs-router" }
 a653rs-linux.workspace = true
 once_cell = "1.17"
 log = "0"

@@ -24,7 +24,7 @@ pub fn run<const IN: usize, const OUT: usize, const BUF_LEN: usize>(
     resources: Resources<IN, OUT>,
     scheduler: &'_ mut dyn Scheduler,
 ) -> ! {
-    info!("Running network-partition");
+    info!("Running a653rs-router");
     let mut cfg: Config<IN, OUT> = Config::default();
     let mut router: Option<Router<IN, OUT>> = None;
     let mut reconfigure_timer: u32 = 0;

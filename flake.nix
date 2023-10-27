@@ -1,5 +1,5 @@
 {
-  description = "network-partition";
+  description = "a653rs-router";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.05";
@@ -89,7 +89,7 @@
             in
             pkgs.devshell.mkShell {
               imports = [ "${devshell}/extra/git/hooks.nix" ];
-              name = "network-partition-devshell";
+              name = "a653rs-router-devshell";
               packages = with pkgs; [
                 cargo-audit
                 cargo-llvm-cov

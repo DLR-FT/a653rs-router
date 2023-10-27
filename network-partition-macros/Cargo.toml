@@ -14,8 +14,8 @@ quote.workspace = true
 wrapped-types.path = "../wrapped-types"
 syn.workspace = true
 
-[dev-dependencies.network-partition]
-path = "../network-partition"
+[dev-dependencies.a653rs-router]
+path = "../a653rs-router"
 features = [ "macros", "serde" ]
 
 [dev-dependencies.a653rs]

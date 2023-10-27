@@ -19,8 +19,8 @@ type FwdTable<const I: usize, const O: usize> = LinearMap<VirtualLinkId, Virtual
 ///
 /// ## Example
 /// ```rust
+/// use a653rs_router::prelude::*;
 /// use core::time::Duration;
-/// use network_partition::prelude::*;
 ///
 /// let cfg = || {
 ///     Config::<10, 8>::builder()

@@ -25,8 +25,8 @@ features = ["macros"]
 [dev-dependencies.a653rs-linux]
 workspace = true
 
-[dev-dependencies.network-partition]
-path = "../network-partition"
+[dev-dependencies.a653rs-router]
+path = "../a653rs-router"
 features = ["macros"]
 
 [dev-dependencies.network-partition-linux]

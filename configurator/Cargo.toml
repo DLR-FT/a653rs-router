@@ -29,9 +29,9 @@ alt-local-client = []
 workspace = true
 features = [ "macros" ]
 
-[dependencies.network-partition]
+[dependencies.a653rs-router]
 features = [ "serde" ]
-path = "../network-partition"
+path = "../a653rs-router"
 
 [dependencies.a653rs-linux]
 workspace = true

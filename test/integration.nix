@@ -17,7 +17,7 @@ let
   };
 in
 {
-  name = "network-partition-integration";
+  name = "a653rs-router-integration";
   hostPkgs = hostPkgs;
 
   nodes.client = { config, lib, pkgs, ... }: {

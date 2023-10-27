@@ -60,8 +60,8 @@ impl Router {
         parse_quote! {
             pub mod start {
                 use super::*;
-                use ::network_partition::prelude::*;
-                use ::network_partition::error::*;
+                use ::a653rs_router::prelude::*;
+                use ::a653rs_router::error::*;
 
                 pub fn run(
                     time: &'_ dyn TimeSource,
@@ -76,7 +76,7 @@ impl Router {
                     super::interfaces::inputs().into_iter().for_each(|(n,v)| resources.insert_input(n, v).unwrap());
                     super::interfaces::outputs().into_iter().for_each(|(n,v)| resources.insert_output(n, v).unwrap());
                     let mut scheduler = AScheduler::default();
-                    network_partition::run::<TOTAL_INPUTS, TOTAL_OUTPUTS, BUF_LEN>(time, router_config, resources, &mut scheduler)
+                    a653rs_router::run::<TOTAL_INPUTS, TOTAL_OUTPUTS, BUF_LEN>(time, router_config, resources, &mut scheduler)
                 }
             }
         }
@@ -87,8 +87,8 @@ impl Router {
         let io = interfaces.len();
         parse_quote! {
             mod interfaces {
-                use ::network_partition::prelude::*;
-                use ::network_partition::error::*;
+                use ::a653rs_router::prelude::*;
+                use ::a653rs_router::error::*;
 
                 use super::*;
 

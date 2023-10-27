@@ -1,15 +1,15 @@
 use core::mem::size_of;
 
-use corncobs::{decode_in_place, encode_buf, max_encoded_len};
-use heapless::spsc::Queue;
-use log::trace;
-use network_partition::{
+use a653rs_router::{
     error::InterfaceError,
     prelude::{
         CreateNetworkInterfaceId, InterfaceConfig, NetworkInterfaceId, PlatformNetworkInterface,
         VirtualLinkId,
     },
 };
+use corncobs::{decode_in_place, encode_buf, max_encoded_len};
+use heapless::spsc::Queue;
+use log::trace;
 use once_cell::unsync::Lazy;
 use small_trace::small_trace;
 use uart_xilinx::MmioUartAxi16550;

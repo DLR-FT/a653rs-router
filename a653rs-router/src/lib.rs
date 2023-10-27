@@ -52,9 +52,9 @@
 //! ```no_run
 //! # #![no_std]
 //!
-//! # use network_partition::prelude::*;
+//! # use a653rs_router::prelude::*;
 //! # use core::time::Duration;
-//! # use network_partition::error::Error;
+//! # use a653rs_router::error::Error;
 //! #
 //! # struct TimeSourceA;
 //! # impl TimeSource for TimeSourceA {
@@ -77,7 +77,7 @@
 //! let resources = Resources::<1, 1>::new();
 //! // Add resources ...
 //!
-//! network_partition::run::<1, 1, 1000>(
+//! a653rs_router::run::<1, 1, 1000>(
 //!     &time_source as &dyn TimeSource,
 //!     &router_config as &dyn RouterInput,
 //!     resources,

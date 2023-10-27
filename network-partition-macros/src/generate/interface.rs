@@ -16,8 +16,8 @@ impl GenMod for Interface {
         let destination = self.destination.as_str();
         Ok(parse_quote! {
             mod #ident {
-                use ::network_partition::prelude::*;
-                use ::network_partition::error::*;
+                use ::a653rs_router::prelude::*;
+                use ::a653rs_router::error::*;
 
                 pub fn init() -> Result<(), Error> {
                     let intf = #interface_type :: create_network_interface::< #mtu >( InterfaceConfig::new( #source, #destination, DataRate::b( #rate ), #mtu ) )?;

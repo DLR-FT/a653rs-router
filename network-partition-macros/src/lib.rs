@@ -1,8 +1,8 @@
 //! Convenience macros for
-//! [`network-partition`](../network_partition/index.html).
+//! [`a653rs-router`](../a653rs_router/index.html).
 //!
-//! These macros are reexported as part of `network-partition`. To use them,
-//! enable the `macros` feature for `network-partition`.
+//! These macros are reexported as part of `a653rs-router`. To use them,
+//! enable the `macros` feature for `a653rs-router`.
 //!
 //! To create the static part of the configuration for the router the
 //! [`macro@router_config`] macro should be used. [`run_router!`] then runs this
@@ -14,7 +14,7 @@
 //! # #[macro_use] extern crate network_partition_macros;
 //! #
 //! use a653rs::partition;
-//! use network_partition::router_config;
+//! use a653rs_router::router_config;
 //!
 //! #[router_config(dummy_hypervisor::DummyScheduler)]
 //! pub(crate) mod router {
@@ -83,8 +83,8 @@
 //! routing information and networking interfaces.
 //!
 //! - **SCHEDULER**: A type-path to a struct implementing
-//!   `network_partition::prelude::Scheduler`. This is used for finding out when
-//!   to forward a message from a virtual link.
+//!   `a653rs_router::prelude::Scheduler`. This is used for finding out when to
+//!   forward a message from a virtual link.
 //!
 //! The generated module will contain the entry function `run` that takes a time
 //! source, the port for passing in the runtime configuration and the hypervisor
@@ -97,11 +97,11 @@
 //!
 //! This macro is processed as part of [`router_config`]. It defines the
 //! memory resource limits of the router. For more information see the
-//! documentation of [`network-partition`].
+//! documentation of [`a653rs-router`].
 //!
 //! ### `#[interface(INTERFACE_TYPE, SOURCE, DESTINATION, RATE, MTU)]`
 //! - **INTERFACE_TYPE**: Type path to a struct implementing
-//!   `network_partition::prelude::CreateNetworkInterface`.
+//!   `a653rs_router::prelude::CreateNetworkInterface`.
 //! - **SOURCE**: Name of the local source of this interface. For example,
 //!   sources and destinations of an implementation for UDP sockets could take a
 //!   [`String`] in the format of a `sockaddr`, an implementation for Ethernet
@@ -113,7 +113,7 @@
 //!
 //! This macro is processed as part of [`router_config`]. It defines the
 //! configuration for an individual network interface. For more information see
-//! the documentation of [`network-partition`].
+//! the documentation of [`a653rs-router`].
 //!
 //! ### Caveats
 //!
@@ -127,9 +127,9 @@
 //! ### Example
 //!
 //! ```no_run
-//! # #[macro_use] extern crate network_partition;
+//! # #[macro_use] extern crate a653rs_router;
 //! #
-//! use network_partition::router_config;
+//! use a653rs_router::router_config;
 //!
 //! #[router_config(dummy_hypervisor::DummyScheduler)]
 //! pub mod router {
@@ -157,17 +157,17 @@
 //! - **TIME_SOURCE**: A source for the current system time. If your hypervisor
 //!   implements `a653rs::prelude::ApexTimeP4Ext`, the hypervisor should be
 //!   passed.
-//! - **ROUTER_CONFIG**: A `network_partition::prelude::RouterInput` from which
-//!   the router will source its runtime configuration. This can be a sampling
-//!   port, queuing port, network interface or anything else that implements
+//! - **ROUTER_CONFIG**: A `a653rs_router::prelude::RouterInput` from which the
+//!   router will source its runtime configuration. This can be a sampling port,
+//!   queuing port, network interface or anything else that implements
 //!   `RouterInput`.
 //! - **INPUTS**: An array containing tuples of the names of inputs and outputs
 //!   and references to the structs they can be accessed by. This can be
-//!   anything implementing `network_partition::prelude::RouterInput`.
-//!   `network-partition` defines implementations for sampling and queuing ports
-//!   and `network_partition::prelude::NetworkInterface`.
+//!   anything implementing `a653rs_router::prelude::RouterInput`.
+//!   `a653rs-router` defines implementations for sampling and queuing ports and
+//!   `a653rs_router::prelude::NetworkInterface`.
 //! - **OUTPUTS**: An array of the form of the previous argument, but containing
-//!   elements of `network_partition::prelude::RouterOutput`.
+//!   elements of `a653rs_router::prelude::RouterOutput`.
 //!
 //! The outputs or the inputs and outputs may be left unspecified, in which case
 //! they are presumed to be empty. The arrays need to be the exact same size as
@@ -176,7 +176,7 @@
 //! router or missing inputs and outputs that are used in the runtime
 //! configuration.
 //!
-//! See the module-level documentation of `network-partition` for more.
+//! See the module-level documentation of `a653rs-router` for more.
 
 mod attrs;
 mod generate;

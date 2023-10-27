@@ -43,10 +43,10 @@ pub fn run() {
 #[cfg_attr(feature = "xng", partition(a653rs_xng::apex::XngHypervisor))]
 mod configurator {
     use a653rs_postcard::sampling::SamplingPortSourceExt;
+    use a653rs_router::prelude::Config;
+    use a653rs_router::prelude::*;
     use core::time::Duration;
     use log::*;
-    use network_partition::prelude::Config;
-    use network_partition::prelude::*;
 
     #[sampling_out(name = "RouterConfig", msg_size = "1KB")]
     struct RouterConfig;

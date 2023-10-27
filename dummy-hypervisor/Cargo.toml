@@ -8,6 +8,6 @@ edition = "2021"
 [dependencies]
 a653rs.workspace = true
 
-[dependencies.network-partition]
-path = "../network-partition"
+[dependencies.a653rs-router]
+path = "../a653rs-router"
 default-features = false

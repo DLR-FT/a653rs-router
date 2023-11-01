@@ -1,0 +1,13 @@
+[package]
+name = "a653rs-router-linux"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+a653rs-router = { path = "../a653rs-router" }
+a653rs-linux.workspace = true
+once_cell = "1.17"
+log = "0"
+heapless = "0.7"
+bytesize = "1.1"
+small-trace = { path = "../small-trace" }

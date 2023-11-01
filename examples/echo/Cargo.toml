@@ -1,0 +1,72 @@
+[package]
+name = "echo"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[[example]]
+name = "echo-sampling-xng"
+crate-type = [ "staticlib" ]
+path = "examples/sampling/xng.rs"
+required-features = [ "sampling", "xng" ]
+
+[[example]]
+name = "echo-sampling-linux"
+path = "./examples/sampling/linux.rs"
+required-features = [ "sampling", "linux" ]
+
+[[example]]
+name = "echo-queuing-xng"
+crate-type = [ "staticlib" ]
+path = "./examples/queuing/xng.rs"
+required-features = [ "queuing", "xng" ]
+
+[[example]]
+name = "echo-queuing-linux"
+path = "./examples/queuing/linux.rs"
+required-features = [ "queuing", "linux" ]
+
+[features]
+client = []
+server = []
+
+sampling = []
+queuing = []
+
+linux = [
+  "dep:a653rs-linux",
+]
+xng = [
+  "dep:a653rs-xng",
+  "dep:small-trace-gpio",
+  "dep:xng-rs-log",
+]
+
+[dependencies]
+a653rs.workspace = true
+a653rs-postcard.workspace = true
+log = "0"
+once_cell.workspace = true
+small-trace = { path = "../../small-trace" }
+
+[dependencies.a653rs-linux]
+workspace = true
+optional = true
+
+[dependencies.a653rs-xng]
+workspace = true
+optional = true
+features = [ "panic_handler" ]
+
+[dependencies.serde]
+features = ["derive"]
+workspace = true
+
+[dependencies.small-trace-gpio]
+path = "../../small-trace-gpio"
+optional = true
+
+[dependencies.xng-rs-log]
+workspace = true
+optional = true

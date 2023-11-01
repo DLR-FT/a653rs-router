@@ -1,5 +1,5 @@
 {
-  description = "network-partition";
+  description = "a653rs-router";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.05";
@@ -84,12 +84,12 @@
             let
               pkgs = import nixpkgs { inherit system; overlays = [ devshell.overlays.default ]; };
               fpga = fpga-project.packages."${system}".default;
-              zynq7000Init = ./deployment/zynq7000_init_te0706.tcl;
+              zynq7000Init = ./a653rs-router-zynq7000/zynq7000_init_te0706.tcl;
               vitis = xilinx-flake-utils.packages.${system}.vitis-unified-software-platform-vitis_2019-2_1106_2127;
             in
             pkgs.devshell.mkShell {
               imports = [ "${devshell}/extra/git/hooks.nix" ];
-              name = "network-partition-devshell";
+              name = "a653rs-router-devshell";
               packages = with pkgs; [
                 cargo-audit
                 cargo-llvm-cov
@@ -204,7 +204,7 @@
                 {
                   nativeBuildInputs = [ rust-toolchain ];
                 } "cd ${./.} && cargo fmt --check && touch $out";
-              integration = nixos-lib.runTest (import ./test/integration.nix {
+              integration = nixos-lib.runTest (import ./examples/nixos-integration-test {
                 hostPkgs = pkgs;
                 configurator-client = configurator--linux-client;
                 configurator-server = configurator--linux-server;
@@ -233,7 +233,6 @@
               lithOsOps = self.packages.${system}.lithos-ops;
               rustPlatform = (pkgs.makeRustPlatform { cargo = rust-toolchain; rustc = rust-toolchain; });
               platforms = [
-                { feature = "dummy"; target = "x86_64-unknown-linux-gnu"; }
                 { feature = "linux"; target = "x86_64-unknown-linux-musl"; }
                 { feature = "xng"; target = "armv7a-none-eabi"; }
               ];
@@ -252,16 +251,6 @@
               variants = [ "" ];
               platforms = [
                 { feature = "linux"; target = "x86_64-unknown-linux-musl"; }
-                { feature = "xng"; target = "armv7a-none-eabi"; }
-              ];
-            })
-            //
-            (allProducts {
-              inherit rustPlatform;
-              products = [ "throughput" ];
-              flavors = [ "sender" "receiver" ];
-              variants = [ "" ];
-              platforms = [
                 { feature = "xng"; target = "armv7a-none-eabi"; }
               ];
             })
@@ -422,7 +411,7 @@
             hardFp = false;
             xcf = pkgs.runCommandNoCC "patch-src" { } ''
               mkdir -p merged
-              cp -r "${./config/shared}"/* "${./config/${name}/xml}"/* merged/
+              cp -r "${./examples/config/shared}"/* "${./examples/config/${name}/xml}"/* merged/
               cp -r merged $out
             '';
             partitions = pkgs.lib.concatMapAttrs
@@ -430,7 +419,7 @@
                 "${partName}" = {
                   src = value;
                   enableLithOs = true;
-                  ltcf = ./config/shared/${nixpkgs.lib.toLower partName}.ltcf;
+                  ltcf = ./examples/config/shared/${nixpkgs.lib.toLower partName}.ltcf;
                 };
               })
               partitions;

@@ -1,0 +1,29 @@
+[package]
+name = "a653rs-router"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+std = [ "dep:bytesize", "dep:humantime-serde" ]
+serde = [ "dep:postcard", "dep:serde", "heapless/serde", "bytesize?/serde" ]
+macros = [ "dep:a653rs-router-macros", "serde" ]
+partition = [ "macros", "dep:a653rs-router-partition-macros" ]
+
+[dependencies]
+a653rs.workspace = true
+heapless = { version = "0.7", default-features = false }
+log = "0"
+humantime-serde = { version = "1", optional = true }
+serde = { version = "1.0", default-features = false, features = ["derive"], optional = true }
+bytesize = { version = "1.1.0", optional = true }
+small-trace = { path = "../small-trace" }
+postcard = { version = "1.0", optional = true, default-features = false, features = [ "heapless" ] }
+a653rs-router-macros = { path = "../a653rs-router-macros", optional = true }
+a653rs-router-partition-macros = { path = "../a653rs-router-partition-macros", optional = true }
+
+[dev-dependencies.serde_yaml]
+version = "0.9"
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "doc_cfg"]

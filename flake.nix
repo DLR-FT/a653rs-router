@@ -114,7 +114,7 @@
                 {
                   name = "run-nixos-integration-test";
                   command = ''
-                    nix build .#checks.${system}.integration --rebuild --print-logs
+                    nix build .#checks.${system}.integration --rebuild --print-build-logs
                   '';
                   help = "Run the echo server and client integration test";
                 }

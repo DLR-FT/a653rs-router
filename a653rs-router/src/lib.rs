@@ -99,7 +99,6 @@
 //! The router requires the hypervisor to implement at least `ApexTimeP4`.
 
 #![cfg_attr(not(feature = "std"), no_std)]
-#![allow(incomplete_features)]
 #![warn(
     missing_debug_implementations,
     missing_docs,

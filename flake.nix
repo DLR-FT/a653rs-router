@@ -20,6 +20,9 @@
       #url = "github:DLR-FT/a653rs-linux";
       url = "github:dadada/apex-linux?ref=udp-network-driver";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.devshell.follows = "devshell";
+      inputs.fenix.follows = "fenix";
+      inputs.utils.follows = "utils";
     };
 
     xng-utils = {
@@ -30,10 +33,11 @@
     fpga-project = {
       url = "git+ssh://git@gitlab.dlr.de/projekt-resilienz/vivado-coraz7-uart.git?ref=main";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-utils.follows = "utils";
     };
 
     xilinx-flake-utils = {
-      url = "github:aeronautical-informatics/xilinx-flake-utils";
+      follows = "fpga-project/xilinx-flake-utils";
       # do not override any inputs here to not have to rebuild Xilinx Vitis
     };
   };

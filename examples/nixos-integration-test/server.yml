@@ -19,7 +19,7 @@ partitions:
     duration: 300ms
     offset: 700ms
     period: 1s
-    image: configurator--linux
+    image: configurator-linux
 channel:
   - !Sampling
     name: EchoRequest

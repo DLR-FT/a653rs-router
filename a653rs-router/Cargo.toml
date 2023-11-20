@@ -4,14 +4,13 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-std = [ "dep:bytesize", "dep:humantime-serde" ]
 serde = [ "dep:postcard", "dep:serde", "heapless/serde", "bytesize?/serde" ]
 macros = [ "dep:a653rs-router-macros", "serde" ]
 partition = [ "macros", "dep:a653rs-router-partition-macros" ]
 
 [dependencies]
 a653rs.workspace = true
-heapless = { version = "0.7", default-features = false }
+heapless.workspace = true
 log = "0"
 humantime-serde = { version = "1", optional = true }
 serde = { version = "1.0", default-features = false, features = ["derive"], optional = true }

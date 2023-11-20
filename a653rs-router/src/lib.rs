@@ -102,7 +102,7 @@ a653rs_router::run::<1, 1, 1000>(
 //!
 //! The router requires the hypervisor to implement at least `ApexTimeP4`.
 
-#![cfg_attr(not(feature = "std"), no_std)]
+#![no_std]
 #![warn(
     missing_debug_implementations,
     missing_docs,

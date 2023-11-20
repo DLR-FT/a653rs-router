@@ -5,9 +5,6 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[dependencies.configurator]
-path = "../configurator"
-
 [dependencies.a653rs]
 workspace = true
 features = [ "macros" ]
@@ -21,3 +18,13 @@ version = "0"
 
 [dependencies.a653rs-linux]
 workspace = true
+
+[dependencies.signal-hook]
+version = "0.3.17"
+
+[dependencies.postcard]
+workspace = true
+
+# For reading config file
+[dependencies.serde_json]
+version = "1.0"

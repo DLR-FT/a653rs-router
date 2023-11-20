@@ -1,0 +1,13 @@
+[package]
+name = "a653rs-router-cfg"
+description = "Compiles the configuration for the router to the postcard binary format"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+a653rs-router = { path = "../a653rs-router", features = ["serde"] }
+heapless = { workspace = true }
+postcard = { workspace = true, features = ["heapless"] }
+serde_json = { workspace = true }

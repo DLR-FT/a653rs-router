@@ -20,6 +20,8 @@ partitions:
     offset: 650ms
     period: 1s
     image: configurator-linux
+    mounts:
+      - ["/etc/route-table.json", "/route-table.json"]
 channel:
   - !Sampling
     name: EchoRequest

@@ -1,0 +1,20 @@
+{
+  "virtual_links": {
+    "1": {
+      "period": {
+        "secs": 0,
+        "nanos": 10000
+      },
+      "source": "NodeA",
+      "destinations": [ "EchoRequest" ]
+    },
+    "2": {
+      "period": {
+        "secs": 0,
+        "nanos": 10000
+      },
+      "source": "EchoReply",
+      "destinations": [ "NodeA" ]
+    }
+  }
+}

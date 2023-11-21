@@ -1,0 +1,14 @@
+--- a/lds/lithos-xng-armv7a-vmsa-tz.lds
++++ b/lds/lithos-xng-armv7a-vmsa-tz.lds
+@@ -50,9 +50,11 @@
+         _bsp_sbss = .;
+         *(COMMON)
+         *(.bss)
++        *(.bss.*)
+         _bsp_ebss = .;
+         . = ALIGN(8);
+         *(.bss.noinit)
++        *(.bss.noinit.*)
+         eLRW = .;
+     }
+     /DISCARD/ : {

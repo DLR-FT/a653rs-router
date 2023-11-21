@@ -534,16 +534,15 @@
         ]
       },
       "locked": {
-        "lastModified": 1675866760,
-        "narHash": "sha256-r1Kf6W8viqkrthy7Y+rNt63N4Zw32G9Rzk464gLPGSU=",
-        "owner": "dadada",
+        "lastModified": 1700566075,
+        "narHash": "sha256-jzpM7T6eko/T7IsslNhZfeihlm3QzbmoR5NBmo/sGUk=",
+        "owner": "aeronautical-informatics",
         "repo": "xng-flake-utils",
-        "rev": "7236462b0e29b915791c4420c18c9b82da273332",
+        "rev": "1cc15bd101403388065ce5ef30a29574ac2d93cc",
         "type": "github"
       },
       "original": {
-        "owner": "dadada",
-        "ref": "dev/dadada",
+        "owner": "aeronautical-informatics",
         "repo": "xng-flake-utils",
         "type": "github"
       }

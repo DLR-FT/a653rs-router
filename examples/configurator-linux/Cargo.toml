@@ -1,0 +1,23 @@
+[package]
+name = "configurator-linux"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies.configurator]
+path = "../configurator"
+
+[dependencies.a653rs]
+workspace = true
+features = [ "macros" ]
+
+[dependencies.a653rs-router]
+features = [ "serde" ]
+path = "../../a653rs-router"
+
+[dependencies.log]
+version = "0"
+
+[dependencies.a653rs-linux]
+workspace = true

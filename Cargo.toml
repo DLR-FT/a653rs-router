@@ -1,5 +1,6 @@
 [workspace]
 resolver = "2"
+
 members = [
   "a653rs-router",
   "a653rs-router-macros",
@@ -7,6 +8,8 @@ members = [
   "a653rs-router-partition-macros",
   "a653rs-router-zynq7000",
   "examples/configurator",
+  "examples/configurator-linux",
+  "examples/configurator-xng",
   "examples/echo",
   "examples/router",
   "small-trace",
@@ -39,6 +42,7 @@ uart_xilinx = { git = "https://github.com/duskmoon314/uart-rs.git", branch = "ma
 a653rs-postcard = { git = "https://github.com/DLR-FT/a653rs-postcard.git", branch = "main", default-features = false }
 a653rs-xng = { git = "https://github.com/DLR-FT/a653rs-xng.git", branch = "main", default-features = false }
 once_cell = { version = "1.17", default-features = false }
+postcard = { version = "1.0", default-features = false }
 serde = { version = "1.0", default-features = false }
 xng-rs-log = { git = "https://github.com/DLR-FT/xng-rs-log.git", branch = "main", default-features = false }
 

@@ -306,10 +306,30 @@ name = "configurator"
 version = "0.1.0"
 dependencies = [
  "a653rs",
+ "a653rs-router",
+ "log",
+ "postcard",
+]
+
+[[package]]
+name = "configurator-linux"
+version = "0.1.0"
+dependencies = [
+ "a653rs",
  "a653rs-linux",
- "a653rs-postcard",
+ "a653rs-router",
+ "configurator",
+ "log",
+]
+
+[[package]]
+name = "configurator-xng"
+version = "0.1.0"
+dependencies = [
+ "a653rs",
  "a653rs-router",
  "a653rs-xng",
+ "configurator",
  "log",
  "xng-rs-log",
 ]

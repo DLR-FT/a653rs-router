@@ -1,0 +1,30 @@
+[package]
+name = "configurator-xng"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = [ "staticlib" ]
+
+[dependencies.a653rs]
+workspace = true
+features = [ "macros" ]
+
+[dependencies.a653rs-router]
+features = [ "serde" ]
+path = "../../a653rs-router"
+
+[dependencies.a653rs-xng]
+workspace = true
+features = [ "panic_handler" ]
+
+[dependencies.xng-rs-log]
+workspace = true
+
+[dependencies.configurator]
+path = "../configurator"
+
+[dependencies.log]
+version = "0"

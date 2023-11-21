@@ -10,7 +10,7 @@
 //!
 //! ## Example
 //!
-//! See [crate@a653rs_router_tests].
+//! See [`a653rs_router_tests`](../a653rs_router_tests/index.html).
 //!
 //! ## `#[router_config(SCHEDULER)]`
 //!
@@ -63,7 +63,8 @@
 //!
 //! ### Example
 //!
-//! See the integration tests in [crate@a653rs_router_macros_tests].
+//! See the integration tests in
+//! [`a653rs_router_tests`](../a653rs_router_tests/index.html).
 //!
 //! ## `run_router!(ROUTER, TIME_SOURCE, RUNTIME_CONFIG, INPUTS, OUTPUTS)`
 //!

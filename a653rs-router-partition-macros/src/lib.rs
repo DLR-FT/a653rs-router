@@ -3,7 +3,7 @@
 //!
 //! ## Example
 //!
-//! See [crate@a653rs_router_tests]
+//! See [`a653rs_router_tests`](../a653rs_router_tests/index.html).
 
 #![warn(
     missing_debug_implementations,

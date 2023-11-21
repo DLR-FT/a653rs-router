@@ -1,4 +1,4 @@
-use a653rs::router_partition;
+use a653rs_router::router_partition;
 
 #[router_partition(
      hypervisor = a653rs_linux::partition::ApexLinuxPartition,
@@ -20,6 +20,6 @@ use a653rs::router_partition;
  )]
 mod my_router {}
 
-fn partition_entry_function() {
+pub fn partition_entry_function() {
     my_router::run()
 }

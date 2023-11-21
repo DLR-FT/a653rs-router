@@ -1,15 +1,19 @@
 //! Message router and IO-partition for ARINC 653 P4 based on [`a653rs`](https://github.com/DLR-FT/a653rs).
 //!
 //! The router concept is explained in more detail in [*Towards Enabling Level 3A AI in Avionic Platforms*](https://doi.org/10.18420/se2023-ws-18).
-//!
-//! ## Using as a Partition
-//!
-//! To create a partition containing the message router, it is recommended to
-//! use the macros [`macro@router_config`], [`macro@run_router`] and
-//! [`a653rs::partition`] that are available when requiring the `macros` feature
-//! in both crates. For a full example see
-//! [`a653rs_router_macros`](../a653rs_router_macros/index.html).
-//!
+#![cfg_attr(
+    feature = "macros",
+    doc = r##"
+## Using as a Partition
+
+To create a partition containing the message router, it is recommended to
+use the macros [`macro@router_config`], [`macro@run_router`] and
+[`a653rs::partition`](https://docs.rs/a653rs_macros/latest/a653rs_macros/attr.partition.html)
+that are available when requiring the `macros` feature
+in both crates. For a full example see
+[`a653rs_router_tests`](../a653rs_router_macros/index.html).
+"##
+)]
 //! ## Configuration
 //! The configuration of the router consists of two stages that depend on each
 //! other. The compile-time configuration declares what inputs and outputs are
@@ -46,7 +50,7 @@
     feature = "serde",
     doc = r##"
 ## Running the Router
-This crate defines a [`@mod::run()`] entry-point that continuously runs the
+This crate defines a [run()] entry-point that continuously runs the
 router. The entry-point is only available if the `serde` feature is enabled,
 since it reads the serialized configuration from a [`prelude::RouterInput`].
 

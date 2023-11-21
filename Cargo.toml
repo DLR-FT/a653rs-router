@@ -23,6 +23,7 @@ default-members = [
   "a653rs-router-macros",
   "a653rs-router-linux",
   "a653rs-router-partition-macros",
+  "a653rs-router-tests",
   "a653rs-router-zynq7000",
   "small-trace",
   "small-trace-gpio",

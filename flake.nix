@@ -23,7 +23,7 @@
     };
 
     xng-utils = {
-      url = "github:dadada/xng-flake-utils/dev/dadada";
+      url = "github:aeronautical-informatics/xng-flake-utils";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -298,6 +298,10 @@
               lithos-ops = xng-utils.lib.buildLithOsOps {
                 inherit pkgs;
                 src = xngSrcs.lithos;
+                patches = [
+                  # Linker script patch to initialize the static variable of the logger in the BSS
+                  ./patches/lithos-xng-armv7a-vmsa-tz.lds.patch
+                ];
               };
               echo-remote-xng-client = xngImage rec {
                 inherit pkgs xngOps lithOsOps;
@@ -419,6 +423,8 @@
                 "${partName}" = {
                   src = value;
                   enableLithOs = true;
+                  # Enable linking against XRE even if linking against LithOS
+                  forceXre = true;
                   ltcf = ./examples/config/shared/${nixpkgs.lib.toLower partName}.ltcf;
                 };
               })

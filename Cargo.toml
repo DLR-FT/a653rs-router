@@ -3,6 +3,7 @@ resolver = "2"
 
 members = [
   "a653rs-router",
+  "a653rs-router-tests",
   "a653rs-router-macros",
   "a653rs-router-linux",
   "a653rs-router-partition-macros",
@@ -47,7 +48,6 @@ serde = { version = "1.0", default-features = false }
 xng-rs-log = { git = "https://github.com/DLR-FT/xng-rs-log.git", branch = "main", default-features = false }
 
 bytesize = "1.3"
-convert_case = "0.6"
 darling = "0.20"
 humantime = "2.1"
 itertools = "0.11.0"

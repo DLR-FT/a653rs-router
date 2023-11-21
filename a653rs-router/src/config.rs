@@ -279,32 +279,4 @@ mod tests {
     fn build_config() {
         assert!(config().is_ok())
     }
-
-    #[cfg(all(feature = "std", feature = "serde"))]
-    #[test]
-    fn parse_config() {
-        let cfg = r#"
-            virtual_links:
-              1:
-                period: "10ms"
-                source: "Advisory_1"
-                destinations:
-                  - "eth0"
-                  - "FCC_1"
-              2:
-                period: "20ms"
-                source: "Advisory_2"
-                destinations:
-                  - "eth0"
-                  - "FCC_2"
-              3:
-                period: "40ms"
-                source: "eth0"
-                destinations:
-                  - "FCC_3"
-                  - "eth1"
-        "#;
-        let cfg = serde_yaml::from_str::<Config<10, 8>>(cfg);
-        assert!(cfg.is_ok_and(|r| r.eq(&config().unwrap())))
-    }
 }

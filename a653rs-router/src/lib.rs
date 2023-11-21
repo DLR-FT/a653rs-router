@@ -42,50 +42,50 @@
 //! unused.
 //!
 //! See [`prelude::Config`] for an example of the run-time configuration.
-//!
-//! ## Running the Router
-//!
-//! This crate defines a [`@mod::run()`] entry-point that continuously runs the
-//! router. The entry-point is only available if the `serde` feature is enabled,
-//! since it reads the serialized configuration from a [`prelude::RouterInput`].
-//!
-//! ```no_run
-//! # #![no_std]
-//!
-//! # use a653rs_router::prelude::*;
-//! # use core::time::Duration;
-//! # use a653rs_router::error::Error;
-//! #
-//! # struct TimeSourceA;
-//! # impl TimeSource for TimeSourceA {
-//! #     fn get_time(&self) -> Result<Duration, Error> { todo!() }
-//! # }
-//! # struct RouterConfig;
-//! # impl RouterInput for RouterConfig {
-//! #     fn receive<'a>(
-//! #        &self,
-//! #        vl: &VirtualLinkId,
-//! #        buf: &'a mut [u8],
-//! #    ) -> Result<(VirtualLinkId, &'a [u8]), Error> { todo!() }
-//! # }
-//! #
-//! # fn main() {
-//! #    let time_source = TimeSourceA {};
-//! #    let router_config = RouterConfig {};
-//! #    let mut scheduler = DeadlineRrScheduler::<2>::new();
-//! #
-//! let resources = Resources::<1, 1>::new();
-//! // Add resources ...
-//!
-//! a653rs_router::run::<1, 1, 1000>(
-//!     &time_source as &dyn TimeSource,
-//!     &router_config as &dyn RouterInput,
-//!     resources,
-//!     &mut scheduler as &mut dyn Scheduler,
-//! )
-//! # }
-//! ```
-//!
+#![cfg_attr(
+    feature = "serde",
+    doc = r##"
+## Running the Router
+This crate defines a [`@mod::run()`] entry-point that continuously runs the
+router. The entry-point is only available if the `serde` feature is enabled,
+since it reads the serialized configuration from a [`prelude::RouterInput`].
+
+```no_run
+# #![no_std]
+# use a653rs_router::prelude::*;
+# use core::time::Duration;
+# use a653rs_router::error::Error;
+#
+# struct TimeSourceA;
+# impl TimeSource for TimeSourceA {
+#     fn get_time(&self) -> Result<Duration, Error> { todo!() }
+# }
+# struct RouterConfig;
+# impl RouterInput for RouterConfig {
+#     fn receive<'a>(
+#        &self,
+#        vl: &VirtualLinkId,
+#        buf: &'a mut [u8],
+#    ) -> Result<(VirtualLinkId, &'a [u8]), Error> { todo!() }
+# }
+#
+# fn main() {
+#    let time_source = TimeSourceA {};
+#    let router_config = RouterConfig {};
+#    let mut scheduler = DeadlineRrScheduler::<2>::new();
+#
+let resources = Resources::<1, 1>::new();
+// Add resources ...
+a653rs_router::run::<1, 1, 1000>(
+    &time_source as &dyn TimeSource,
+    &router_config as &dyn RouterInput,
+    resources,
+    &mut scheduler as &mut dyn Scheduler,
+)
+# }
+```
+"##
+)]
 //! ## Adding New Network Interface Implementations
 //!
 //! To add support for new network interface types, only

@@ -1,0 +1,20 @@
+[package]
+name = "a653rs-router-tests"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dev-dependencies.a653rs]
+workspace = true
+features = ["macros"]
+
+[dev-dependencies.a653rs-linux]
+workspace = true
+
+[dev-dependencies.a653rs-router]
+path = "../a653rs-router"
+features = ["macros"]
+
+[dev-dependencies.a653rs-router-linux]
+path = "../a653rs-router-linux"

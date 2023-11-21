@@ -20,3 +20,8 @@ To enter the environment, run `nix develop`.
 ```
 cargo doc --all --open
 ```
+
+## Nightly features
+
+The echo example and support for Zynq7000 currently require a nightly compiler for support of const-generics.
+Other than that all crates should use only stable rust features. 

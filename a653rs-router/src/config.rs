@@ -1,4 +1,4 @@
-use core::{fmt::Display, time::Duration};
+use core::{fmt::Display, str::FromStr, time::Duration};
 use heapless::{LinearMap, String, Vec};
 
 #[allow(unused_imports)]
@@ -10,7 +10,7 @@ use bytesize::ByteSize;
 
 use crate::types::VirtualLinkId;
 
-const MAX_PORT_NAME: usize = 20;
+const MAX_PORT_NAME: usize = 32;
 type Port = String<MAX_PORT_NAME>;
 
 type FwdTable<const I: usize, const O: usize> = LinearMap<VirtualLinkId, VirtualLinkConfig<O>, I>;
@@ -183,7 +183,7 @@ impl<const I: usize, const O: usize> Builder<I, O> {
     /// A port can be the name of an interface or the name of a hypervisor port.
     pub fn destination(&mut self, vl_id: u16, destination: &str) -> BuilderResult<'_, I, O> {
         let vl_id = VirtualLinkId::from(vl_id);
-        let dst = Port::try_from(destination).or(Err(RouterConfigError::Destination))?;
+        let dst = Port::from_str(destination).or(Err(RouterConfigError::Destination))?;
         let vl = self.find_vl(&vl_id)?;
         let destination_added = vl.dsts.push(dst);
         destination_added.or(Err(RouterConfigError::VirtualLink))?;
@@ -212,7 +212,7 @@ impl<const I: usize, const O: usize> Builder<I, O> {
     ///
     /// A port can be the name of an interface or the name of a hypervisor port.
     pub fn virtual_link(&mut self, vl_id: u16, source: &str) -> BuilderResult<'_, I, O> {
-        let src = Port::try_from(source).or(Err(RouterConfigError::Source))?;
+        let src = Port::from_str(source).or(Err(RouterConfigError::Source))?;
         let vl_id = VirtualLinkId::from(vl_id);
         let duplicate = self.find_vl(&vl_id).is_ok();
         if duplicate {

@@ -29,9 +29,11 @@ pub struct EchoMessage {
     pub when_us: u64,
 }
 
-pub fn run_echo_queuing_receiver<H: ApexQueuingPortP4 + ApexTimeP4Ext>(
-    port: &QueuingPortReceiver<1000, 10, H>,
-) {
+pub fn run_echo_queuing_receiver<const M: u32, H: ApexQueuingPortP4 + ApexTimeP4Ext>(
+    port: &QueuingPortReceiver<M, 10, H>,
+) where
+    [u8; M as usize]:,
+{
     let mut last = 0;
     loop {
         trace!("Running echo client aperiodic process");
@@ -84,9 +86,11 @@ pub fn run_echo_queuing_receiver<H: ApexQueuingPortP4 + ApexTimeP4Ext>(
     }
 }
 
-pub fn run_echo_queuing_sender<H: ApexQueuingPortP4 + ApexTimeP4Ext>(
-    port: &QueuingPortSender<1000, 10, H>,
-) {
+pub fn run_echo_queuing_sender<const M: u32, H: ApexQueuingPortP4 + ApexTimeP4Ext>(
+    port: &QueuingPortSender<M, 10, H>,
+) where
+    [u8; M as usize]:,
+{
     info!("Running echo client periodic process");
     let mut i: u32 = 0;
     loop {
@@ -123,12 +127,14 @@ pub fn run_echo_queuing_sender<H: ApexQueuingPortP4 + ApexTimeP4Ext>(
     }
 }
 
-pub fn run_server_queuing_main<H: ApexQueuingPortP4 + ApexTimeP4Ext>(
-    port_out: &QueuingPortSender<1000, 10, H>,
-    port_in: &QueuingPortReceiver<1000, 10, H>,
-) {
+pub fn run_server_queuing_main<const M: u32, H: ApexQueuingPortP4 + ApexTimeP4Ext>(
+    port_out: &QueuingPortSender<M, 10, H>,
+    port_in: &QueuingPortReceiver<M, 10, H>,
+) where
+    [u8; M as usize]:,
+{
     info!("Running echo server");
-    let mut buf = [0u8; 1000 as usize];
+    let mut buf = [0u8; M as usize];
     loop {
         match port_in.receive(&mut buf, TIMEOUT) {
             Ok(data) => {
@@ -160,9 +166,11 @@ pub fn run_server_queuing_main<H: ApexQueuingPortP4 + ApexTimeP4Ext>(
     }
 }
 
-pub fn run_echo_sampling_receiver<H: ApexSamplingPortP4 + ApexTimeP4Ext>(
-    port: &SamplingPortDestination<1000, H>,
-) {
+pub fn run_echo_sampling_receiver<const M: u32, H: ApexSamplingPortP4 + ApexTimeP4Ext>(
+    port: &SamplingPortDestination<M, H>,
+) where
+    [u8; M as usize]:,
+{
     info!("Running echo client aperiodic process");
     let mut last = 0;
     loop {
@@ -211,9 +219,11 @@ pub fn run_echo_sampling_receiver<H: ApexSamplingPortP4 + ApexTimeP4Ext>(
     }
 }
 
-pub fn run_echo_sampling_sender<H: ApexSamplingPortP4 + ApexTimeP4Ext>(
-    port: &SamplingPortSource<1000, H>,
-) {
+pub fn run_echo_sampling_sender<const M: u32, H: ApexSamplingPortP4 + ApexTimeP4Ext>(
+    port: &SamplingPortSource<M, H>,
+) where
+    [u8; M as usize]:,
+{
     info!("Running echo client periodic process");
     let mut i: u32 = 0;
     loop {
@@ -249,12 +259,14 @@ pub fn run_echo_sampling_sender<H: ApexSamplingPortP4 + ApexTimeP4Ext>(
     }
 }
 
-pub fn run_server_sampling_main<H: ApexSamplingPortP4 + ApexTimeP4Ext>(
-    port_out: &SamplingPortSource<1000, H>,
-    port_in: &SamplingPortDestination<1000, H>,
-) {
+pub fn run_server_sampling_main<const M: u32, H: ApexSamplingPortP4 + ApexTimeP4Ext>(
+    port_out: &SamplingPortSource<M, H>,
+    port_in: &SamplingPortDestination<M, H>,
+) where
+    [u8; M as usize]:,
+{
     info!("Running echo server");
-    let mut buf = [0u8; 1000_usize];
+    let mut buf = [0u8; M as usize];
     loop {
         match port_in.receive(&mut buf) {
             Ok((val, data)) => {

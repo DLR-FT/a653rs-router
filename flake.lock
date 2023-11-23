@@ -333,11 +333,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1700566075,
-        "narHash": "sha256-jzpM7T6eko/T7IsslNhZfeihlm3QzbmoR5NBmo/sGUk=",
+        "lastModified": 1700751091,
+        "narHash": "sha256-bA3Jyq/slQg3RP4RqloAnRv6sJbIDLITsS39CsisFi0=",
         "owner": "aeronautical-informatics",
         "repo": "xng-flake-utils",
-        "rev": "1cc15bd101403388065ce5ef30a29574ac2d93cc",
+        "rev": "9ffb09e6b03a65aea3064af68cce13702e495018",
         "type": "github"
       },
       "original": {

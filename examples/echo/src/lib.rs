@@ -29,10 +29,11 @@ pub struct EchoMessage {
     pub when_us: u64,
 }
 
-pub fn run_echo_queuing_receiver<const M: u32, H: ApexQueuingPortP4 + ApexTimeP4Ext>(
-    port: &QueuingPortReceiver<M, 10, H>,
+pub fn run_echo_queuing_receiver<const M: u32, const L: u32, H: ApexQueuingPortP4 + ApexTimeP4Ext>(
+    port: &QueuingPortReceiver<M, L, H>,
 ) where
     [u8; M as usize]:,
+    [u8; L as usize]:,
 {
     let mut last = 0;
     loop {
@@ -86,10 +87,11 @@ pub fn run_echo_queuing_receiver<const M: u32, H: ApexQueuingPortP4 + ApexTimeP4
     }
 }
 
-pub fn run_echo_queuing_sender<const M: u32, H: ApexQueuingPortP4 + ApexTimeP4Ext>(
-    port: &QueuingPortSender<M, 10, H>,
+pub fn run_echo_queuing_sender<const M: u32, const L: u32, H: ApexQueuingPortP4 + ApexTimeP4Ext>(
+    port: &QueuingPortSender<M, L, H>,
 ) where
     [u8; M as usize]:,
+    [u8; L as usize]:,
 {
     info!("Running echo client periodic process");
     let mut i: u32 = 0;

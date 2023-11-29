@@ -1046,8 +1046,9 @@ checksum = "87cc5ceb3875bb20c2890005a4e226a4651264a5c75edb2421b52861a0a0cb50"
 
 [[package]]
 name = "uart_xilinx"
-version = "0.1.0"
-source = "git+https://github.com/duskmoon314/uart-rs.git?branch=main#5ef89e600ff72c5cd4728a90384d45b242a103ae"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cc4e9d92fb14977d99e0d1df29f82e13cb6780bbaad4da2af38cd44c87467f2a"
 dependencies = [
  "bitflags 1.3.2",
  "volatile-register",

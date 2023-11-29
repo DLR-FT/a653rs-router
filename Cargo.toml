@@ -36,8 +36,7 @@ a653rs = { version = "0.3.2", default-features = false }
 log = "0"
 # For UDP socket support
 a653rs-linux = { git = "https://github.com/dadada/apex-linux.git", branch = "udp-network-driver", default-features = false }
-# A bit newer than the published version
-uart_xilinx = { git = "https://github.com/duskmoon314/uart-rs.git", branch = "main", default-features = false }
+uart_xilinx = "0.2"
 # These are not on crates.io
 a653rs-postcard = { git = "https://github.com/DLR-FT/a653rs-postcard.git", branch = "main", default-features = false }
 a653rs-xng = { git = "https://github.com/DLR-FT/a653rs-xng.git", branch = "main", default-features = false }

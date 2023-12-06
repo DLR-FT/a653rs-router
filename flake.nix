@@ -113,6 +113,8 @@
               git.hooks.enable = true;
               git.hooks.pre-commit.text = ''
                 treefmt --fail-on-change
+                cargo test --all-features
+                cargo doc --all-features
               '';
               commands = [
                 {

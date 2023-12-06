@@ -21,9 +21,6 @@ postcard = { workspace = true, optional = true, features = ["heapless"] }
 a653rs-router-macros = { path = "../a653rs-router-macros", optional = true }
 a653rs-router-partition-macros = { path = "../a653rs-router-partition-macros", optional = true }
 
-[dev-dependencies.serde_yaml]
-version = "0.9"
-
 [package.metadata.docs.rs]
 all-features = true
 rustdoc-args = ["--cfg", "doc_cfg"]

@@ -430,9 +430,82 @@ name = "echo"
 version = "0.1.0"
 dependencies = [
  "a653rs",
+ "a653rs-postcard",
+ "log",
+ "serde",
+ "small-trace",
+]
+
+[[package]]
+name = "echo-linux"
+version = "0.1.0"
+dependencies = [
+ "a653rs",
  "a653rs-linux",
  "a653rs-postcard",
+ "echo",
+ "log",
+ "once_cell",
+ "serde",
+ "small-trace",
+]
+
+[[package]]
+name = "echo-xng-client-queuing"
+version = "0.1.0"
+dependencies = [
+ "a653rs",
+ "a653rs-postcard",
  "a653rs-xng",
+ "echo",
+ "log",
+ "once_cell",
+ "serde",
+ "small-trace",
+ "small-trace-gpio",
+ "xng-rs-log",
+]
+
+[[package]]
+name = "echo-xng-client-sampling"
+version = "0.1.0"
+dependencies = [
+ "a653rs",
+ "a653rs-postcard",
+ "a653rs-xng",
+ "echo",
+ "log",
+ "once_cell",
+ "serde",
+ "small-trace",
+ "small-trace-gpio",
+ "xng-rs-log",
+]
+
+[[package]]
+name = "echo-xng-server-queuing"
+version = "0.1.0"
+dependencies = [
+ "a653rs",
+ "a653rs-postcard",
+ "a653rs-xng",
+ "echo",
+ "log",
+ "once_cell",
+ "serde",
+ "small-trace",
+ "small-trace-gpio",
+ "xng-rs-log",
+]
+
+[[package]]
+name = "echo-xng-server-sampling"
+version = "0.1.0"
+dependencies = [
+ "a653rs",
+ "a653rs-postcard",
+ "a653rs-xng",
+ "echo",
  "log",
  "once_cell",
  "serde",

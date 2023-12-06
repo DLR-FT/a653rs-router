@@ -1,55 +1,27 @@
 #![no_std]
 #![allow(incomplete_features)]
-#![allow(unused_imports)]
 #![feature(generic_const_exprs)]
 
-#[cfg(all(feature = "sampling", feature = "client"))]
-mod client;
-
-#[cfg(all(feature = "queuing", feature = "client"))]
-mod queuing;
-
-#[cfg(all(feature = "sampling", feature = "server"))]
-mod server;
-
-#[cfg(all(feature = "queuing", feature = "server"))]
-mod server_queuing;
-
-#[cfg(any(
-    all(feature = "linux", feature = "xng"),
-    all(feature = "xng", feature = "linux"),
-))]
-compile_error!("The features linux and xng are mutually exclusive, because they are meant for different platforms.");
-
-#[cfg(all(feature = "sampling", feature = "queuing"))]
-compile_error!("The features `sampling` and `queuing` are mutually exclusive.");
-
+use a653rs::bindings::ApexQueuingPortP4;
+use a653rs::bindings::ApexSamplingPortP4;
 use a653rs::prelude::*;
-use log::{info, trace};
-use once_cell::unsync::OnceCell;
+use a653rs_postcard::prelude::*;
+use a653rs_postcard::{
+    prelude::QueuingPortReceiverExt, prelude::QueuingPortSenderExt, prelude::QueuingRecvError,
+};
+
+use core::time::Duration;
+use log::{debug, error, info, trace, warn};
 use serde::{Deserialize, Serialize};
+use small_trace::small_trace;
 
-#[allow(dead_code)]
-const LOG_LEVEL: log::LevelFilter = log::LevelFilter::Info;
+pub const LOG_LEVEL: log::LevelFilter = log::LevelFilter::Info;
 
-#[allow(dead_code)]
-#[cfg(feature = "linux")]
-type Hypervisor = a653rs_linux::partition::ApexLinuxPartition;
-
-#[allow(dead_code)]
-#[cfg(feature = "xng")]
-type Hypervisor = a653rs_xng::apex::XngHypervisor;
-
-#[allow(dead_code)]
-#[cfg(any(feature = "xng", feature = "linux"))]
-const ECHO_SIZE: MessageSize = 1000;
-
-#[cfg(all(feature = "queuing", any(feature = "xng", feature = "linux")))]
-const FIFO_DEPTH: MessageRange = 10;
+const TIMEOUT: SystemTime = SystemTime::Normal(Duration::from_millis(100));
 
 #[derive(Serialize, Deserialize, Copy, Clone, Debug)]
 /// Echo message
-pub struct Echo {
+pub struct EchoMessage {
     /// A sequence number.
     pub sequence: u32,
 
@@ -57,132 +29,277 @@ pub struct Echo {
     pub when_us: u64,
 }
 
-#[cfg(all(feature = "queuing", any(feature = "xng", feature = "linux")))]
-static mut SENDER: OnceCell<QueuingPortSender<ECHO_SIZE, FIFO_DEPTH, Hypervisor>> = OnceCell::new();
+pub fn run_echo_queuing_receiver<const M: u32, const L: u32, H: ApexQueuingPortP4 + ApexTimeP4Ext>(
+    port: &QueuingPortReceiver<M, L, H>,
+) where
+    [u8; M as usize]:,
+    [u8; L as usize]:,
+{
+    let mut last = 0;
+    loop {
+        trace!("Running echo client aperiodic process");
 
-#[cfg(all(feature = "queuing", any(feature = "xng", feature = "linux")))]
-static mut RECEIVER: OnceCell<QueuingPortReceiver<ECHO_SIZE, FIFO_DEPTH, Hypervisor>> =
-    OnceCell::new();
+        let result = port.recv_type::<EchoMessage>(SystemTime::Normal(Duration::from_millis(100)));
 
-#[cfg(all(feature = "sampling", any(feature = "xng", feature = "linux")))]
-static mut SENDER: OnceCell<SamplingPortSource<ECHO_SIZE, Hypervisor>> = OnceCell::new();
+        let time = <H as ApexTimeP4Ext>::get_time();
+        let now = match time {
+            SystemTime::Infinite => {
+                continue;
+            }
+            SystemTime::Normal(now) => now,
+        };
 
-#[cfg(all(feature = "sampling", any(feature = "xng", feature = "linux")))]
-static mut RECEIVER: OnceCell<SamplingPortDestination<ECHO_SIZE, Hypervisor>> = OnceCell::new();
-
-#[cfg(feature = "xng")]
-static LOGGER: xng_rs_log::XalLogger = xng_rs_log::XalLogger;
-
-#[cfg(feature = "xng")]
-static TRACER: small_trace_gpio::GpioTracer = small_trace_gpio::GpioTracer::new();
-
-#[cfg(any(feature = "xng", feature = "linux"))]
-pub fn run() {
-    #[cfg(feature = "xng")]
-    {
-        TRACER.init();
-        small_trace::set_tracer(&TRACER);
-    }
-    #[cfg(feature = "xng")]
-    {
-        unsafe { log::set_logger_racy(&LOGGER).unwrap() };
-        log::set_max_level(LOG_LEVEL);
-    }
-    #[cfg(feature = "linux")]
-    {
-        a653rs_linux::partition::ApexLogger::install_panic_hook();
-        a653rs_linux::partition::ApexLogger::install_logger(LOG_LEVEL).unwrap();
-    }
-    #[cfg(feature = "client")]
-    {
-        info!("Echo client main");
-        #[cfg(feature = "sampling")]
-        {
-            let partition = crate::client::PeriodicEchoPartition::new(
-                unsafe { &SENDER },
-                unsafe { &RECEIVER },
-                entry_point_periodic,
-                entry_point_aperiodic,
-            );
-            trace!("Echo client main: running partition");
-            partition.run()
-        }
-        #[cfg(feature = "queuing")]
-        {
-            let partition = queuing::QueuingPeriodicEchoPartition::new(
-                unsafe { &SENDER },
-                unsafe { &RECEIVER },
-                entry_point_periodic,
-                entry_point_aperiodic,
-            );
-            trace!("Echo server main: running partition");
-            partition.run()
+        match result {
+            Ok(data) => {
+                small_trace!(begin_echo_reply_received);
+                trace!("Received reply: {data:?}");
+                let received = data;
+                // Reset when client restarts
+                if received.sequence == 1 {
+                    last = 0;
+                }
+                if received.sequence > last {
+                    last += 1;
+                    info!(
+                        "EchoReply: seqnr = {:?}, time = {:?} us",
+                        received.sequence,
+                        (now.as_micros() as u64) - received.when_us
+                    );
+                } else {
+                    trace!("Duplicate")
+                }
+                small_trace!(end_echo_reply_received);
+            }
+            Err(QueuingRecvError::Apex(Error::InvalidConfig)) => {
+                warn!("The queue overflowed");
+            }
+            Err(QueuingRecvError::Apex(Error::NotAvailable))
+            | Err(QueuingRecvError::Apex(Error::TimedOut)) => {
+                debug!("No echo reply available");
+            }
+            Err(QueuingRecvError::Postcard(e, _)) => {
+                trace!("Failed to decode echo reply: {e:?}");
+            }
+            Err(e) => {
+                warn!("Failed to receive reply: {e:?}");
+            }
         }
     }
+}
 
-    #[cfg(feature = "server")]
-    {
-        #[cfg(feature = "sampling")]
-        use server::EchoServerPartition;
-
-        #[cfg(feature = "queuing")]
-        use server_queuing::EchoServerPartition;
-
-        info!("Echo server main");
-        let partition = EchoServerPartition::new(
-            unsafe { &SENDER },
-            unsafe { &RECEIVER },
-            entry_point_aperiodic,
-        );
-        partition.run()
+pub fn run_echo_queuing_sender<const M: u32, const L: u32, H: ApexQueuingPortP4 + ApexTimeP4Ext>(
+    port: &QueuingPortSender<M, L, H>,
+) where
+    [u8; M as usize]:,
+    [u8; L as usize]:,
+{
+    info!("Running echo client periodic process");
+    let mut i: u32 = 0;
+    loop {
+        let time = <H as ApexTimeP4Ext>::get_time();
+        let now = match time {
+            SystemTime::Infinite => {
+                continue;
+            }
+            SystemTime::Normal(now) => now,
+        };
+        i += 1;
+        let data = EchoMessage {
+            sequence: i,
+            when_us: now.as_micros() as u64,
+        };
+        small_trace!(begin_echo_request_send);
+        let result = port.send_type(data, SystemTime::Normal(Duration::from_micros(10)));
+        small_trace!(end_echo_request_send);
+        match result {
+            Ok(_) => {
+                info!(
+                    "EchoRequest: seqnr = {:?}, time = {:?} us",
+                    data.sequence, data.when_us
+                );
+            }
+            Err(SendError::Apex(Error::TimedOut)) => {
+                warn!("Timed out while trying to send echo request");
+            }
+            Err(_) => {
+                error!("Failed to send EchoRequest");
+            }
+        }
+        <H as ApexTimeP4Ext>::periodic_wait().unwrap()
     }
 }
 
-#[cfg(all(
-    feature = "client",
-    any(feature = "sampling", feature = "queuing"),
-    any(feature = "xng", feature = "linux")
-))]
-extern "C" fn entry_point_periodic() {
-    #[cfg(feature = "queuing")]
-    use crate::queuing::QueuingEchoSender as Sender;
-
-    #[cfg(feature = "sampling")]
-    use crate::client::EchoSenderProcess as Sender;
-
-    Sender::run(unsafe { SENDER.get_mut().unwrap() });
+pub fn run_server_queuing_main<const M: u32, H: ApexQueuingPortP4 + ApexTimeP4Ext>(
+    port_out: &QueuingPortSender<M, 10, H>,
+    port_in: &QueuingPortReceiver<M, 10, H>,
+) where
+    [u8; M as usize]:,
+{
+    info!("Running echo server");
+    let mut buf = [0u8; M as usize];
+    loop {
+        match port_in.receive(&mut buf, TIMEOUT) {
+            Ok(data) => {
+                small_trace!(begin_echo_request_received);
+                trace!("Received echo request: ${data:?}");
+                if data.is_empty() {
+                    trace!("Skipping empty data");
+                    continue;
+                }
+                small_trace!(begin_echo_reply_send);
+                match port_out.send(data, TIMEOUT) {
+                    Ok(_) => {
+                        trace!("Replied to echo");
+                    }
+                    Err(err) => {
+                        warn!("Failed to reply to echo: {err:?}");
+                    }
+                }
+                small_trace!(end_echo_reply_send);
+                small_trace!(end_echo_request_received);
+            }
+            Err(Error::NotAvailable) | Err(Error::NoAction) | Err(Error::TimedOut) => {
+                trace!("No echo request available yet");
+            }
+            Err(e) => {
+                error!("Failed to receive echo: ${e:?}");
+            }
+        }
+    }
 }
 
-#[cfg(all(
-    feature = "client",
-    any(feature = "sampling", feature = "queuing"),
-    any(feature = "xng", feature = "linux")
-))]
-extern "C" fn entry_point_aperiodic() {
-    #[cfg(feature = "queuing")]
-    use crate::queuing::QueuingEchoReceiver as Receiver;
+pub fn run_echo_sampling_receiver<const M: u32, H: ApexSamplingPortP4 + ApexTimeP4Ext>(
+    port: &SamplingPortDestination<M, H>,
+) where
+    [u8; M as usize]:,
+{
+    info!("Running echo client aperiodic process");
+    let mut last = 0;
+    loop {
+        trace!("Receiving from port");
 
-    #[cfg(feature = "sampling")]
-    use crate::client::EchoReceiverProcess as Receiver;
-
-    #[cfg(any(feature = "sampling", feature = "queuing"))]
-    Receiver::run(unsafe { RECEIVER.get_mut().unwrap() });
+        let result = port.recv_type::<EchoMessage>();
+        match result {
+            Ok(data) => {
+                small_trace!(begin_echo_reply_received);
+                trace!("Received reply: {data:?}");
+                let (_, received) = data;
+                // Reset when client restarts
+                if received.sequence == 1 {
+                    last = 1;
+                }
+                if received.sequence > last {
+                    last += 1;
+                    let time = <H as ApexTimeP4Ext>::get_time();
+                    match time {
+                        SystemTime::Normal(now) => {
+                            info!(
+                                "EchoReply: seqnr = {:?}, time = {:?} us",
+                                received.sequence,
+                                (now.as_micros() as u64) - received.when_us
+                            );
+                        }
+                        _ => {
+                            warn!("Failed to get time from hypervisor");
+                        }
+                    }
+                } else {
+                    trace!("Duplicate")
+                }
+                small_trace!(end_echo_reply_received);
+            }
+            Err(SamplingRecvError::Apex(Error::NotAvailable)) => {
+                debug!("No echo reply available");
+            }
+            Err(SamplingRecvError::Postcard(e, _, _)) => {
+                trace!("Failed to decode echo reply: {e:?}");
+            }
+            _ => {
+                debug!("Failed to receive echo reply");
+            }
+        }
+    }
 }
 
-#[cfg(all(
-    feature = "server",
-    any(feature = "sampling", feature = "queuing"),
-    any(feature = "xng", feature = "linux")
-))]
-extern "C" fn entry_point_aperiodic() {
-    #[cfg(feature = "queuing")]
-    use crate::server_queuing::EchoServerProcess as Receiver;
+pub fn run_echo_sampling_sender<const M: u32, H: ApexSamplingPortP4 + ApexTimeP4Ext>(
+    port: &SamplingPortSource<M, H>,
+) where
+    [u8; M as usize]:,
+{
+    info!("Running echo client periodic process");
+    let mut i: u32 = 0;
+    loop {
+        i += 1;
+        let time = <H as ApexTimeP4Ext>::get_time();
+        match time {
+            SystemTime::Normal(now) => {
+                let data = EchoMessage {
+                    sequence: i,
+                    when_us: now.as_micros() as u64,
+                };
+                small_trace!(begin_echo_request_send);
+                let result = port.send_type(data);
+                small_trace!(end_echo_request_send);
+                match result {
+                    Ok(_) => {
+                        info!(
+                            "EchoRequest: seqnr = {:?}, time = {:?} us",
+                            data.sequence, data.when_us
+                        );
+                    }
+                    Err(_) => {
+                        error!("Failed to send EchoRequest");
+                    }
+                }
+            }
+            _ => {
+                warn!("Failed to get time from hypervisor")
+            }
+        }
+        trace!("Going to sleep ...");
+        <H as ApexTimeP4Ext>::periodic_wait().unwrap();
+    }
+}
 
-    #[cfg(feature = "sampling")]
-    use crate::server::EchoServerProcess as Receiver;
-
-    #[cfg(any(feature = "sampling", feature = "queuing"))]
-    Receiver::run(unsafe { SENDER.get_mut().unwrap() }, unsafe {
-        RECEIVER.get_mut().unwrap()
-    });
+pub fn run_server_sampling_main<const M: u32, H: ApexSamplingPortP4 + ApexTimeP4Ext>(
+    port_out: &SamplingPortSource<M, H>,
+    port_in: &SamplingPortDestination<M, H>,
+) where
+    [u8; M as usize]:,
+{
+    info!("Running echo server");
+    let mut buf = [0u8; M as usize];
+    loop {
+        match port_in.receive(&mut buf) {
+            Ok((val, data)) => {
+                small_trace!(begin_echo_request_received);
+                if data.is_empty() {
+                    trace!("Skipping empty data");
+                    continue;
+                }
+                debug!("Received echo request: {data:?}");
+                if val == Validity::Valid {
+                    small_trace!(begin_echo_reply_send);
+                    match port_out.send(data) {
+                        Ok(_) => {
+                            debug!("Replied to echo");
+                        }
+                        Err(err) => {
+                            error!("Failed to reply to echo: {err:?}");
+                        }
+                    }
+                    small_trace!(end_echo_reply_send);
+                } else {
+                    debug!("Ignoring invalid data");
+                }
+                small_trace!(end_echo_request_received);
+            }
+            Err(Error::NotAvailable) | Err(Error::NoAction) => {
+                trace!("No echo request available yet");
+            }
+            Err(e) => {
+                error!("Failed to receive echo: ${e:?}");
+            }
+        }
+    }
 }

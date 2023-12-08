@@ -112,17 +112,32 @@
               ];
               git.hooks.enable = true;
               git.hooks.pre-commit.text = ''
-                treefmt --fail-on-change
-                cargo test --all-features
-                cargo doc --all-features
+                run-checks
               '';
               commands = [
+                {
+                  name = "run-checks";
+                  command = ''
+                    treefmt --fail-on-change
+                    cargo check --all-features
+                    cargo test --all-features
+                    cargo doc --all-features
+                  '';
+                  help = "Run checks";
+                }
                 {
                   name = "run-nixos-integration-test";
                   command = ''
                     nix build .#checks.${system}.integration --print-build-logs
                   '';
                   help = "Run the echo server and client integration test";
+                }
+                {
+                  name = "build-xng-images";
+                  command = ''
+                    nix build .#checks.${system}.xng-images --print-build-logs 
+                  '';
+                  help = "Build XNG images";
                 }
                 {
                   name = "run-xng";
@@ -202,14 +217,6 @@
               nixos-lib = nixpkgs.lib.nixos;
             in
             with self.packages.${system}; {
-              nixpkgs-fmt = pkgs.runCommand "check-format-nix"
-                {
-                  nativeBuildInputs = [ formatter ];
-                } "nixpkgs-fmt --check ${./.} && touch $out";
-              cargo-fmt = pkgs.runCommand "check-format-rust"
-                {
-                  nativeBuildInputs = [ rust-toolchain ];
-                } "cd ${./.} && cargo fmt --check && touch $out";
               integration = nixos-lib.runTest (import ./examples/nixos-integration-test {
                 hostPkgs = pkgs;
                 configurator-client = configurator-linux-client;

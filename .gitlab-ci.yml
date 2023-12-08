@@ -1,3 +1,8 @@
+stages:
+  - check
+  - build
+  - test
+
 # set defaults for all other jobs
 default:
   tags: [nix]
@@ -5,15 +10,18 @@ default:
     - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.dlr.de/".insteadOf "ssh://git@gitlab.dlr.de"
     - mkdir -p ~/.config/nix
     - echo 'accept-flake-config = true' >> ~/.config/nix/nix.conf
+    - echo 'experimental-features = nix-command flakes' >> ~/.config/nix/nix.conf
 
-format:
+checks:
+  stage: check
   script:
-    - nix develop --command treefmt --fail-on-change --no-cache
+    - nix develop --command run-checks
 
 variables:
   CARGO_EXTR_ARGS: "--all-features -p network-partition -p network-partition-macros -p network-partition-uart -p network-partition-linux -p small-trace -p small-trace-gpio"
 
 rust-test:
+  stage: test
   script:
     # pre-seed build cache
     - nix develop --command cargo build $CARGO_EXTRA_ARGS
@@ -39,6 +47,12 @@ rust-test:
       codequality: code-quality-report.json
       junit: junit-*.xml
 
-nix-flake-check:
+run-nixos-integration-test:
+  stage: test
   script:
-    - nix flake check --print-build-logs
+    - nix develop --command run-nixos-integration-test
+
+build-xng-images:
+  stage: build
+  script:
+    - nix develop --command build-xng-images

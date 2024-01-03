@@ -5,3 +5,4 @@ result
 /xsa
 **/target
 /outputs
+*.orig

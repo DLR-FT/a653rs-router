@@ -42,12 +42,6 @@
     };
   };
 
-  nixConfig = {
-    extra-trusted-substituters = "https://cache.ft-ssy-stonks.intra.dlr.de";
-    extra-substituters = "https://cache.ft-ssy-stonks.intra.dlr.de";
-    extra-trusted-public-keys = "ft-ssy-stonks.intra.dlr.de:xWBi+hGpebqGVgcYJtcPyW4BXBQ6TmI15c5OHf6htpM=";
-  };
-
   outputs = { self, nixpkgs, utils, devshell, fenix, hypervisor, xng-utils, fpga-project, xilinx-flake-utils, ... }@inputs:
     utils.lib.eachSystem [ "x86_64-linux" ]
       (system:

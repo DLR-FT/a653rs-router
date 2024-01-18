@@ -144,17 +144,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1691147762,
-        "narHash": "sha256-r7VzFSs+5Or2zclJD8gFlvCSDwqk8qutHvxbqyNhSPw=",
-        "owner": "dadada",
-        "repo": "apex-linux",
-        "rev": "92d24ecaf5021721a5bd30183e3c3cb14dcfea17",
+        "lastModified": 1705580036,
+        "narHash": "sha256-K3fWsAooXrl/uOYRcjI2N3bonSyjc3oeeBBUTJ1X/0M=",
+        "owner": "DLR-FT",
+        "repo": "a653rs-linux",
+        "rev": "3e191f5195812b5a72f7537c54acad5cdc7dbd3b",
         "type": "github"
       },
       "original": {
-        "owner": "dadada",
-        "ref": "udp-network-driver",
-        "repo": "apex-linux",
+        "owner": "DLR-FT",
+        "repo": "a653rs-linux",
         "type": "github"
       }
     },

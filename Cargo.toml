@@ -40,7 +40,7 @@ default-members = [
 a653rs = { version = "0.3.3", default-features = false }
 log = "0"
 # For UDP socket support
-a653rs-linux = { git = "https://github.com/dadada/apex-linux.git", branch = "udp-network-driver", default-features = false }
+a653rs-linux = { git = "https://github.com/DLR-FT/a653rs-linux.git", branch = "main", default-features = false }
 uart_xilinx = "0.2"
 # These are not on crates.io
 a653rs-postcard = { git = "https://github.com/DLR-FT/a653rs-postcard.git", branch = "main", default-features = false }

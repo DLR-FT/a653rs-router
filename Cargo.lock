@@ -16,7 +16,7 @@ dependencies = [
 [[package]]
 name = "a653rs-linux"
 version = "0.2.0"
-source = "git+https://github.com/dadada/apex-linux.git?branch=udp-network-driver#92d24ecaf5021721a5bd30183e3c3cb14dcfea17"
+source = "git+https://github.com/DLR-FT/a653rs-linux.git?branch=main#3e191f5195812b5a72f7537c54acad5cdc7dbd3b"
 dependencies = [
  "a653rs",
  "a653rs-linux-core",
@@ -35,7 +35,7 @@ dependencies = [
 [[package]]
 name = "a653rs-linux-core"
 version = "0.1.0"
-source = "git+https://github.com/dadada/apex-linux.git?branch=udp-network-driver#92d24ecaf5021721a5bd30183e3c3cb14dcfea17"
+source = "git+https://github.com/DLR-FT/a653rs-linux.git?branch=main#3e191f5195812b5a72f7537c54acad5cdc7dbd3b"
 dependencies = [
  "a653rs",
  "anyhow",

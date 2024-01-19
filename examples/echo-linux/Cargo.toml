@@ -3,31 +3,8 @@ name = "echo-linux"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[[bin]]
-name = "echo-linux-client-sampling"
-path = "src/bin/client_sampling.rs"
-
-[[bin]]
-name = "echo-linux-server-sampling"
-path = "src/bin/server_sampling.rs"
-
 [dependencies]
-a653rs-postcard.workspace = true
 log = "0"
-once_cell.workspace = true
-small-trace = { path = "../../small-trace" }
 echo = { path = "../echo" }
-
-[dependencies.a653rs]
-workspace = true
-features = [ "macros" ]
-
-[dependencies.a653rs-linux]
-workspace = true
-
-[dependencies.serde]
-features = ["derive"]
-workspace = true
-
+a653rs.workspace = true
+a653rs-linux.workspace = true

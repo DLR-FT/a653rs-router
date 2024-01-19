@@ -246,14 +246,14 @@
                   hostPkgs = pkgs;
                   nodeA = {
                     inherit configurator hypervisor;
-                    echo = echo-linux-client-sampling;
+                    echo = echo-linux;
                     hypervisorConfig = ./examples/config/echo-remote-linux/node-a.yml;
                     router = router-echo-client-linux;
                     routeTable = ./examples/config/echo-remote-linux/node-a-route-table.json;
                   };
                   nodeB = {
                     inherit configurator hypervisor;
-                    echo = echo-linux-server-sampling;
+                    echo = echo-linux;
                     hypervisorConfig = ./examples/config/echo-remote-linux/node-b.yml;
                     router = router-echo-server-linux;
                     routeTable = ./examples/config/echo-remote-linux/node-b-route-table.json;
@@ -261,31 +261,26 @@
                 });
               xng-images = nixpkgs.legacyPackages.${system}.linkFarmFromDrvs "all-images" (
                 with self.packages.${system}; [
-                  echo-direct-xng
-                  echo-local-xng
-                  echo-remote-xng-client
-                  echo-remote-xng-server
-                  echo-alt-local-client-xng
+                  image-echo-direct-xng
+                  image-echo-local-xng
+                  image-echo-remote-xng-client
+                  image-echo-remote-xng-server
+                  image-echo-alt-local-client-xng
                 ]
               );
             };
 
           packages =
             let
-              allProducts = self.lib.allProducts;
               mkExample = self.lib.mkExample;
-              mkEchoXng = self.lib.mkEchoXng;
-              mkEchoLinux = self.lib.mkEchoLinux;
-              mkConfigurator = self.lib.mkConfigurator;
-              routerConfig = name: {
-                "0x16000000" =
-                  (pkgs.runCommandNoCC "router-config" { } ''
-                    ${pkgs.lib.meta.getExe self.packages.${system}.a653rs-router-cfg} < ${./examples/config/${name}/route-table.json} > $out
-                  '').outPath;
+              routerConfigBlob = name: {
+                "0x16000000" = (pkgs.runCommandNoCC "router-config" { } ''
+                  ${pkgs.lib.meta.getExe self.packages.${system}.a653rs-router-cfg} < ${./examples/config/${name}/route-table.json} > $out
+                '').outPath;
               };
               xngImage = { name, partitions }: xng-utils.lib.buildXngSysImage {
                 inherit pkgs name xngOps lithOsOps;
-                extraBinaryBlobs = if partitions ? "Router" then routerConfig name else { };
+                extraBinaryBlobs = if (partitions ? "Router") then (routerConfigBlob name) else { };
                 hardFp = false;
                 xcf = pkgs.runCommandNoCC "patch-src" { } ''
                   mkdir -p merged
@@ -321,59 +316,74 @@
                 doCheck = true;
               };
 
-              echo-xng-client-queuing = mkEchoXng {
-                inherit rustPlatform;
-                flavor = "client";
-                platform = "xng";
-                variant = "queuing";
-                target = "armv7a-none-eabi";
-              };
-              echo-xng-client-sampling = mkEchoXng {
-                inherit rustPlatform;
-                flavor = "client";
-                platform = "xng";
-                variant = "sampling";
-                target = "armv7a-none-eabi";
-              };
-              echo-xng-server-queuing = mkEchoXng {
-                inherit rustPlatform;
-                flavor = "server";
-                platform = "xng";
-                variant = "queuing";
-                target = "armv7a-none-eabi";
-              };
-              echo-xng-server-sampling = mkEchoXng {
-                inherit rustPlatform;
-                flavor = "server";
-                platform = "xng";
-                variant = "sampling";
-                target = "armv7a-none-eabi";
-              };
-              echo-linux-client-sampling = mkEchoLinux {
-                inherit rustPlatform;
-                flavor = "client";
-                platform = "linux";
-                variant = "sampling";
+              configurator-linux = rustPlatform.buildRustPackage rec {
+                inherit cargoLock;
+                pname = "configurator-linux";
                 target = "x86_64-unknown-linux-musl";
-              };
-              echo-linux-server-sampling = mkEchoLinux {
-                inherit rustPlatform;
-                flavor = "server";
-                platform = "linux";
-                variant = "sampling";
-                target = "x86_64-unknown-linux-musl";
+                version = "0.1.0";
+                src = ./.;
+                buildPhase = ''
+                  cargo build --release -p ${pname} --target ${target}
+                '';
+                checkPhase = ''
+                  cargo test -p ${pname} --target ${target} --frozen
+                '';
+                doCheck = false;
+                installPhase = ''
+                  mkdir -p "$out"/bin
+                  cp target/${target}/release/${pname} "$out/bin"
+                '';
               };
 
-              configurator-linux = mkConfigurator {
-                inherit rustPlatform;
-                platform = "linux";
-                target = "x86_64-unknown-linux-musl";
+              configurator-xng = rustPlatform.buildRustPackage rec {
+                inherit cargoLock;
+                pname = "configurator-xng";
+                target = "armv7a-none-eabi";
+                version = "0.1.0";
+                src = ./.;
+                buildPhase = ''
+                  cargo build --release -p ${pname} --target ${target}
+                '';
+                checkPhase = ''
+                  cargo test -p ${pname} --target ${target} --frozen
+                '';
+                doCheck = false;
+                installPhase = ''
+                  mkdir -p "$out"/lib
+                  cp target/${target}/release/*.a "$out/lib"
+                '';
               };
 
-              configurator-xng = mkConfigurator {
-                inherit rustPlatform;
-                platform = "xng";
+              echo-linux = rustPlatform.buildRustPackage rec {
+                inherit cargoLock;
+                target = "x86_64-unknown-linux-musl";
+                pname = "echo-linux";
+                version = "0.1.0";
+                src = ./.;
+                buildPhase = ''
+                  cargo build --release --target ${target} -p ${pname}
+                '';
+                doCheck = false;
+                installPhase = ''
+                  mkdir -p "$out"/bin
+                  cp target/${target}/release/echo "$out/bin"
+                '';
+              };
+
+              echo-xng = rustPlatform.buildRustPackage rec {
+                inherit cargoLock;
                 target = "armv7a-none-eabi";
+                pname = "echo-xng";
+                version = "0.1.0";
+                src = ./.;
+                buildPhase = ''
+                  cargo build --release --target ${target} -p ${pname}
+                '';
+                doCheck = false;
+                installPhase = ''
+                  mkdir -p "$out"/lib
+                  cp "target/${target}"/release/*.a "$out/lib"
+                '';
               };
 
               router-echo-client-linux = mkExample {
@@ -422,43 +432,43 @@
                 src = xngSrcs.lithos;
               };
 
-              echo-remote-xng-client = xngImage {
+              image-echo-remote-xng-client = xngImage {
                 name = "echo-remote-xng-client";
                 partitions = {
                   Router = "${router-echo-client-xng}/lib/librouter_echo_client_xng.a";
-                  EchoClient = "${echo-xng-client-queuing}/lib/libecho_xng_client_queuing.a";
+                  EchoClient = "${echo-xng}/lib/libecho_xng.a";
                   Config = "${configurator-xng}/lib/libconfigurator_xng.a";
                 };
               };
-              echo-remote-xng-server = xngImage {
+              image-echo-remote-xng-server = xngImage {
                 name = "echo-remote-xng-server";
                 partitions = {
                   Router = "${router-echo-server-xng}/lib/librouter_echo_server_xng.a";
-                  EchoServer = "${echo-xng-server-queuing}/lib/libecho_xng_server_queuing.a";
+                  EchoServer = "${echo-xng}/lib/libecho_xng.a";
                   Config = "${configurator-xng}/lib/libconfigurator_xng.a";
                 };
               };
-              echo-direct-xng = xngImage {
+              image-echo-direct-xng = xngImage {
                 name = "echo-direct-xng";
                 partitions = {
-                  EchoClient = "${echo-xng-client-queuing}/lib/libecho_xng_client_queuing.a";
-                  EchoServer = "${echo-xng-server-queuing}/lib/libecho_xng_server_queuing.a";
+                  EchoClient = "${echo-xng}/lib/libecho_xng.a";
+                  EchoServer = "${echo-xng}/lib/libecho_xng.a";
                 };
               };
-              echo-local-xng = xngImage {
+              image-echo-local-xng = xngImage {
                 name = "echo-local-xng";
                 partitions = {
-                  EchoClient = "${echo-xng-client-queuing}/lib/libecho_xng_client_queuing.a";
-                  EchoServer = "${echo-xng-server-queuing}/lib/libecho_xng_server_queuing.a";
+                  EchoClient = "${echo-xng}/lib/libecho_xng.a";
+                  EchoServer = "${echo-xng}/lib/libecho_xng.a";
                   Router = "${router-echo-local-xng}/lib/librouter_echo_local_xng.a";
                   Config = "${configurator-xng}/lib/libconfigurator_xng.a";
                 };
               };
-              echo-alt-local-client-xng = xngImage {
+              image-echo-alt-local-client-xng = xngImage {
                 name = "echo-alt-local-client-xng";
                 partitions = {
-                  EchoClient = "${echo-xng-client-queuing}/lib/libecho_xng_client_queuing.a";
-                  EchoServer = "${echo-xng-server-queuing}/lib/libecho_xng_server_queuing.a";
+                  EchoClient = "${echo-xng}/lib/libecho_xng.a";
+                  EchoServer = "${echo-xng}/lib/libecho_xng.a";
                   Router = "${router-echo-client-xng}/lib/librouter_echo_client_xng.a";
                   Config = "${configurator-xng}/lib/libconfigurator_xng.a";
                 };
@@ -468,59 +478,6 @@
       ) //
     {
       lib = rec {
-        mkConfigurator = { rustPlatform, platform, target }:
-          rustPlatform.buildRustPackage rec {
-            inherit cargoLock;
-            pname = "configurator-${platform}";
-            version = "0.1.0";
-            src = ./.;
-            buildPhase = ''
-              cargo build --release -p ${pname} --target ${target}
-            '';
-            checkPhase = ''
-              cargo test -p ${pname} --target ${target} --frozen
-            '';
-            doCheck = false;
-            installPhase = ''
-              mkdir -p "$out"/{bin,lib}
-              if [[ "${platform}" = "xng" ]]
-              then
-                cp target/${target}/release/*.a "$out/lib"
-              else
-                cp target/${target}/release/${pname} "$out/bin"
-              fi
-            '';
-          };
-        mkEchoXng = { rustPlatform, platform, flavor, variant, target }:
-          rustPlatform.buildRustPackage rec {
-            inherit cargoLock;
-            pname = "echo-${platform}-${flavor}-${variant}";
-            version = "0.1.0";
-            src = ./.;
-            buildPhase = ''
-              cargo build --release --target "${target}" -p ${pname}
-            '';
-            doCheck = false;
-            installPhase = ''
-              mkdir -p "$out"/lib
-              cp "target/${target}"/release/*.a "$out/lib"
-            '';
-          };
-        mkEchoLinux = { rustPlatform, platform, flavor, variant, target }:
-          rustPlatform.buildRustPackage rec {
-            inherit cargoLock;
-            pname = "echo-${platform}-${flavor}-${variant}";
-            version = "0.1.0";
-            src = ./.;
-            buildPhase = ''
-              cargo build --release --target "${target}" -p echo-${platform} --bin ${pname}
-            '';
-            doCheck = false;
-            installPhase = ''
-              mkdir -p "$out"/bin
-              cp target/${target}/release/${pname} "$out/bin"
-            '';
-          };
         mkExample = { rustPlatform, product, example, features, target }:
           rustPlatform.buildRustPackage {
             inherit cargoLock;
@@ -544,31 +501,6 @@
               fi
             '';
           };
-        allProducts = { rustPlatform, flavors, platforms, variants, products }: builtins.listToAttrs (
-          map
-            ({ product, flavor, platform, variant }:
-              let
-                example = "${product}-${variant}-${platform.feature}";
-              in
-              (nixpkgs.lib.nameValuePair
-                "${example}-${flavor}"
-                (mkExample {
-                  inherit example product rustPlatform;
-                  features = [ variant platform.feature flavor ];
-                  target = platform.target;
-                })
-              )
-            )
-            (nixpkgs.lib.cartesianProductOfSets {
-              "flavor" = flavors;
-              "platform" = platforms;
-              "variant" = variants;
-              "product" = products;
-            })
-        );
-
       };
-
-
     }; # outputs
 }

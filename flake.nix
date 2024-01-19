@@ -17,8 +17,7 @@
     };
 
     hypervisor = {
-      #url = "github:DLR-FT/a653rs-linux";
-      url = "github:dadada/apex-linux?ref=udp-network-driver";
+      url = "github:DLR-FT/a653rs-linux";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.devshell.follows = "devshell";
       inputs.fenix.follows = "fenix";
@@ -42,13 +41,19 @@
     };
   };
 
-  nixConfig = {
-    extra-trusted-substituters = "https://cache.ft-ssy-stonks.intra.dlr.de";
-    extra-substituters = "https://cache.ft-ssy-stonks.intra.dlr.de";
-    extra-trusted-public-keys = "ft-ssy-stonks.intra.dlr.de:xWBi+hGpebqGVgcYJtcPyW4BXBQ6TmI15c5OHf6htpM=";
-  };
-
   outputs = { self, nixpkgs, utils, devshell, fenix, hypervisor, xng-utils, fpga-project, xilinx-flake-utils, ... }@inputs:
+    let
+      cargoLock = {
+        lockFile = ./Cargo.lock;
+        outputHashes = {
+          "a653rs-linux-0.2.0" = "sha256-K3fWsAooXrl/uOYRcjI2N3bonSyjc3oeeBBUTJ1X/0M=";
+          "a653rs-postcard-0.2.0" = "sha256-xDM5PwV24ZQ3NPVl12A1zX7FvYgLUxcufMCft+BzOSU=";
+          "a653rs-xng-0.1.0" = "sha256-7vZ8eWwLXzR4Fb4UCA2GyI8HRnKVR5NFcWumrzkUMNM=";
+          "xng-rs-log-0.1.0" = "sha256-YIFFnjWsk6g9tQuRBqmPaXsY3s2+BpkAg5PCw2ZGYCU=";
+        };
+      };
+
+    in
     utils.lib.eachSystem [ "x86_64-linux" ]
       (system:
         let
@@ -209,6 +214,13 @@
                     picocom --imap lfcrlf --baud 115200 ''${1:-/dev/ttyUSB1} ''${@}
                   '';
                 }
+                {
+                  name = "deploy-router-config-xng";
+                  help = "Flashes a new configuration for the router using JTAG: deploy-router-config-xng <region> <cable> <cfg>";
+                  command = ''
+                    xsct ${./a653rs-router-zynq7000/flash-cfg.tcl} ''${@}
+                  '';
+                }
               ];
             };
 
@@ -217,16 +229,36 @@
               nixos-lib = nixpkgs.lib.nixos;
             in
             with self.packages.${system}; {
-              integration = nixos-lib.runTest (import ./examples/nixos-integration-test {
-                hostPkgs = pkgs;
-                configurator-client = configurator-linux-client;
-                configurator-server = configurator-linux-server;
-                echo-client = echo-linux-client-sampling;
-                echo-server = echo-linux-server-sampling;
-                hypervisor = hypervisorPackage;
-                router-client = router-echo-client-linux;
-                router-server = router-echo-server-linux;
-              });
+              nixpkgs-fmt = pkgs.runCommand "check-format-nix"
+                {
+                  nativeBuildInputs = [ formatter ];
+                } "nixpkgs-fmt --check ${./.} && touch $out";
+              cargo-fmt = pkgs.runCommand "check-format-rust"
+                {
+                  nativeBuildInputs = [ rust-toolchain ];
+                } "cd ${./.} && cargo fmt --check && touch $out";
+              integration =
+                let
+                  configurator = configurator-linux;
+                  hypervisor = hypervisorPackage;
+                in
+                nixos-lib.runTest (import ./examples/config/echo-remote-linux {
+                  hostPkgs = pkgs;
+                  nodeA = {
+                    inherit configurator hypervisor;
+                    echo = echo-linux-client-sampling;
+                    hypervisorConfig = ./examples/config/echo-remote-linux/node-a.yml;
+                    router = router-echo-client-linux;
+                    routeTable = ./examples/config/echo-remote-linux/node-a-route-table.json;
+                  };
+                  nodeB = {
+                    inherit configurator hypervisor;
+                    echo = echo-linux-server-sampling;
+                    hypervisorConfig = ./examples/config/echo-remote-linux/node-b.yml;
+                    router = router-echo-server-linux;
+                    routeTable = ./examples/config/echo-remote-linux/node-b-route-table.json;
+                  };
+                });
               xng-images = nixpkgs.legacyPackages.${system}.linkFarmFromDrvs "all-images" (
                 with self.packages.${system}; [
                   echo-direct-xng
@@ -237,6 +269,7 @@
                 ]
               );
             };
+
           packages =
             let
               allProducts = self.lib.allProducts;
@@ -244,7 +277,32 @@
               mkEchoXng = self.lib.mkEchoXng;
               mkEchoLinux = self.lib.mkEchoLinux;
               mkConfigurator = self.lib.mkConfigurator;
-              xngImage = self.lib.xngImage;
+              routerConfig = name: {
+                "0x16000000" =
+                  (pkgs.runCommandNoCC "router-config" { } ''
+                    ${pkgs.lib.meta.getExe self.packages.${system}.a653rs-router-cfg} < ${./examples/config/${name}/route-table.json} > $out
+                  '').outPath;
+              };
+              xngImage = { name, partitions }: xng-utils.lib.buildXngSysImage {
+                inherit pkgs name xngOps lithOsOps;
+                extraBinaryBlobs = if partitions ? "Router" then routerConfig name else { };
+                hardFp = false;
+                xcf = pkgs.runCommandNoCC "patch-src" { } ''
+                  mkdir -p merged
+                  cp -r "${./examples/config/shared}"/* "${./examples/config/${name}/xml}"/* merged/
+                  cp -r merged $out
+                '';
+                partitions = pkgs.lib.concatMapAttrs
+                  (partName: value: {
+                    "${partName}" = {
+                      src = value;
+                      enableLithOs = true;
+                      forceXre = true;
+                      ltcf = ./examples/config/shared/${nixpkgs.lib.toLower partName}.ltcf;
+                    };
+                  })
+                  partitions;
+              };
               xngOps = self.packages.${system}.xng-ops;
               lithOsOps = self.packages.${system}.lithos-ops;
               rustPlatform = (pkgs.makeRustPlatform { cargo = rust-toolchain; rustc = rust-toolchain; });
@@ -253,7 +311,16 @@
                 { feature = "xng"; target = "armv7a-none-eabi"; }
               ];
             in
+            rec
             {
+              a653rs-router-cfg = rustPlatform.buildRustPackage {
+                inherit cargoLock;
+                pname = "a653rs-router-cfg";
+                version = "0.1.0";
+                src = ./.;
+                doCheck = true;
+              };
+
               echo-xng-client-queuing = mkEchoXng {
                 inherit rustPlatform;
                 flavor = "client";
@@ -297,53 +364,14 @@
                 target = "x86_64-unknown-linux-musl";
               };
 
-              # TODO instead of compiling many variants of the configurator, load configurations as parameter data items
-              configurator-linux-client = mkConfigurator {
+              configurator-linux = mkConfigurator {
                 inherit rustPlatform;
-                features = [ "configurator/client" ];
-                platform = "linux";
-                target = "x86_64-unknown-linux-musl";
-              };
-              configurator-linux-server = mkConfigurator {
-                inherit rustPlatform;
-                features = [ "configurator/server" ];
-                platform = "linux";
-                target = "x86_64-unknown-linux-musl";
-              };
-              configurator-linux-local = mkConfigurator {
-                inherit rustPlatform;
-                features = [ "configurator/local" ];
-                platform = "linux";
-                target = "x86_64-unknown-linux-musl";
-              };
-              configurator-linux-alt-local-client = mkConfigurator {
-                inherit rustPlatform;
-                features = [ "configurator/alt-local-client" ];
                 platform = "linux";
                 target = "x86_64-unknown-linux-musl";
               };
 
-              configurator-xng-client = mkConfigurator {
+              configurator-xng = mkConfigurator {
                 inherit rustPlatform;
-                features = [ "configurator/client" ];
-                platform = "xng";
-                target = "armv7a-none-eabi";
-              };
-              configurator-xng-server = mkConfigurator {
-                inherit rustPlatform;
-                features = [ "configurator/server" ];
-                platform = "xng";
-                target = "armv7a-none-eabi";
-              };
-              configurator-xng-local = mkConfigurator {
-                inherit rustPlatform;
-                features = [ "configurator/local" ];
-                platform = "xng";
-                target = "armv7a-none-eabi";
-              };
-              configurator-xng-alt-local-client = mkConfigurator {
-                inherit rustPlatform;
-                features = [ "configurator/alt-local-client" ];
                 platform = "xng";
                 target = "armv7a-none-eabi";
               };
@@ -383,6 +411,7 @@
                 features = [ "xng" ];
                 target = "armv7a-none-eabi";
               };
+
               xng-ops = xng-utils.lib.buildXngOps {
                 inherit pkgs;
                 src = xngSrcs.xng;
@@ -392,192 +421,154 @@
                 patches = [ ./patches/lithos-xng-armv7a-vmsa-tz.lds.patch ];
                 src = xngSrcs.lithos;
               };
-              echo-remote-xng-client = xngImage rec {
-                inherit pkgs xngOps lithOsOps;
+
+              echo-remote-xng-client = xngImage {
                 name = "echo-remote-xng-client";
                 partitions = {
-                  Router = "${self.packages."${system}".router-echo-client-xng}/lib/librouter_echo_client_xng.a";
-                  EchoClient = "${self.packages."${system}".echo-xng-client-queuing}/lib/libecho_xng_client_queuing.a";
-                  Config = "${self.packages."${system}".configurator-xng-client}/lib/libconfigurator_xng.a";
+                  Router = "${router-echo-client-xng}/lib/librouter_echo_client_xng.a";
+                  EchoClient = "${echo-xng-client-queuing}/lib/libecho_xng_client_queuing.a";
+                  Config = "${configurator-xng}/lib/libconfigurator_xng.a";
                 };
               };
-              echo-remote-xng-server = xngImage rec {
-                inherit pkgs xngOps lithOsOps;
+              echo-remote-xng-server = xngImage {
                 name = "echo-remote-xng-server";
                 partitions = {
-                  Router = "${self.packages."${system}".router-echo-server-xng}/lib/librouter_echo_server_xng.a";
-                  EchoServer = "${self.packages."${system}".echo-xng-server-queuing}/lib/libecho_xng_server_queuing.a";
-                  Config = "${self.packages."${system}".configurator-xng-server}/lib/libconfigurator_xng.a";
+                  Router = "${router-echo-server-xng}/lib/librouter_echo_server_xng.a";
+                  EchoServer = "${echo-xng-server-queuing}/lib/libecho_xng_server_queuing.a";
+                  Config = "${configurator-xng}/lib/libconfigurator_xng.a";
                 };
               };
-              echo-direct-xng = xngImage rec {
-                inherit pkgs xngOps lithOsOps;
+              echo-direct-xng = xngImage {
                 name = "echo-direct-xng";
                 partitions = {
-                  EchoClient = "${self.packages."${system}".echo-xng-client-queuing}/lib/libecho_xng_client_queuing.a";
-                  EchoServer = "${self.packages."${system}".echo-xng-server-queuing}/lib/libecho_xng_server_queuing.a";
+                  EchoClient = "${echo-xng-client-queuing}/lib/libecho_xng_client_queuing.a";
+                  EchoServer = "${echo-xng-server-queuing}/lib/libecho_xng_server_queuing.a";
                 };
               };
-              echo-local-xng = xngImage rec {
-                inherit pkgs xngOps lithOsOps;
+              echo-local-xng = xngImage {
                 name = "echo-local-xng";
                 partitions = {
-                  EchoClient = "${self.packages."${system}".echo-xng-client-queuing}/lib/libecho_xng_client_queuing.a";
-                  EchoServer = "${self.packages."${system}".echo-xng-server-queuing}/lib/libecho_xng_server_queuing.a";
-                  Router = "${self.packages."${system}".router-echo-local-xng}/lib/librouter_echo_local_xng.a";
-                  Config = "${self.packages."${system}".configurator-xng-local}/lib/libconfigurator_xng.a";
+                  EchoClient = "${echo-xng-client-queuing}/lib/libecho_xng_client_queuing.a";
+                  EchoServer = "${echo-xng-server-queuing}/lib/libecho_xng_server_queuing.a";
+                  Router = "${router-echo-local-xng}/lib/librouter_echo_local_xng.a";
+                  Config = "${configurator-xng}/lib/libconfigurator_xng.a";
                 };
               };
-              echo-alt-local-client-xng = xngImage rec {
-                inherit pkgs xngOps lithOsOps;
+              echo-alt-local-client-xng = xngImage {
                 name = "echo-alt-local-client-xng";
                 partitions = {
-                  EchoClient = "${self.packages."${system}".echo-xng-client-queuing}/lib/libecho_xng_client_queuing.a";
-                  EchoServer = "${self.packages."${system}".echo-xng-server-queuing}/lib/libecho_xng_server_queuing.a";
-                  Router = "${self.packages."${system}".router-echo-client-xng}/lib/librouter_echo_client_xng.a";
-                  Config = "${self.packages."${system}".configurator-xng-alt-local-client}/lib/libconfigurator_xng.a";
+                  EchoClient = "${echo-xng-client-queuing}/lib/libecho_xng_client_queuing.a";
+                  EchoServer = "${echo-xng-server-queuing}/lib/libecho_xng_server_queuing.a";
+                  Router = "${router-echo-client-xng}/lib/librouter_echo_client_xng.a";
+                  Config = "${configurator-xng}/lib/libconfigurator_xng.a";
                 };
               };
             };
-        }) // (
-      let
-        cargoLock = {
-          lockFile = ./Cargo.lock;
-          outputHashes = {
-            "a653rs-0.3.2" = "sha256-Fg2mCZSJEU7jgM303HRLiLqIsrL3uJFfKXTlbR4mSJg=";
-            "a653rs-linux-0.2.0" = "sha256-r7VzFSs+5Or2zclJD8gFlvCSDwqk8qutHvxbqyNhSPw=";
-            "a653rs-postcard-0.2.0" = "sha256-xDM5PwV24ZQ3NPVl12A1zX7FvYgLUxcufMCft+BzOSU=";
-            "a653rs-xng-0.1.0" = "sha256-7vZ8eWwLXzR4Fb4UCA2GyI8HRnKVR5NFcWumrzkUMNM=";
-            "xng-rs-log-0.1.0" = "sha256-YIFFnjWsk6g9tQuRBqmPaXsY3s2+BpkAg5PCw2ZGYCU=";
-          };
-        };
-      in
-      {
-        lib = rec {
-          mkConfigurator = { rustPlatform, features, platform, target }:
-            rustPlatform.buildRustPackage rec {
-              inherit cargoLock;
-              pname = "configurator-${platform}";
-              version = "0.1.0";
-              src = ./.;
-              buildPhase = ''
-                cargo build --release -p ${pname} --target ${target} --features=${nixpkgs.lib.concatStringsSep "," features}
-              '';
-              checkPhase = ''
-                cargo test -p ${pname} --target ${target} --features=${nixpkgs.lib.concatStringsSep "," features} --frozen
-              '';
-              doCheck = false;
-              installPhase = ''
-                mkdir -p "$out"/{bin,lib}
-                if [[ "${platform}" = "xng" ]]
-                then
-                  cp target/${target}/release/*.a "$out/lib"
-                else
-                  cp target/${target}/release/${pname} "$out/bin"
-                fi
-              '';
-            };
-          mkEchoXng = { rustPlatform, platform, flavor, variant, target }:
-            rustPlatform.buildRustPackage rec {
-              inherit cargoLock;
-              pname = "echo-${platform}-${flavor}-${variant}";
-              version = "0.1.0";
-              src = ./.;
-              buildPhase = ''
-                cargo build --release --target "${target}" -p ${pname}
-              '';
-              doCheck = false;
-              installPhase = ''
-                mkdir -p "$out"/lib
-                cp "target/${target}"/release/*.a "$out/lib"
-              '';
-            };
-          mkEchoLinux = { rustPlatform, platform, flavor, variant, target }:
-            rustPlatform.buildRustPackage rec {
-              inherit cargoLock;
-              pname = "echo-${platform}-${flavor}-${variant}";
-              version = "0.1.0";
-              src = ./.;
-              buildPhase = ''
-                cargo build --release --target "${target}" -p echo-${platform} --bin ${pname}
-              '';
-              doCheck = false;
-              installPhase = ''
-                mkdir -p "$out"/bin
+        }
+      ) //
+    {
+      lib = rec {
+        mkConfigurator = { rustPlatform, platform, target }:
+          rustPlatform.buildRustPackage rec {
+            inherit cargoLock;
+            pname = "configurator-${platform}";
+            version = "0.1.0";
+            src = ./.;
+            buildPhase = ''
+              cargo build --release -p ${pname} --target ${target}
+            '';
+            checkPhase = ''
+              cargo test -p ${pname} --target ${target} --frozen
+            '';
+            doCheck = false;
+            installPhase = ''
+              mkdir -p "$out"/{bin,lib}
+              if [[ "${platform}" = "xng" ]]
+              then
+                cp target/${target}/release/*.a "$out/lib"
+              else
                 cp target/${target}/release/${pname} "$out/bin"
-              '';
-            };
-          mkExample = { rustPlatform, product, example, features, target }:
-            rustPlatform.buildRustPackage {
-              inherit cargoLock;
-              pname = example;
-              version = "0.1.0";
-              src = ./.;
-              buildPhase = ''
-                cargo build --release --target "${target}" -p ${product} --example=${example} --features=${nixpkgs.lib.concatStringsSep "," features}
-              '';
-              doCheck = target != "armv7a-none-eabi";
-              checkPhase = ''
-                cargo test --target "${target}" -p ${product} --example=${example} --features=${nixpkgs.lib.concatStringsSep "," features} --frozen
-              '';
-              installPhase = ''
-                mkdir -p "$out"/{bin,lib}
-                if [[ "${target}" = "armv7a-none-eabi" ]]
-                then
-                  cp "target/${target}"/release/examples/*.a "$out/lib"
-                else
-                  cp "target/${target}/release/examples/${example}" "$out/bin"
-                fi
-              '';
-            };
-          allProducts = { rustPlatform, flavors, platforms, variants, products }: builtins.listToAttrs (
-            map
-              ({ product, flavor, platform, variant }:
-                let
-                  example = "${product}-${variant}-${platform.feature}";
-                in
-                (nixpkgs.lib.nameValuePair
-                  "${example}-${flavor}"
-                  (mkExample {
-                    inherit example product rustPlatform;
-                    features = [ variant platform.feature flavor ];
-                    target = platform.target;
-                  })
-                )
-              )
-              (nixpkgs.lib.cartesianProductOfSets {
-                "flavor" = flavors;
-                "platform" = platforms;
-                "variant" = variants;
-                "product" = products;
-              })
-          );
-          xngImage =
-            { pkgs
-            , name
-            , xngOps
-            , lithOsOps
-            , partitions
-            }: xng-utils.lib.buildXngSysImage {
-              inherit pkgs name xngOps lithOsOps;
-              hardFp = false;
-              xcf = pkgs.runCommandNoCC "patch-src" { } ''
-                mkdir -p merged
-                cp -r "${./examples/config/shared}"/* "${./examples/config/${name}/xml}"/* merged/
-                cp -r merged $out
-              '';
-              partitions = pkgs.lib.concatMapAttrs
-                (partName: value: {
-                  "${partName}" = {
-                    src = value;
-                    enableLithOs = true;
-                    forceXre = true;
-                    ltcf = ./examples/config/shared/${nixpkgs.lib.toLower partName}.ltcf;
-                  };
+              fi
+            '';
+          };
+        mkEchoXng = { rustPlatform, platform, flavor, variant, target }:
+          rustPlatform.buildRustPackage rec {
+            inherit cargoLock;
+            pname = "echo-${platform}-${flavor}-${variant}";
+            version = "0.1.0";
+            src = ./.;
+            buildPhase = ''
+              cargo build --release --target "${target}" -p ${pname}
+            '';
+            doCheck = false;
+            installPhase = ''
+              mkdir -p "$out"/lib
+              cp "target/${target}"/release/*.a "$out/lib"
+            '';
+          };
+        mkEchoLinux = { rustPlatform, platform, flavor, variant, target }:
+          rustPlatform.buildRustPackage rec {
+            inherit cargoLock;
+            pname = "echo-${platform}-${flavor}-${variant}";
+            version = "0.1.0";
+            src = ./.;
+            buildPhase = ''
+              cargo build --release --target "${target}" -p echo-${platform} --bin ${pname}
+            '';
+            doCheck = false;
+            installPhase = ''
+              mkdir -p "$out"/bin
+              cp target/${target}/release/${pname} "$out/bin"
+            '';
+          };
+        mkExample = { rustPlatform, product, example, features, target }:
+          rustPlatform.buildRustPackage {
+            inherit cargoLock;
+            pname = example;
+            version = "0.1.0";
+            src = ./.;
+            buildPhase = ''
+              cargo build --release --target "${target}" -p ${product} --example=${example} --features=${nixpkgs.lib.concatStringsSep "," features}
+            '';
+            doCheck = target != "armv7a-none-eabi";
+            checkPhase = ''
+              cargo test --target "${target}" -p ${product} --example=${example} --features=${nixpkgs.lib.concatStringsSep "," features} --frozen
+            '';
+            installPhase = ''
+              mkdir -p "$out"/{bin,lib}
+              if [[ "${target}" = "armv7a-none-eabi" ]]
+              then
+                cp "target/${target}"/release/examples/*.a "$out/lib"
+              else
+                cp "target/${target}/release/examples/${example}" "$out/bin"
+              fi
+            '';
+          };
+        allProducts = { rustPlatform, flavors, platforms, variants, products }: builtins.listToAttrs (
+          map
+            ({ product, flavor, platform, variant }:
+              let
+                example = "${product}-${variant}-${platform.feature}";
+              in
+              (nixpkgs.lib.nameValuePair
+                "${example}-${flavor}"
+                (mkExample {
+                  inherit example product rustPlatform;
+                  features = [ variant platform.feature flavor ];
+                  target = platform.target;
                 })
-                partitions;
-            };
-        };
-      }
-    );
+              )
+            )
+            (nixpkgs.lib.cartesianProductOfSets {
+              "flavor" = flavors;
+              "platform" = platforms;
+              "variant" = variants;
+              "product" = products;
+            })
+        );
+
+      };
+
+
+    }; # outputs
 }

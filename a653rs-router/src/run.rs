@@ -47,7 +47,7 @@ pub fn run<const IN: usize, const OUT: usize, const BUF_LEN: usize>(
                 }
                 Err(Error::InterfaceReceiveFail(e)) => debug!("{e:?}"),
                 Err(Error::PortReceiveFail) => debug!("{new_config:?}"),
-                Err(e) => error!("Failed to fetch config: {e:?}"),
+                Err(e) => debug!("Failed to fetch config: {e:?}"),
             }
         }
         reconfigure_timer = (reconfigure_timer + 1) % 0x10000;

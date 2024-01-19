@@ -27,6 +27,10 @@ pub fn run() -> ! {
 mod configurator {
     use log::*;
 
+    // Some memory area, see config.xml of the configurator partition.
+    const CONFIG_MEMORY_AREA: usize = 0x16000000;
+    const CONFIG_MEMORY_AREA_SIZE: usize = 16_000;
+
     #[sampling_out(name = "RouterConfig", msg_size = "1KB")]
     struct RouterConfig;
 
@@ -51,7 +55,25 @@ mod configurator {
     fn periodic(ctx: periodic::Context) {
         debug!("Running configurator periodic process");
         let port = ctx.router_config.unwrap();
+        let mut last_cfg: Option<&[u8]> = None;
 
-        configurator::configure(port);
+        loop {
+            // Safety: only safe if there are at least 1000 byte readable from this
+            // partition in this area
+            let cfg = unsafe {
+                core::slice::from_raw_parts(
+                    CONFIG_MEMORY_AREA as *const u8,
+                    CONFIG_MEMORY_AREA_SIZE,
+                )
+            };
+            if Some(cfg) != last_cfg {
+                if let Err(e) = port.send(cfg) {
+                    error!("Failed to update config: {e:?}");
+                } else {
+                    last_cfg = Some(cfg);
+                }
+            }
+            <Hypervisor as ApexTimeP4Ext>::periodic_wait().unwrap();
+        }
     }
 }

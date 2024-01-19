@@ -23,8 +23,13 @@ features = [ "panic_handler" ]
 [dependencies.xng-rs-log]
 workspace = true
 
-[dependencies.configurator]
-path = "../configurator"
-
 [dependencies.log]
 version = "0"
+
+[dependencies.postcard]
+workspace = true
+features = ["heapless"]
+
+[dependencies.heapless]
+workspace = true
+features = ["serde"]

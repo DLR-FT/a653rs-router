@@ -18,7 +18,7 @@ checks:
     - nix develop --command run-checks
 
 variables:
-  CARGO_EXTR_ARGS: "--all-features -p network-partition -p network-partition-macros -p network-partition-uart -p network-partition-linux -p small-trace -p small-trace-gpio"
+  CARGO_EXTR_ARGS: "--all-features"
 
 rust-test:
   stage: test
@@ -51,6 +51,11 @@ run-nixos-integration-test:
   stage: test
   script:
     - nix develop --command run-nixos-integration-test
+
+build-crates:
+  stage: build
+  script:
+    - nix develop --command cargo build $CARGO_EXTRA_ARGS
 
 build-xng-images:
   stage: build

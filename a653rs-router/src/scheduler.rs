@@ -116,10 +116,6 @@ pub struct DeadlineRrSlot {
 
     /// Periodic after which to schedule this slot again after the last time it
     /// has been scheduled.
-    #[cfg_attr(
-        all(feature = "std", features = "serde"),
-        serde(with = "humantime_serde")
-    )]
     pub period: Duration,
 }
 

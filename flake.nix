@@ -278,6 +278,15 @@
                   ${pkgs.lib.meta.getExe self.packages.${system}.a653rs-router-cfg} < ${./examples/config/${name}/route-table.json} > $out
                 '').outPath;
               };
+              xngOps = xng-utils.lib.buildXngOps {
+                inherit pkgs;
+                src = xngSrcs.xng;
+              };
+              lithOsOps = xng-utils.lib.buildLithOsOps {
+                inherit pkgs;
+                patches = [ ./patches/lithos-xng-armv7a-vmsa-tz.lds.patch ];
+                src = xngSrcs.lithos;
+              };
               xngImage = { name, partitions }: xng-utils.lib.buildXngSysImage {
                 inherit pkgs name xngOps lithOsOps;
                 extraBinaryBlobs = if (partitions ? "Router") then (routerConfigBlob name) else { };
@@ -298,13 +307,7 @@
                   })
                   partitions;
               };
-              xngOps = self.packages.${system}.xng-ops;
-              lithOsOps = self.packages.${system}.lithos-ops;
               rustPlatform = (pkgs.makeRustPlatform { cargo = rust-toolchain; rustc = rust-toolchain; });
-              platforms = [
-                { feature = "linux"; target = "x86_64-unknown-linux-musl"; }
-                { feature = "xng"; target = "armv7a-none-eabi"; }
-              ];
             in
             rec
             {
@@ -420,16 +423,6 @@
                 product = "router";
                 features = [ "xng" ];
                 target = "armv7a-none-eabi";
-              };
-
-              xng-ops = xng-utils.lib.buildXngOps {
-                inherit pkgs;
-                src = xngSrcs.xng;
-              };
-              lithos-ops = xng-utils.lib.buildLithOsOps {
-                inherit pkgs;
-                patches = [ ./patches/lithos-xng-armv7a-vmsa-tz.lds.patch ];
-                src = xngSrcs.lithos;
               };
 
               image-echo-remote-xng-client = xngImage {

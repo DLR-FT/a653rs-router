@@ -21,6 +21,7 @@ set cable [lindex $argv 4]
 source $ps7_init_file
 
 connect
+after 500
 targets -set -nocase -filter {name =~ "APU*" && jtag_cable_serial == $cable };
 rst -system
 

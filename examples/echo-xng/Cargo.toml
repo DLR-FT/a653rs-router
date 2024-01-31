@@ -1,0 +1,15 @@
+[package]
+name = "echo-xng"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = [ "staticlib" ]
+
+[dependencies]
+log = "0"
+echo = { path = "../echo" }
+a653rs.workspace = true
+a653rs-xng.workspace = true
+a653rs-xng.features= ["panic_handler"]
+xng-rs-log.workspace = true

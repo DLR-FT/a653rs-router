@@ -1,11 +1,11 @@
 major_frame: 1s
 partitions:
   - id: 1
-    name: Echo
+    name: EchoClient
     duration: 300ms
     offset: 0ms
     period: 1s
-    image: echo-linux-client-sampling
+    image: echo
   - id: 2
     name: Network
     duration: 300ms
@@ -27,7 +27,7 @@ channel:
   - !Sampling
     name: EchoRequest
     msg_size: 1KB
-    source: { partition: Echo, port: EchoRequest }
+    source: { partition: EchoClient, port: EchoSender }
     destination:
       - { partition: Network, port: EchoRequest }
   - !Sampling
@@ -35,7 +35,7 @@ channel:
     msg_size: 1KB
     source: { partition: Network, port: EchoReply }
     destination:
-      - { partition: Echo, port: EchoReply }
+      - { partition: EchoClient, port: EchoReceiver }
   - !Sampling
     name: RouterConfig
     msg_size: 1KB

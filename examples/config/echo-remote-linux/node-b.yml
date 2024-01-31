@@ -1,11 +1,11 @@
 major_frame: 1s
 partitions:
   - id: 0
-    name: Echo
+    name: EchoServer
     duration: 300ms
     offset: 0ms
     period: 1s
-    image: echo-linux-server-sampling
+    image: echo
   - id: 1
     name: Network
     duration: 300ms
@@ -29,11 +29,11 @@ channel:
     msg_size: 1KB
     source: { partition: Network, port: EchoRequest }
     destination:
-      - { partition: Echo, port: EchoRequest }
+      - { partition: EchoServer, port: SEchoReceiver }
   - !Sampling
     name: EchoReply
     msg_size: 1KB
-    source: { partition: Echo, port: EchoReply }
+    source: { partition: EchoServer, port: SEchoSender }
     destination:
       - { partition: Network, port: EchoReply }
   - !Sampling

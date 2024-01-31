@@ -1,12 +1,12 @@
 <?xml version="1.0"?>
 <Channels xmlns="http://www.fentiss.com/xngChannelsXml">
   <QueuingChannel start="0x400000" size="10KB" maxMessageSize="1000B" maxNbMessages="10">
-    <Source partition="EchoClient" port="EchoRequest" />
-    <Destination partition="EchoServer" port="EchoRequest" />
+    <Source partition="EchoClient" port="EchoSend" />
+    <Destination partition="EchoServer" port="SEchoReceive" />
   </QueuingChannel>
   <QueuingChannel start="0x430000" size="10KB" maxMessageSize="1000B" maxNbMessages="10">
-    <Source partition="EchoServer" port="EchoReply" />
-    <Destination partition="EchoClient" port="EchoReply" />
+    <Source partition="EchoServer" port="SEchoSend" />
+    <Destination partition="EchoClient" port="EchoReceive" />
   </QueuingChannel>
 </Channels>
 

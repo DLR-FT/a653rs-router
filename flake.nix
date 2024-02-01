@@ -23,18 +23,9 @@
       url = "github:aeronautical-informatics/xng-flake-utils";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    fpga-project = {
-      url = "git+ssh://git@gitlab.dlr.de/projekt-resilienz/vivado-coraz7-uart.git?ref=main";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-utils.follows = "utils";
-    };
-    xilinx-flake-utils = {
-      follows = "fpga-project/xilinx-flake-utils";
-      # do not override any inputs here to not have to rebuild Xilinx Vitis
-    };
   };
 
-  outputs = { self, nixpkgs, utils, devshell, fenix, hypervisor, xng-utils, fpga-project, xilinx-flake-utils, ... }@inputs:
+  outputs = { self, nixpkgs, utils, devshell, fenix, hypervisor, xng-utils, ... }@inputs:
     utils.lib.eachSystem [ "x86_64-linux" ]
       (system:
         let
@@ -61,11 +52,6 @@
             {
               default = import ./shell.nix {
                 inherit pkgs devshell formatter rustToolchain;
-              };
-              xng = import ./xng-devshell.nix {
-                inherit pkgs devshell rustToolchain;
-                fpga = fpga-project.packages."${system}".default;
-                vitis = xilinx-flake-utils.packages.${system}.vitis-unified-software-platform-vitis_2019-2_1106_2127;
               };
             };
 

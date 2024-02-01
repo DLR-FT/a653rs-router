@@ -25,3 +25,26 @@ cargo doc --all --open
 
 The echo example and support for Zynq7000 currently require a nightly compiler for support of const-generics.
 Other than that all crates should use only stable rust features. 
+
+## Flashing the XNG image
+
+Building and flashing the FPGA image requires Vitis. Since the download is around 80 GiB large, it is not included in the devshell of this project.
+Download it yourself and use the following shell to install it.
+
+```
+$ nix develop --no-write-lock-file github:nix-community/nix-environments#xilinx-vitis
+```
+
+After installation, close fhs environment shell, open a new one and try to run Vitis.
+The UART examples use a specific configuration for the FPGA contained in [another project](https://gitlab.dlr.de/projekt-resilienz/vivado-coraz7-uart) which you need to compile and export.
+
+```
+$ source /opt/xilnx/Vitis/*/settings64.sh
+$ vivado -nolog -nojournal -mode batch -source vivado_all.tcl uart.xpr
+```
+
+The resulting `hw_export.xsa` is needed for flashing along with an XNG image.
+
+```
+$ ./a653rs-router-zynq7000/flash "210370AD5202A" sys_img.elf hw_export.xsa
+```

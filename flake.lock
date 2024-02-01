@@ -21,49 +21,6 @@
         "type": "github"
       }
     },
-    "devshell_2": {
-      "inputs": {
-        "flake-utils": [
-          "fpga-project",
-          "xilinx-flake-utils",
-          "flake-utils"
-        ],
-        "nixpkgs": [
-          "fpga-project",
-          "xilinx-flake-utils",
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1676293499,
-        "narHash": "sha256-uIOTlTxvrXxpKeTvwBI1JGDGtCxMXE3BI0LFwoQMhiQ=",
-        "owner": "numtide",
-        "repo": "devshell",
-        "rev": "71e3022e3ab20bbf1342640547ef5bc14fb43bf4",
-        "type": "github"
-      },
-      "original": {
-        "owner": "numtide",
-        "repo": "devshell",
-        "type": "github"
-      }
-    },
-    "digilent-xdc": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1669143946,
-        "narHash": "sha256-ckdXkC46TwUiwIg0wFhP35SJRDW9BWQm7syYbphhZ1s=",
-        "owner": "Digilent",
-        "repo": "digilent-xdc",
-        "rev": "69d35015d4c3a0cb384a964459593cea5260697a",
-        "type": "github"
-      },
-      "original": {
-        "owner": "Digilent",
-        "repo": "digilent-xdc",
-        "type": "github"
-      }
-    },
     "fenix": {
       "inputs": {
         "nixpkgs": [
@@ -101,48 +58,6 @@
         "owner": "numtide",
         "repo": "flake-utils",
         "type": "github"
-      }
-    },
-    "flake-utils_2": {
-      "locked": {
-        "lastModified": 1676283394,
-        "narHash": "sha256-XX2f9c3iySLCw54rJ/CZs+ZK6IQy7GXNY4nSOyu2QG4=",
-        "owner": "numtide",
-        "repo": "flake-utils",
-        "rev": "3db36a8b464d0c4532ba1c7dda728f4576d6d073",
-        "type": "github"
-      },
-      "original": {
-        "owner": "numtide",
-        "repo": "flake-utils",
-        "type": "github"
-      }
-    },
-    "fpga-project": {
-      "inputs": {
-        "digilent-xdc": "digilent-xdc",
-        "flake-utils": [
-          "utils"
-        ],
-        "nixpkgs": [
-          "nixpkgs"
-        ],
-        "vivado-boards": "vivado-boards",
-        "xilinx-flake-utils": "xilinx-flake-utils"
-      },
-      "locked": {
-        "lastModified": 1681463482,
-        "narHash": "sha256-G/E0S5ekXslzRxNVUQPqK2Ak96rJ8PaC1TvVJdHI++o=",
-        "ref": "main",
-        "rev": "7ecbb354e66926d4233caf3fb3984921ec75aa98",
-        "revCount": 19,
-        "type": "git",
-        "url": "ssh://git@gitlab.dlr.de/projekt-resilienz/vivado-coraz7-uart.git"
-      },
-      "original": {
-        "ref": "main",
-        "type": "git",
-        "url": "ssh://git@gitlab.dlr.de/projekt-resilienz/vivado-coraz7-uart.git"
       }
     },
     "hypervisor": {
@@ -198,20 +113,6 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1672968032,
-        "narHash": "sha256-26Jns3GmHem44a06UN5Rj/KOD9qNJThyQrom02Ijur8=",
-        "owner": "NixOS",
-        "repo": "nixpkgs",
-        "rev": "2dea8991d89b9f1e78d874945f78ca15f6954289",
-        "type": "github"
-      },
-      "original": {
-        "id": "nixpkgs",
-        "type": "indirect"
-      }
-    },
-    "nixpkgs_2": {
-      "locked": {
         "lastModified": 1706515015,
         "narHash": "sha256-eFfY5A7wlYy3jD/75lx6IJRueg4noE+jowl0a8lIlVo=",
         "owner": "NixOS",
@@ -230,14 +131,9 @@
       "inputs": {
         "devshell": "devshell",
         "fenix": "fenix",
-        "fpga-project": "fpga-project",
         "hypervisor": "hypervisor",
-        "nixpkgs": "nixpkgs_2",
+        "nixpkgs": "nixpkgs",
         "utils": "utils",
-        "xilinx-flake-utils": [
-          "fpga-project",
-          "xilinx-flake-utils"
-        ],
         "xng-utils": "xng-utils"
       }
     },
@@ -303,43 +199,6 @@
       "original": {
         "owner": "numtide",
         "repo": "flake-utils",
-        "type": "github"
-      }
-    },
-    "vivado-boards": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1673473276,
-        "narHash": "sha256-tafHRfzQ0G8tq4sV8WRvwwRP4YAVIbVmq+xIp4+N4mE=",
-        "owner": "Digilent",
-        "repo": "vivado-boards",
-        "rev": "e5f0728cd284d10080ae8eb03fc86e7b5eafcb72",
-        "type": "github"
-      },
-      "original": {
-        "owner": "Digilent",
-        "ref": "master",
-        "repo": "vivado-boards",
-        "type": "github"
-      }
-    },
-    "xilinx-flake-utils": {
-      "inputs": {
-        "devshell": "devshell_2",
-        "flake-utils": "flake-utils_2",
-        "nixpkgs": "nixpkgs"
-      },
-      "locked": {
-        "lastModified": 1676549838,
-        "narHash": "sha256-vZ/BQz9LWlxfWQgPgA36oJl+V6/4x/aOTDa7o8l5miU=",
-        "owner": "aeronautical-informatics",
-        "repo": "xilinx-flake-utils",
-        "rev": "0ffd8d370bf63bed29646b5d3341d2574e651703",
-        "type": "github"
-      },
-      "original": {
-        "owner": "aeronautical-informatics",
-        "repo": "xilinx-flake-utils",
         "type": "github"
       }
     },

@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-a653rs.workspace = true
+a653rs = { workspace = true, features = ["bindings"] }
 a653rs-postcard.workspace = true
 log.workspace = true
 serde = { workspace = true, features = ["derive"] }

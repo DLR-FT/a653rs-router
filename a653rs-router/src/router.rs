@@ -203,7 +203,7 @@ impl<const M: MessageSize, const R: MessageRange, Q: ApexQueuingPortP4> RouterIn
         small_trace!(end_apex_send, vl.0 as u16);
         match res {
             Err(_e) => Err(Error::PortReceiveFail),
-            Ok(buf) => {
+            Ok((buf, _overflow)) => {
                 if buf.is_empty() {
                     Err(Error::InvalidData)
                 } else {

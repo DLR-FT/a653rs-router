@@ -28,6 +28,8 @@
 #![allow(incomplete_features)]
 #![feature(generic_const_exprs)]
 
+use a653rs::bindings::ApexPartitionP4;
+use a653rs::bindings::ApexProcessP4;
 use a653rs::bindings::ApexQueuingPortP4;
 use a653rs::bindings::ApexSamplingPortP4;
 use a653rs::prelude::*;
@@ -123,7 +125,7 @@ pub fn run_echo_queuing_receiver<const M: u32, const L: u32, H: ApexQueuingPortP
         };
 
         match result {
-            Ok(data) => {
+            Ok((data, _overflow)) => {
                 small_trace!(begin_echo_reply_received);
                 trace!("Received reply: {data:?}");
                 let received = data;
@@ -212,7 +214,7 @@ pub fn run_echo_queuing_server<const M: u32, H: ApexQueuingPortP4 + ApexTimeP4Ex
     let mut buf = [0u8; M as usize];
     loop {
         match port_in.receive(&mut buf, RECEIVE_TIMEOUT) {
-            Ok(data) => {
+            Ok((data, _overflowed)) => {
                 small_trace!(begin_echo_request_received);
                 trace!("Received echo request: ${data:?}");
                 if data.is_empty() {
@@ -394,7 +396,7 @@ pub fn cold_start_sampling_queuing<H>(
     sampling_receiver: &mut Option<SamplingPortDestination<ECHO_SIZE, H>>,
     entries: &EchoEntryFunctions,
 ) where
-    H: ApexSamplingPortP4Ext + ApexQueuingPortP4Ext + ApexPartitionP4 + ApexProcessP4 + Debug,
+    H: ApexSamplingPortP4Ext + ApexQueuingPortP4 + ApexPartitionP4 + ApexProcessP4 + Debug,
 {
     let cfg = if let Ok(station) = try_init_queuing(ctx, queuing_sender, queuing_receiver) {
         EchoConfig {

@@ -1,9 +1,9 @@
 {
   lockFile = ./Cargo.lock;
   outputHashes = {
-    "a653rs-linux-0.2.0" = "sha256-K3fWsAooXrl/uOYRcjI2N3bonSyjc3oeeBBUTJ1X/0M=";
-    "a653rs-postcard-0.2.0" = "sha256-xDM5PwV24ZQ3NPVl12A1zX7FvYgLUxcufMCft+BzOSU=";
-    "a653rs-xng-0.1.0" = "sha256-7vZ8eWwLXzR4Fb4UCA2GyI8HRnKVR5NFcWumrzkUMNM=";
+    "a653rs-linux-0.2.0" = "sha256-5y+22oIdDvVOjai2AkGmbWJ1Kt1PrljIOKSMDOqJQ1s=";
+    "a653rs-postcard-0.3.0" = "sha256-Gb/5fz29sJYnTZebDsNIbwydZaGEPOz0VeLBYsDvcQE=";
+    "a653rs-xng-0.1.0" = "sha256-YOn+rUJ4k28ikOtrB61ScwV3I0etLqfxBSKbKiwJyy0=";
     "xng-rs-log-0.1.0" = "sha256-YIFFnjWsk6g9tQuRBqmPaXsY3s2+BpkAg5PCw2ZGYCU=";
   };
 }

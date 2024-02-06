@@ -9,16 +9,16 @@ macros = [ "dep:a653rs-router-macros", "serde" ]
 partition = [ "macros", "dep:a653rs-router-partition-macros" ]
 
 [dependencies]
-a653rs.workspace = true
-heapless.workspace = true
-log = "0"
-humantime-serde = { version = "1", optional = true }
-serde = { version = "1.0", default-features = false, features = ["derive"], optional = true }
-bytesize = { version = "1.1.0", optional = true }
-small-trace = { path = "../small-trace" }
-postcard = { workspace = true, optional = true, features = ["heapless"] }
 a653rs-router-macros = { path = "../a653rs-router-macros", optional = true }
 a653rs-router-partition-macros = { path = "../a653rs-router-partition-macros", optional = true }
+a653rs.workspace = true
+bytesize = { workspace = true, optional = true }
+heapless.workspace = true
+humantime-serde = { workspace = true, optional = true }
+log.workspace = true
+postcard = { workspace = true, optional = true, features = ["heapless"] }
+serde = { workspace = true, default-features = false, features = ["derive"], optional = true }
+small-trace = { path = "../small-trace" }
 
 [package.metadata.docs.rs]
 all-features = true

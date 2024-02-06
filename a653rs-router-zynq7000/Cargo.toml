@@ -7,10 +7,10 @@ edition = "2021"
 
 [dependencies]
 a653rs-router = { path = "../a653rs-router" }
-log = "0"
-once_cell = { version = "1.17", default-features = false }
-uart_xilinx.workspace = true
-heapless = { version = "0.7", default-features = false }
-corncobs = { version = "0.1" }
-crc16 = { version = "0.4.0", default-features = false }
+corncobs.workspace = true
+crc16.workspace = true
+heapless.workspace = true
+log.workspace = true
+once_cell.workspace = true
 small-trace = { path = "../small-trace" }
+uart_xilinx.workspace = true

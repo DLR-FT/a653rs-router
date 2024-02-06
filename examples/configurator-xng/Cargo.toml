@@ -8,28 +8,11 @@ edition = "2021"
 [lib]
 crate-type = [ "staticlib" ]
 
-[dependencies.a653rs]
-workspace = true
-features = [ "macros" ]
-
-[dependencies.a653rs-router]
-features = [ "serde" ]
-path = "../../a653rs-router"
-
-[dependencies.a653rs-xng]
-workspace = true
-features = [ "panic_handler" ]
-
-[dependencies.xng-rs-log]
-workspace = true
-
-[dependencies.log]
-version = "0"
-
-[dependencies.postcard]
-workspace = true
-features = ["heapless"]
-
-[dependencies.heapless]
-workspace = true
-features = ["serde"]
+[dependencies]
+a653rs-router = { features = ["serde"], path = "../../a653rs-router" }
+a653rs = { workspace = true, features = ["macros"] }
+a653rs-xng = { workspace = true, features = ["panic_handler"] }
+heapless = { workspace = true, features = ["serde"] }
+log.workspace = true
+postcard = { workspace = true, features = ["heapless"] } 
+xng-rs-log.workspace = true

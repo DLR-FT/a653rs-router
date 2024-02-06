@@ -7,5 +7,5 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-volatile-register = "0.2"
+volatile-register.workspace = true
 small-trace = { path = "../small-trace" }

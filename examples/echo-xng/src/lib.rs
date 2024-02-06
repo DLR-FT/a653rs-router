@@ -1,5 +1,7 @@
 #![no_std]
 
+use core::ptr::addr_of_mut;
+
 use a653rs::prelude::*;
 use a653rs_xng::apex::XngHypervisor;
 use echo::*;
@@ -47,13 +49,14 @@ extern "C" fn server_queuing() {
 struct Echo;
 
 impl Partition<XngHypervisor> for Echo {
+    #[allow(clippy::deref_addrof)]
     fn cold_start(&self, ctx: &mut StartContext<XngHypervisor>) {
         cold_start_sampling_queuing(
             ctx,
-            unsafe { &mut ECHO_SENDER_QUEUING },
-            unsafe { &mut ECHO_RECEIVER_QUEUING },
-            unsafe { &mut ECHO_SENDER_SAMPLING },
-            unsafe { &mut ECHO_RECEIVER_SAMPLING },
+            unsafe { &mut *(addr_of_mut!(ECHO_SENDER_QUEUING)) },
+            unsafe { &mut *(addr_of_mut!(ECHO_RECEIVER_QUEUING)) },
+            unsafe { &mut *(addr_of_mut!(ECHO_SENDER_SAMPLING)) },
+            unsafe { &mut *(addr_of_mut!(ECHO_RECEIVER_SAMPLING)) },
             &(EchoEntryFunctions {
                 client_send_sampling,
                 client_receive_sampling,

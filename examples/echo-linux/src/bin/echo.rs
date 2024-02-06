@@ -1,3 +1,5 @@
+use std::ptr::addr_of_mut;
+
 use a653rs::prelude::*;
 use a653rs_linux::partition::{ApexLinuxPartition, ApexLogger};
 use echo::*;
@@ -51,16 +53,15 @@ const ECHO_ENTRY_FUNCTIONS: EchoEntryFunctions = EchoEntryFunctions {
 
 struct Echo;
 
+#[allow(clippy::deref_addrof)]
 impl Partition<ApexLinuxPartition> for Echo {
     fn cold_start(&self, ctx: &mut StartContext<ApexLinuxPartition>) {
-        unsafe {
-            cold_start_sampling(
-                ctx,
-                &mut ECHO_SENDER_SAMPLING,
-                &mut ECHO_RECEIVER_SAMPLING,
-                &ECHO_ENTRY_FUNCTIONS,
-            );
-        }
+        cold_start_sampling(
+            ctx,
+            unsafe { &mut *addr_of_mut!(ECHO_SENDER_SAMPLING) },
+            unsafe { &mut *addr_of_mut!(ECHO_RECEIVER_SAMPLING) },
+            &ECHO_ENTRY_FUNCTIONS,
+        );
     }
 
     fn warm_start(&self, ctx: &mut StartContext<ApexLinuxPartition>) {

@@ -58,11 +58,10 @@ since it reads the serialized configuration from a [`prelude::RouterInput`].
 # #![no_std]
 # use a653rs_router::prelude::*;
 # use core::time::Duration;
-# use a653rs_router::error::Error;
 #
 # struct TimeSourceA;
 # impl TimeSource for TimeSourceA {
-#     fn get_time(&self) -> Result<Duration, Error> { todo!() }
+#     fn get_time(&self) -> Result<Duration, InvalidTimeError> { todo!() }
 # }
 # struct RouterConfig;
 # impl RouterInput for RouterConfig {
@@ -70,7 +69,7 @@ since it reads the serialized configuration from a [`prelude::RouterInput`].
 #        &self,
 #        vl: &VirtualLinkId,
 #        buf: &'a mut [u8],
-#    ) -> Result<(VirtualLinkId, &'a [u8]), Error> { todo!() }
+#    ) -> Result<(VirtualLinkId, &'a [u8]), PortError> { todo!() }
 # }
 #
 # fn main() {
@@ -115,8 +114,9 @@ a653rs_router::run::<1, 1, 1000>(
 )]
 
 mod config;
-pub mod error;
+mod error;
 mod network;
+mod ports;
 mod reconfigure;
 mod router;
 mod run;
@@ -131,13 +131,14 @@ pub use crate::run::*;
 /// implementations.
 pub mod prelude {
     pub use crate::config::{BuilderResult, Config, ConfigResult, RouterConfigError};
+    pub use crate::error::Error;
     pub use crate::network::{
-        CreateNetworkInterface, CreateNetworkInterfaceId, InterfaceConfig, NetworkInterface,
-        NetworkInterfaceId, PayloadSize, PlatformNetworkInterface,
+        CreateNetworkInterface, CreateNetworkInterfaceId, InterfaceConfig, InterfaceError,
+        NetworkInterface, NetworkInterfaceId, PayloadSize, PlatformNetworkInterface,
     };
     pub use crate::reconfigure::{Configurator, Resources};
-    pub use crate::router::{Router, RouterInput, RouterOutput};
-    pub use crate::scheduler::{DeadlineRrScheduler, Scheduler, TimeSource};
+    pub use crate::router::{PortError, Router, RouterInput, RouterOutput};
+    pub use crate::scheduler::{DeadlineRrScheduler, InvalidTimeError, Scheduler, TimeSource};
     pub use crate::types::*;
 }
 

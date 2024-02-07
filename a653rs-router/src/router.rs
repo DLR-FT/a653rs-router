@@ -2,17 +2,12 @@
 
 use crate::{
     error::Error,
-    scheduler::{Scheduler, TimeSource},
+    reconfigure::CfgError,
+    scheduler::{ScheduleError, Scheduler, TimeSource},
     types::VirtualLinkId,
 };
-use a653rs::{
-    bindings::{ApexQueuingPortP4, ApexSamplingPortP4},
-    prelude::{
-        MessageRange, MessageSize, QueuingPortReceiver, QueuingPortSender, SamplingPortDestination,
-        SamplingPortSource, SystemTime, Validity,
-    },
-};
-use core::{fmt::Debug, time::Duration};
+
+use core::fmt::{Debug, Display};
 use heapless::{LinearMap, Vec};
 use log::debug;
 use small_trace::small_trace;
@@ -32,7 +27,7 @@ pub trait RouterInput {
         &self,
         vl: &VirtualLinkId,
         buf: &'a mut [u8],
-    ) -> Result<(VirtualLinkId, &'a [u8]), Error>;
+    ) -> Result<(VirtualLinkId, &'a [u8]), PortError>;
 }
 
 /// An output from a virtual link.
@@ -40,7 +35,7 @@ pub trait RouterOutput {
     /// Sends `buf` to a virtual link on this `Output`.
     ///
     /// Returns a slice to the portion of `buf` that has *not* been transmitted.
-    fn send(&self, vl: &VirtualLinkId, buf: &[u8]) -> Result<(), Error>;
+    fn send(&self, vl: &VirtualLinkId, buf: &[u8]) -> Result<(), PortError>;
 }
 
 type RouteTable<'a, const I: usize, const O: usize> =
@@ -59,11 +54,11 @@ impl<'a, const I: usize, const O: usize> Router<'a, I, O> {
     /// Forwards a virtual link from its source to its destinations.
     fn route<const B: usize>(&self, vl: &VirtualLinkId) -> Result<(), Error> {
         let buf = &mut [0u8; B];
-        let input = self.inputs.get(vl).ok_or(Error::InvalidConfig)?;
+        let input = self.inputs.get(vl).ok_or(RouteError::InvalidVl)?;
         // This vl may be different, than the one specified.
         let (vl, buf) = input.receive(vl, buf)?;
         debug!("Received from {vl:?}: {buf:?}");
-        let outs = self.outputs.get(&vl).ok_or(Error::InvalidConfig)?;
+        let outs = self.outputs.get(&vl).ok_or(RouteError::InvalidVl)?;
         for out in outs.into_iter() {
             out.send(&vl, buf)?;
         }
@@ -76,7 +71,7 @@ impl<'a, const I: usize, const O: usize> Router<'a, I, O> {
         scheduler: &mut dyn Scheduler,
         time_source: &dyn TimeSource,
     ) -> Result<Option<VirtualLinkId>, Error> {
-        let time = time_source.get_time()?;
+        let time = time_source.get_time().map_err(ScheduleError::from)?;
         if let Some(next) = scheduler.schedule_next(&time) {
             small_trace!(begin_virtual_link_scheduled, next.0 as u16);
             let res = self.route::<B>(&next);
@@ -120,115 +115,54 @@ impl<'a, const I: usize, const O: usize> RouterBuilder<'a, I, O> {
         vl: &VirtualLinkId,
         input: &'a dyn RouterInput,
         output: &Vec<&'a dyn RouterOutput, O>,
-    ) -> Result<&mut Self, Error> {
+    ) -> Result<&mut Self, CfgError> {
         if self.vls.contains_key(vl) {
-            return Err(Error::InvalidConfig);
+            return Err(CfgError::InvalidVl);
         }
         _ = self
             .vls
             .insert(*vl, (input, output.clone()))
-            .map_err(|_e| Error::InvalidConfig)?;
+            .map_err(|_e| CfgError::Storage)?;
         Ok(self)
     }
 
-    pub fn build(&self) -> Result<Router<'a, I, O>, Error> {
+    pub fn build(&self) -> Result<Router<'a, I, O>, CfgError> {
         let mut inputs = Inputs::default();
         let mut outputs = RouteTable::default();
         for (id, (i, o)) in self.vls.iter() {
-            if inputs.contains_key(id) || outputs.contains_key(id) {
-                return Err(Error::InvalidConfig);
+            if inputs.contains_key(id) {
+                return Err(CfgError::InvalidInput);
             }
-            _ = inputs.insert(*id, *i).or(Err(Error::InvalidConfig));
-            _ = outputs.insert(*id, o.clone()).or(Err(Error::InvalidConfig));
+            if outputs.contains_key(id) {
+                return Err(CfgError::InvalidOutput);
+            }
+            _ = inputs.insert(*id, *i).or(Err(CfgError::Storage));
+            _ = outputs.insert(*id, o.clone()).or(Err(CfgError::Storage));
         }
         Ok(Router::<'a, I, O> { inputs, outputs })
     }
 }
 
-impl<const M: MessageSize, S: ApexSamplingPortP4> RouterInput for SamplingPortDestination<M, S> {
-    fn receive<'a>(
-        &self,
-        vl: &VirtualLinkId,
-        buf: &'a mut [u8],
-    ) -> Result<(VirtualLinkId, &'a [u8]), Error> {
-        if buf.len() < M as usize {
-            return Err(Error::InvalidConfig);
-        }
-        small_trace!(begin_apex_receive, vl.0 as u16);
-        let res = self.receive(buf);
-        small_trace!(end_apex_receive, vl.0 as u16);
-        match res {
-            Ok((val, data)) => {
-                if val == Validity::Invalid {
-                    Err(Error::InvalidData)
-                } else {
-                    Ok((*vl, data))
-                }
-            }
-            Err(_e) => Err(Error::PortReceiveFail),
-        }
-    }
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum RouteError {
+    InvalidVl,
 }
 
-impl<const M: MessageSize, S: ApexSamplingPortP4> RouterOutput for SamplingPortSource<M, S> {
-    fn send(&self, vl: &VirtualLinkId, buf: &[u8]) -> Result<(), Error> {
-        if buf.len() > M as usize {
-            return Err(Error::InvalidConfig);
-        }
-        small_trace!(begin_apex_send, vl.0 as u16);
-        let res = self.send(buf);
-        small_trace!(end_apex_send, vl.0 as u16);
-        if let Err(_e) = res {
-            Err(Error::PortSendFail)
-        } else {
-            Ok(())
-        }
-    }
+/// An error occured while reading or writing a port of the router.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum PortError {
+    /// Failed to send from router output
+    Send,
+
+    /// Failed to receive from router input
+    Receive,
 }
 
-impl<const M: MessageSize, const R: MessageRange, Q: ApexQueuingPortP4> RouterInput
-    for QueuingPortReceiver<M, R, Q>
-{
-    fn receive<'a>(
-        &self,
-        vl: &VirtualLinkId,
-        buf: &'a mut [u8],
-    ) -> Result<(VirtualLinkId, &'a [u8]), Error> {
-        if buf.len() < M as usize {
-            return Err(Error::InvalidConfig);
-        }
-        let timeout = SystemTime::Normal(Duration::from_micros(10));
-        small_trace!(begin_apex_send, vl.0 as u16);
-        let res = self.receive(buf, timeout);
-        small_trace!(end_apex_send, vl.0 as u16);
-        match res {
-            Err(_e) => Err(Error::PortReceiveFail),
-            Ok((buf, _overflow)) => {
-                if buf.is_empty() {
-                    Err(Error::InvalidData)
-                } else {
-                    Ok((*vl, buf))
-                }
-            }
-        }
-    }
-}
-
-impl<const M: MessageSize, const R: MessageRange, Q: ApexQueuingPortP4> RouterOutput
-    for QueuingPortSender<M, R, Q>
-{
-    fn send(&self, vl: &VirtualLinkId, buf: &[u8]) -> Result<(), Error> {
-        if buf.len() > M as usize {
-            return Err(Error::InvalidConfig);
-        }
-        let timeout = SystemTime::Normal(Duration::from_micros(10));
-        small_trace!(begin_apex_send, vl.0 as u16);
-        let res = self.send(buf, timeout);
-        small_trace!(end_apex_send, vl.0 as u16);
-        if let Err(_e) = res {
-            Err(Error::PortSendFail)
-        } else {
-            Ok(())
+impl Display for PortError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match &self {
+            Self::Send => write!(f, "Failed to send from router output"),
+            Self::Receive => write!(f, "Failed to receive from router input"),
         }
     }
 }

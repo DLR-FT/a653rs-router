@@ -7,13 +7,14 @@ use crate::scheduler::TimeSource;
 #[cfg(feature = "serde")]
 use crate::{
     config::Config,
+    error::Error,
     reconfigure::{Configurator, Resources},
     router::RouterInput,
     scheduler::Scheduler,
 };
 
 #[cfg(feature = "serde")]
-use crate::{error::Error, prelude::Router};
+use crate::prelude::Router;
 
 /// Runs the router.
 #[cfg(feature = "serde")]
@@ -41,13 +42,11 @@ pub fn run<const IN: usize, const OUT: usize, const BUF_LEN: usize>(
                                 cfg = new_cfg;
                                 info!("Reconfigured");
                             }
-                            Err(e) => warn!("Failed to reconfigure: {e:?}"),
+                            Err(e) => warn!("Failed to reconfigure: {e}"),
                         }
                     }
                 }
-                Err(Error::InterfaceReceiveFail(e)) => debug!("{e:?}"),
-                Err(Error::PortReceiveFail) => debug!("{new_config:?}"),
-                Err(e) => debug!("Failed to fetch config: {e:?}"),
+                Err(e) => debug!("Fetching configuration failed: {e}"),
             }
         }
         reconfigure_timer = (reconfigure_timer + 1) % 0x10000;
@@ -56,9 +55,8 @@ pub fn run<const IN: usize, const OUT: usize, const BUF_LEN: usize>(
             match res {
                 Ok(Some(v)) => trace!("Forwarded VL {v}"),
                 Ok(None) => trace!("Scheduled no VL"),
-                Err(Error::InterfaceReceiveFail(e)) => debug!("{e:?}"),
-                Err(Error::PortReceiveFail) => debug!("{res:?}"),
-                Err(e) => error!("Failed to forward VL: {e:?}"),
+                Err(Error::Port(e)) => debug!("Port send/receive failed temporarily: {e}"),
+                Err(e) => error!("Failed to forward message on VL: {e}"),
             }
         }
     }

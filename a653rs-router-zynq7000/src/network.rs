@@ -1,12 +1,8 @@
-use core::mem::size_of;
-
-use a653rs_router::{
-    error::InterfaceError,
-    prelude::{
-        CreateNetworkInterfaceId, InterfaceConfig, NetworkInterfaceId, PlatformNetworkInterface,
-        VirtualLinkId,
-    },
+use a653rs_router::prelude::{
+    CreateNetworkInterfaceId, InterfaceConfig, InterfaceError, NetworkInterfaceId,
+    PlatformNetworkInterface, VirtualLinkId,
 };
+use core::mem::size_of;
 use corncobs::{decode_in_place, encode_buf, max_encoded_len};
 use heapless::spsc::Queue;
 use log::trace;

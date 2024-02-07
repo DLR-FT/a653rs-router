@@ -11,7 +11,7 @@ partition = [ "macros", "dep:a653rs-router-partition-macros" ]
 [dependencies]
 a653rs-router-macros = { path = "../a653rs-router-macros", optional = true }
 a653rs-router-partition-macros = { path = "../a653rs-router-partition-macros", optional = true }
-a653rs.workspace = true
+a653rs = { workspace = true, features = ["bindings"] }
 bytesize = { workspace = true, optional = true }
 heapless.workspace = true
 humantime-serde = { workspace = true, optional = true }

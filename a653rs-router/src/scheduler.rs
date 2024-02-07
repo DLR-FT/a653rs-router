@@ -1,9 +1,12 @@
-use crate::{error::Error, types::VirtualLinkId};
+use crate::{reconfigure::CfgError, types::VirtualLinkId};
 
 use a653rs::prelude::{ApexTimeP4Ext, SystemTime};
-use core::{fmt::Debug, time::Duration};
+use core::{
+    fmt::{Debug, Display, Formatter},
+    time::Duration,
+};
 use heapless::Vec;
-use log::{trace, warn};
+use log::trace;
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -16,7 +19,7 @@ pub trait Scheduler {
     fn schedule_next(&mut self, current_time: &Duration) -> Option<VirtualLinkId>;
 
     /// Reconfigures the scheduler.
-    fn reconfigure(&mut self, vls: &[(VirtualLinkId, Duration)]) -> Result<(), Error>;
+    fn reconfigure(&mut self, vls: &[(VirtualLinkId, Duration)]) -> Result<(), CfgError>;
 }
 
 /// The deadline of a window in which a virtual link is to be scheduled next.
@@ -73,7 +76,6 @@ impl<const SLOTS: usize> Scheduler for DeadlineRrScheduler<SLOTS> {
                 // Check if clock skipped for some reason.
                 if let Some(t) = current_time.checked_sub(Duration::from_secs(15)) {
                     if t > window.next {
-                        warn!("The system clock is {current_time:?} and this does not seem right. Ignoring this value.");
                         return None;
                     }
                 }
@@ -93,7 +95,7 @@ impl<const SLOTS: usize> Scheduler for DeadlineRrScheduler<SLOTS> {
         None
     }
 
-    fn reconfigure(&mut self, vls: &[(VirtualLinkId, Duration)]) -> Result<(), Error> {
+    fn reconfigure(&mut self, vls: &[(VirtualLinkId, Duration)]) -> Result<(), CfgError> {
         self.last_window = 0;
         self.windows = vls
             .iter()
@@ -122,14 +124,46 @@ pub struct DeadlineRrSlot {
 /// Source for the system time.
 pub trait TimeSource {
     /// Gets the current system time.
-    fn get_time(&self) -> Result<Duration, Error>;
+    fn get_time(&self) -> Result<Duration, InvalidTimeError>;
 }
 
 impl<T: ApexTimeP4Ext> TimeSource for T {
-    fn get_time(&self) -> Result<Duration, Error> {
+    fn get_time(&self) -> Result<Duration, InvalidTimeError> {
         match <T as ApexTimeP4Ext>::get_time() {
             SystemTime::Normal(d) => Ok(d),
-            SystemTime::Infinite => Err(Error::SystemTime),
+            SystemTime::Infinite => Err(InvalidTimeError {}),
+        }
+    }
+}
+
+/// The time returned by the system was invalid.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct InvalidTimeError;
+
+/// An error occured when scheduling a virtual link.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ScheduleError {
+    kind: ScheduleErrorKind,
+}
+
+/// Schedule error type.
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum ScheduleErrorKind {
+    /// The system time was not normal.
+    SystemTime(InvalidTimeError),
+}
+
+impl From<InvalidTimeError> for ScheduleError {
+    fn from(value: InvalidTimeError) -> Self {
+        ScheduleError {
+            kind: ScheduleErrorKind::SystemTime(value),
+        }
+    }
+}
+impl Display for ScheduleError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        match &self.kind {
+            ScheduleErrorKind::SystemTime(e) => write!(f, "The system time was invalid: {e:?}"),
         }
     }
 }

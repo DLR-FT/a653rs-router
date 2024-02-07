@@ -1,12 +1,11 @@
 use crate::{
     config::Config,
-    error::Error,
     router::{Router, RouterInput, RouterOutput},
     scheduler::Scheduler,
 };
-use core::fmt::Debug;
+use core::fmt::{Debug, Display};
 use heapless::{LinearMap, String, Vec};
-use log::{debug, warn};
+use log::debug;
 
 #[cfg(feature = "serde")]
 use crate::types::VirtualLinkId;
@@ -51,14 +50,18 @@ impl<'a, const I: usize, const O: usize> Resources<'a, I, O> {
     }
 
     /// Insert a new input.
-    pub fn insert_input<'c>(&mut self, name: &str, value: &'c dyn RouterInput) -> Result<(), Error>
+    pub fn insert_input<'c>(
+        &mut self,
+        name: &str,
+        value: &'c dyn RouterInput,
+    ) -> Result<(), CfgError>
     where
         'c: 'a,
     {
         _ = self
             .inputs
             .insert(String::from(name), value)
-            .or(Err(Error::InvalidConfig))?;
+            .or(Err(CfgError::Storage))?;
         Ok(())
     }
 
@@ -67,14 +70,14 @@ impl<'a, const I: usize, const O: usize> Resources<'a, I, O> {
         &mut self,
         name: &str,
         value: &'c dyn RouterOutput,
-    ) -> Result<(), Error>
+    ) -> Result<(), CfgError>
     where
         'c: 'a,
     {
         _ = self
             .outputs
             .insert(String::from(name), value)
-            .or(Err(Error::InvalidConfig))?;
+            .or(Err(CfgError::Storage))?;
         Ok(())
     }
 
@@ -97,7 +100,7 @@ impl Configurator {
         resources: &Resources<'a, I, O>,
         scheduler: &mut dyn Scheduler,
         cfg: &Config<I, O>,
-    ) -> Result<Router<'a, I, O>, Error> {
+    ) -> Result<Router<'a, I, O>, CfgError> {
         debug!("Have resources {resources:?}");
         let mut b = &mut crate::router::builder();
         if cfg.vls.is_empty() {
@@ -109,22 +112,22 @@ impl Configurator {
             debug!("VL {v} got config {cfg:?}");
             let input = cfg.src.as_str();
             let inp = resources.get_input(input).ok_or_else(|| {
-                warn!("Unknown input: {input}");
-                Error::InvalidConfig
+                debug!("Unknown input: {input}");
+                CfgError::InvalidInput
             })?;
-            let outs: Result<Vec<_, O>, Error> = cfg
+            let outs: Result<Vec<_, O>, CfgError> = cfg
                 .dsts
                 .iter()
                 .map(|d| {
                     let output = d.as_str();
                     resources.get_output(output).ok_or_else(|| {
-                        warn!("Unknown output {output}");
-                        Error::InvalidConfig
+                        debug!("Unknown output {output}");
+                        CfgError::InvalidOutput
                     })
                 })
                 .collect();
             let outs = outs?;
-            b = b.route(v, inp, &outs).or(Err(Error::InvalidConfig))?;
+            b = b.route(v, inp, &outs).or(Err(CfgError::InvalidVl))?;
         }
         b.build()
     }
@@ -133,9 +136,32 @@ impl Configurator {
     #[cfg(feature = "serde")]
     pub fn fetch_config<const I: usize, const O: usize>(
         config_port: &dyn RouterInput,
-    ) -> Result<Config<I, O>, Error> {
+    ) -> Result<Config<I, O>, CfgError> {
         let buf = &mut [0u8; 1000];
-        let (_vl, buf) = config_port.receive(&VirtualLinkId::from(0u16), buf)?;
-        postcard::from_bytes::<Config<I, O>>(buf).or(Err(Error::InvalidConfig))
+        let (_vl, buf) = config_port
+            .receive(&VirtualLinkId::from(0u16), buf)
+            .map_err(|_e| CfgError::Format)?;
+        postcard::from_bytes::<Config<I, O>>(buf).or(Err(CfgError::Format))
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum CfgError {
+    InvalidInput,
+    InvalidOutput,
+    InvalidVl,
+    Storage,
+    Format,
+}
+
+impl Display for CfgError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match &self {
+            CfgError::InvalidInput => write!(f, "Invalid router input"),
+            CfgError::InvalidOutput => write!(f, "Invalid router output"),
+            CfgError::InvalidVl => write!(f, "Invalid virtual link"),
+            CfgError::Storage => write!(f, "Insufficient storage for configuration"),
+            CfgError::Format => write!(f, "Invalid configuration format"),
+        }
     }
 }

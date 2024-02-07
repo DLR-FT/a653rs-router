@@ -61,7 +61,6 @@ impl Router {
             pub mod start {
                 use super::*;
                 use ::a653rs_router::prelude::*;
-                use ::a653rs_router::error::*;
 
                 pub fn run(
                     time: &'_ dyn TimeSource,
@@ -88,7 +87,6 @@ impl Router {
         parse_quote! {
             mod interfaces {
                 use ::a653rs_router::prelude::*;
-                use ::a653rs_router::error::*;
 
                 use super::*;
 

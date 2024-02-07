@@ -5,9 +5,7 @@ use a653rs_router::prelude::{
 use core::mem::size_of;
 use corncobs::{decode_in_place, encode_buf, max_encoded_len};
 use heapless::spsc::Queue;
-use log::trace;
 use once_cell::unsync::Lazy;
-use small_trace::small_trace;
 use uart_xilinx::MmioUartAxi16550;
 
 /// Networking on XNG.
@@ -170,11 +168,10 @@ where
         id: NetworkInterfaceId,
         buffer: &'_ mut [u8],
     ) -> Result<(VirtualLinkId, &'_ [u8]), InterfaceError> {
-        trace!("Reading from UART");
         if unsafe { !UART.uart.is_data_ready() } {
             return Err(InterfaceError::NoData);
         }
-        small_trace!(begin_network_receive, id.0 as u16);
+        trace!(begin_network_receive, id.0 as u16);
         // TODO Get rid of one buffer. Should be possible to decode directly inside
         // RX-Buffer.
         let mut limit = 0;
@@ -190,7 +187,7 @@ where
             }
         }
         if !queue_has_eof {
-            small_trace!(end_network_receive, id.0 as u16);
+            trace!(end_network_receive, id.0 as u16);
             return Err(InterfaceError::NoData);
         }
         let mut buf = [0u8; UartFrame::<MTU>::max_encoded_len()];
@@ -208,11 +205,11 @@ where
             Ok((vl, pl)) => {
                 let rpl = &mut buffer[0..pl.len()];
                 rpl.copy_from_slice(pl);
-                small_trace!(end_network_receive, id.0 as u16);
+                trace!(end_network_receive, id.0 as u16);
                 Ok((vl, rpl))
             }
             _ => {
-                small_trace!(end_network_receive, id.0 as u16);
+                trace!(end_network_receive, id.0 as u16);
                 Err(InterfaceError::InvalidData)
             }
         }
@@ -229,7 +226,7 @@ where
         let encoded =
             UartFrame::<MTU>::encode(&frame, &mut buf).or(Err(InterfaceError::InvalidData))?;
 
-        small_trace!(begin_network_send, id.0 as u16);
+        trace!(begin_network_send, id.0 as u16);
         unsafe {
             let mut index: usize = 0;
             while index < encoded.len() {
@@ -246,7 +243,7 @@ where
             // Wait for transmission to finish
             while !UART.uart.is_transmitter_holding_register_empty() {}
         }
-        small_trace!(end_network_send, id.0 as u16);
+        trace!(end_network_send, id.0 as u16);
 
         Ok(encoded.len())
     }

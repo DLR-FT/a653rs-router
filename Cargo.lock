@@ -146,7 +146,6 @@ dependencies = [
  "corncobs",
  "crc16",
  "heapless",
- "log",
  "once_cell",
  "small-trace",
  "uart_xilinx",

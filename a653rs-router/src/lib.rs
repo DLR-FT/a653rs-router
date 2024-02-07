@@ -115,6 +115,10 @@ a653rs_router::run::<1, 1, 1000>(
 
 mod config;
 mod error;
+
+#[macro_use]
+mod macros;
+
 mod network;
 mod ports;
 mod reconfigure;

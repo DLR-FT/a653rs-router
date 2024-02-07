@@ -1,14 +1,13 @@
-use core::{
-    fmt::{Display, Formatter},
-    marker::PhantomData,
-};
-
 use crate::{
     router::{PortError, RouterInput, RouterOutput},
     types::{DataRate, VirtualLinkId},
 };
+
+use core::{
+    fmt::{Display, Formatter},
+    marker::PhantomData,
+};
 use heapless::String;
-use log::trace;
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -53,7 +52,7 @@ impl<const MTU: PayloadSize, H: PlatformNetworkInterface> NetworkInterface<MTU, 
             return Err(InterfaceError::InsufficientBuffer);
         }
 
-        trace!("Sending to interface");
+        router_trace!("Sending to interface");
         H::platform_interface_send_unchecked(self.id, *vl, buf)
     }
 

@@ -62,6 +62,7 @@ optional = true
 
 [dependencies.a653rs-router-linux]
 path = "../../a653rs-router-linux"
+features = ["trace"]
 optional = true
 
 [dependencies.a653rs-router]

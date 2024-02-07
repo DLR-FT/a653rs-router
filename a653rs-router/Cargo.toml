@@ -7,6 +7,8 @@ edition = "2021"
 serde = [ "dep:postcard", "dep:serde", "heapless/serde", "bytesize?/serde" ]
 macros = [ "dep:a653rs-router-macros", "serde" ]
 partition = [ "macros", "dep:a653rs-router-partition-macros" ]
+log = ["dep:log"]
+trace = ["dep:small-trace"]
 
 [dependencies]
 a653rs-router-macros = { path = "../a653rs-router-macros", optional = true }
@@ -15,10 +17,10 @@ a653rs = { workspace = true, features = ["bindings"] }
 bytesize = { workspace = true, optional = true }
 heapless.workspace = true
 humantime-serde = { workspace = true, optional = true }
-log.workspace = true
+log = { workspace = true, optional = true }
 postcard = { workspace = true, optional = true, features = ["heapless"] }
 serde = { workspace = true, default-features = false, features = ["derive"], optional = true }
-small-trace = { path = "../small-trace" }
+small-trace = { path = "../small-trace", optional = true }
 
 [package.metadata.docs.rs]
 all-features = true

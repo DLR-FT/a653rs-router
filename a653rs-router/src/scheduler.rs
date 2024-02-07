@@ -6,7 +6,6 @@ use core::{
     time::Duration,
 };
 use heapless::Vec;
-use log::trace;
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -76,6 +75,7 @@ impl<const SLOTS: usize> Scheduler for DeadlineRrScheduler<SLOTS> {
                 // Check if clock skipped for some reason.
                 if let Some(t) = current_time.checked_sub(Duration::from_secs(15)) {
                     if t > window.next {
+                        router_debug!("The system clock is {current_time:?} and this does not seem right. Ignoring this value.");
                         return None;
                     }
                 }
@@ -84,11 +84,8 @@ impl<const SLOTS: usize> Scheduler for DeadlineRrScheduler<SLOTS> {
                     .checked_add(window.period)
                     .unwrap_or(*current_time);
                 self.windows[next_window].next = next;
-
-                trace!("Scheduled VL {}, next window at {:?}", window.vl, next);
-
+                router_trace!("Scheduled VL {}, next window at {:?}", window.vl, next);
                 // Return the next window
-                trace!("Scheduled VL {}", window.vl);
                 return Some(window.vl);
             }
         }

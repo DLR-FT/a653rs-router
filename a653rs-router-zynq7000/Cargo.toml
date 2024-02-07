@@ -3,14 +3,14 @@ name = "a653rs-router-zynq7000"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[features]
+trace = ["dep:small-trace"]
 
 [dependencies]
 a653rs-router = { path = "../a653rs-router" }
 corncobs.workspace = true
 crc16.workspace = true
 heapless.workspace = true
-log.workspace = true
 once_cell.workspace = true
-small-trace = { path = "../small-trace" }
+small-trace = { path = "../small-trace", optional = true }
 uart_xilinx.workspace = true

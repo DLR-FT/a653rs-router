@@ -1,7 +1,5 @@
 use a653rs_linux::partition::ApexLinuxPartition;
 use a653rs_router::prelude::*;
-use log::{debug, error, trace};
-use small_trace::small_trace;
 use std::{mem::size_of, net::UdpSocket};
 
 #[derive(Debug)]
@@ -19,7 +17,6 @@ impl<const MTU: usize> PlatformNetworkInterface for UdpNetworkInterface<MTU> {
         let sock = get_interface(id)?;
         match sock.sock.recv(buffer) {
             Ok(read) => {
-                small_trace!(begin_network_receive, id.0 as u16);
                 let vl_id_len = size_of::<VirtualLinkId>();
                 let vl_id = &buffer[0..vl_id_len];
                 let mut vl_id_buf = [0u8; size_of::<VirtualLinkId>()];
@@ -27,8 +24,7 @@ impl<const MTU: usize> PlatformNetworkInterface for UdpNetworkInterface<MTU> {
                 let vl_id = u32::from_be_bytes(vl_id_buf);
                 let vl_id = VirtualLinkId::from_u32(vl_id);
                 let msg = &buffer[vl_id_len..read];
-                debug!("Received message from UDP socket for VL {vl_id}: {:?}", msg);
-                small_trace!(end_network_receive, id.0 as u16);
+                router_trace!("Received message from UDP socket for VL {vl_id}: {:?}", msg);
                 Ok((vl_id, msg))
             }
             Err(_) => Err(InterfaceError::NoData),
@@ -45,16 +41,14 @@ impl<const MTU: usize> PlatformNetworkInterface for UdpNetworkInterface<MTU> {
         let sock = get_interface(id)?;
         let vlid = vl.into_inner().to_be_bytes();
         let udp_buf = [vlid.as_slice(), buffer].concat();
-        small_trace!(begin_network_send, id.0 as u16);
         let res = sock.sock.send(&udp_buf);
-        small_trace!(end_network_send, id.0 as u16);
         match res {
             Ok(trans) => {
-                debug!("Send {} bytes to UDP socket", udp_buf.len());
+                router_trace!("Send {} bytes to UDP socket", udp_buf.len());
                 Ok(trans)
             }
-            Err(err) => {
-                error!("Failed to send to UDP socket: {err:?}");
+            Err(e) => {
+                router_debug!("Failed to send to UDP socket: {:?}", e);
                 Err(InterfaceError::SendFailed)
             }
         }
@@ -90,7 +84,7 @@ struct LimitedUdpSocket {
 
 fn get_socket(cfg: &InterfaceConfig) -> Result<UdpSocket, InterfaceError> {
     let res = ApexLinuxPartition::get_udp_socket(cfg.source.as_str());
-    trace!("{:?}", cfg.source);
+    router_debug!("{:?}", cfg.source);
     res.ok().flatten().ok_or(InterfaceError::NotFound)
 }
 

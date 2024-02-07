@@ -3,11 +3,15 @@ name = "a653rs-router-linux"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+log = ["dep:log"]
+trace = ["log", "dep:small-trace"]
+
 [dependencies]
 a653rs-linux = { workspace = true, features = [ "socket" ] }
 a653rs-router = { path = "../a653rs-router" }
 bytesize.workspace = true
 heapless.workspace = true
-log.workspace = true
+log = { workspace = true, optional = true }
 once_cell.workspace = true
-small-trace = { path = "../small-trace" }
+small-trace = { path = "../small-trace", optional = true }

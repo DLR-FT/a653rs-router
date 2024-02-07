@@ -5,7 +5,6 @@ use crate::{
 };
 use core::fmt::{Debug, Display};
 use heapless::{LinearMap, String, Vec};
-use log::debug;
 
 #[cfg(feature = "serde")]
 use crate::types::VirtualLinkId;
@@ -101,7 +100,7 @@ impl Configurator {
         scheduler: &mut dyn Scheduler,
         cfg: &Config<I, O>,
     ) -> Result<Router<'a, I, O>, CfgError> {
-        debug!("Have resources {resources:?}");
+        router_debug!("Have resources {resources:?}");
         let mut b = &mut crate::router::builder();
         if cfg.vls.is_empty() {
             return b.build();
@@ -109,10 +108,10 @@ impl Configurator {
         let slots: Vec<_, I> = cfg.vls.into_iter().map(|(v, c)| (*v, c.period)).collect();
         scheduler.reconfigure(slots.as_slice())?;
         for (v, cfg) in cfg.vls.into_iter() {
-            debug!("VL {v} got config {cfg:?}");
+            router_debug!("VL {v} got config {cfg:?}");
             let input = cfg.src.as_str();
             let inp = resources.get_input(input).ok_or_else(|| {
-                debug!("Unknown input: {input}");
+                router_debug!("Unknown input: {input}");
                 CfgError::InvalidInput
             })?;
             let outs: Result<Vec<_, O>, CfgError> = cfg
@@ -121,7 +120,7 @@ impl Configurator {
                 .map(|d| {
                     let output = d.as_str();
                     resources.get_output(output).ok_or_else(|| {
-                        debug!("Unknown output {output}");
+                        router_debug!("Unknown output {output}");
                         CfgError::InvalidOutput
                     })
                 })

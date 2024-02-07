@@ -1,7 +1,4 @@
 #[cfg(feature = "serde")]
-use log::{debug, error, info, trace, warn};
-
-#[cfg(feature = "serde")]
 use crate::scheduler::TimeSource;
 
 #[cfg(feature = "serde")]
@@ -25,7 +22,7 @@ pub fn run<const IN: usize, const OUT: usize, const BUF_LEN: usize>(
     resources: Resources<IN, OUT>,
     scheduler: &'_ mut dyn Scheduler,
 ) -> ! {
-    info!("Running a653rs-router");
+    router_trace!("Running a653rs-router");
     let mut cfg: Config<IN, OUT> = Config::default();
     let mut router: Option<Router<IN, OUT>> = None;
     let mut reconfigure_timer: u32 = 0;
@@ -35,28 +32,28 @@ pub fn run<const IN: usize, const OUT: usize, const BUF_LEN: usize>(
             match new_config {
                 Ok(new_cfg) => {
                     if new_cfg != cfg {
-                        debug!("New config = {new_cfg:?}");
+                        router_trace!("New config = {new_cfg:?}");
                         match Configurator::reconfigure(&resources, scheduler, &new_cfg) {
                             Ok(r) => {
                                 router = Some(r);
                                 cfg = new_cfg;
-                                info!("Reconfigured");
+                                router_trace!("Reconfigured");
                             }
-                            Err(e) => warn!("Failed to reconfigure: {e}"),
+                            Err(e) => router_debug!("Failed to reconfigure: {}", e),
                         }
                     }
                 }
-                Err(e) => debug!("Fetching configuration failed: {e}"),
+                Err(e) => router_debug!("Fetching configuration failed: {}", e),
             }
         }
         reconfigure_timer = (reconfigure_timer + 1) % 0x10000;
         if let Some(ref router) = router {
             let res = router.forward::<BUF_LEN>(scheduler, time_source);
             match res {
-                Ok(Some(v)) => trace!("Forwarded VL {v}"),
-                Ok(None) => trace!("Scheduled no VL"),
-                Err(Error::Port(e)) => debug!("Port send/receive failed temporarily: {e}"),
-                Err(e) => error!("Failed to forward message on VL: {e}"),
+                Ok(Some(v)) => router_trace!("Forwarded VL {}", v),
+                Ok(None) => router_debug!("Scheduled no VL"),
+                Err(Error::Port(e)) => router_debug!("Port send/receive failed temporarily: {}", e),
+                Err(e) => router_debug!("Failed to forward message on VL: {}", e),
             }
         }
     }

@@ -9,8 +9,6 @@ use crate::{
 
 use core::fmt::{Debug, Display};
 use heapless::{LinearMap, Vec};
-use log::debug;
-use small_trace::small_trace;
 
 /// An input to a virtual link.
 pub trait RouterInput {
@@ -57,7 +55,7 @@ impl<'a, const I: usize, const O: usize> Router<'a, I, O> {
         let input = self.inputs.get(vl).ok_or(RouteError::InvalidVl)?;
         // This vl may be different, than the one specified.
         let (vl, buf) = input.receive(vl, buf)?;
-        debug!("Received from {vl:?}: {buf:?}");
+        router_trace!("Received from {vl:?}: {buf:?}");
         let outs = self.outputs.get(&vl).ok_or(RouteError::InvalidVl)?;
         for out in outs.into_iter() {
             out.send(&vl, buf)?;
@@ -73,9 +71,9 @@ impl<'a, const I: usize, const O: usize> Router<'a, I, O> {
     ) -> Result<Option<VirtualLinkId>, Error> {
         let time = time_source.get_time().map_err(ScheduleError::from)?;
         if let Some(next) = scheduler.schedule_next(&time) {
-            small_trace!(begin_virtual_link_scheduled, next.0 as u16);
+            router_bench!(begin_virtual_link_scheduled, next.0 as u16);
             let res = self.route::<B>(&next);
-            small_trace!(end_virtual_link_scheduled, next.0 as u16);
+            router_bench!(end_virtual_link_scheduled, next.0 as u16);
             res.map(|_| Some(next))
         } else {
             Ok(None)

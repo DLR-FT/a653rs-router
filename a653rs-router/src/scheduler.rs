@@ -1,4 +1,4 @@
-use crate::{reconfigure::CfgError, types::VirtualLinkId};
+use crate::{config::RouterConfigError, types::VirtualLinkId};
 
 use a653rs::prelude::{ApexTimeP4Ext, SystemTime};
 use core::{
@@ -16,9 +16,6 @@ pub trait Scheduler {
     /// Get the next scheduled virtual link, if one is to be scheduled at the
     /// current time.
     fn schedule_next(&mut self, current_time: &Duration) -> Option<VirtualLinkId>;
-
-    /// Reconfigures the scheduler.
-    fn reconfigure(&mut self, vls: &[(VirtualLinkId, Duration)]) -> Result<(), CfgError>;
 }
 
 /// The deadline of a window in which a virtual link is to be scheduled next.
@@ -55,8 +52,18 @@ pub struct DeadlineRrScheduler<const SLOTS: usize> {
 
 impl<const SLOTS: usize> DeadlineRrScheduler<SLOTS> {
     /// Constructs a new DeadlineRrScheduler.
-    pub fn new() -> Self {
-        Self::default()
+    pub fn try_new(vls: &[(VirtualLinkId, Duration)]) -> Result<Self, RouterConfigError> {
+        Ok(Self {
+            last_window: 0,
+            windows: vls
+                .iter()
+                .map(|(vl, period)| Window {
+                    vl: *vl,
+                    period: *period,
+                    next: *period,
+                })
+                .collect(),
+        })
     }
 }
 
@@ -90,19 +97,6 @@ impl<const SLOTS: usize> Scheduler for DeadlineRrScheduler<SLOTS> {
             }
         }
         None
-    }
-
-    fn reconfigure(&mut self, vls: &[(VirtualLinkId, Duration)]) -> Result<(), CfgError> {
-        self.last_window = 0;
-        self.windows = vls
-            .iter()
-            .map(|(vl, period)| Window {
-                vl: *vl,
-                period: *period,
-                next: *period,
-            })
-            .collect();
-        Ok(())
     }
 }
 

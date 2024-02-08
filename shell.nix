@@ -63,17 +63,17 @@ pkgs.devshell.mkShell {
       name = "run-echo-remote-xng";
       help = "Compile, flash and run the echo client and server on XNG, on two distributed nodes";
       command = ''
-        run-xng "echo-remote-xng-server" "''${1}"
-        run-xng "echo-remote-xng-client" "''${2}"
+        run-xng "echo-remote-server-xng" "''${1}"
+        run-xng "echo-remote-client-xng" "''${2}"
       '';
     }
     {
-      name = "run-echo-alt-local-remote-xng";
+      name = "run-echo-remote-alt-xng";
       help =
         "Compile, flash and run the echo client and server on XNG, on two distributed nodes and locally";
       command = ''
-        run-xng "echo-remote-xng-server" "''${1}"
-        run-xng "echo-alt-local-client-xng" "''${2}"
+        run-xng "echo-remote-server-xng" "''${1}"
+        run-xng "echo-remote-client-alt-xng" "''${2}"
       '';
     }
     {

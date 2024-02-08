@@ -10,4 +10,4 @@ edition = "2021"
 a653rs-router = { path = "../a653rs-router", features = ["serde"] }
 heapless = { workspace = true }
 postcard = { workspace = true, features = ["heapless"] }
-serde_json = { workspace = true }
+serde_yaml = { workspace = true }

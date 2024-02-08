@@ -1,5 +1,6 @@
 use crate::{
-    router::{PortError, RouterInput, RouterOutput},
+    ports::PortError,
+    router::{RouterInput, RouterOutput},
     types::{DataRate, VirtualLinkId},
 };
 
@@ -35,20 +36,16 @@ impl From<usize> for NetworkInterfaceId {
 
 /// A network interface.
 #[derive(Debug, Clone)]
-pub struct NetworkInterface<const MTU: PayloadSize, H: PlatformNetworkInterface> {
-    _h: PhantomData<H>,
+pub struct NetworkInterface<P: PlatformNetworkInterface> {
+    _p: PhantomData<P>,
     id: NetworkInterfaceId,
+    mtu: PayloadSize,
 }
 
-impl<const MTU: PayloadSize, H: PlatformNetworkInterface> NetworkInterface<MTU, H> {
-    /// ID of this interface.
-    pub fn id(&self) -> NetworkInterfaceId {
-        self.id
-    }
-
+impl<H: PlatformNetworkInterface> NetworkInterface<H> {
     /// Sends data to the interface.
     pub fn send(&self, vl: &VirtualLinkId, buf: &[u8]) -> Result<usize, InterfaceError> {
-        if buf.len() > MTU {
+        if buf.len() > self.mtu {
             return Err(InterfaceError::InsufficientBuffer);
         }
 
@@ -61,7 +58,7 @@ impl<const MTU: PayloadSize, H: PlatformNetworkInterface> NetworkInterface<MTU, 
         &self,
         buf: &'a mut [u8],
     ) -> Result<(VirtualLinkId, &'a [u8]), InterfaceError> {
-        if buf.len() < MTU {
+        if buf.len() < self.mtu {
             return Err(InterfaceError::InsufficientBuffer);
         }
 
@@ -71,9 +68,6 @@ impl<const MTU: PayloadSize, H: PlatformNetworkInterface> NetworkInterface<MTU, 
 
 /// Platform-specific network interface type.
 pub trait PlatformNetworkInterface {
-    /// The configuration for this interface. May be any struct.
-    type Configuration;
-
     /// Send something to the network and report how long it took.
     fn platform_interface_send_unchecked(
         id: NetworkInterfaceId,
@@ -93,28 +87,29 @@ pub trait PlatformNetworkInterface {
 pub trait CreateNetworkInterfaceId<H: PlatformNetworkInterface> {
     /// Creates a network interface id.
     fn create_network_interface_id(
-        cfg: H::Configuration,
+        cfg: &InterfaceConfig,
     ) -> Result<NetworkInterfaceId, InterfaceError>;
 }
 
 /// Creates a nertwork interface with an MTU.
 pub trait CreateNetworkInterface<H: PlatformNetworkInterface> {
     /// Creates a network interface id.
-    fn create_network_interface<const MTU: PayloadSize>(
-        cfg: H::Configuration,
-    ) -> Result<NetworkInterface<MTU, H>, InterfaceError>;
+    fn create_network_interface(
+        cfg: &InterfaceConfig,
+    ) -> Result<NetworkInterface<H>, InterfaceError>;
 }
 
 impl<H: PlatformNetworkInterface, T> CreateNetworkInterface<H> for T
 where
     T: CreateNetworkInterfaceId<H>,
 {
-    fn create_network_interface<const MTU: PayloadSize>(
-        cfg: H::Configuration,
-    ) -> Result<NetworkInterface<MTU, H>, InterfaceError> {
+    fn create_network_interface(
+        cfg: &InterfaceConfig,
+    ) -> Result<NetworkInterface<H>, InterfaceError> {
         Ok(NetworkInterface {
-            _h: PhantomData,
+            _p: PhantomData,
             id: T::create_network_interface_id(cfg)?,
+            mtu: cfg.mtu,
         })
     }
 }
@@ -122,7 +117,8 @@ where
 const MAX_SOCKET_NAME: usize = 50;
 
 /// Configuration for an interface.
-#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct InterfaceConfig {
     /// UDP source address the socket is bound to.
     pub source: String<MAX_SOCKET_NAME>,
@@ -150,21 +146,27 @@ impl InterfaceConfig {
     }
 }
 
-impl<const M: PayloadSize, H: PlatformNetworkInterface> RouterInput for NetworkInterface<M, H> {
+impl<H: PlatformNetworkInterface> RouterInput for NetworkInterface<H> {
     fn receive<'a>(
         &self,
         _vl: &VirtualLinkId,
         buf: &'a mut [u8],
     ) -> Result<(VirtualLinkId, &'a [u8]), PortError> {
-        NetworkInterface::receive(self, buf).map_err(|_e| PortError::Receive)
+        NetworkInterface::receive(self, buf).map_err(|e| {
+            router_debug!("Failed to receive from network interface: {:?}", e);
+            PortError::Receive
+        })
     }
 }
 
-impl<const M: PayloadSize, H: PlatformNetworkInterface> RouterOutput for NetworkInterface<M, H> {
+impl<H: PlatformNetworkInterface> RouterOutput for NetworkInterface<H> {
     fn send(&self, vl: &VirtualLinkId, buf: &[u8]) -> Result<(), PortError> {
         NetworkInterface::send(self, vl, buf)
-            .map(|_l| ())
-            .map_err(|_e| PortError::Send)
+            .map(|_| ())
+            .map_err(|e| {
+                router_debug!("Failed to send to network interface: {:?}", e);
+                PortError::Send
+            })
     }
 }
 

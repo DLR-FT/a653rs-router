@@ -77,15 +77,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1706197789,
-        "narHash": "sha256-2lS+G0onnYtg99jChrZusCHvwy8YTZJVFumRi/JwQAs=",
-        "owner": "DLR-FT",
+        "lastModified": 1706706351,
+        "narHash": "sha256-/dOKYs3MlBh4f8Gdyd4bLE8s7t9g8utQeZtyRYrd/sg=",
+        "owner": "florianhartung",
         "repo": "a653rs-linux",
-        "rev": "f1fb71dcfbdb2ea2dcc9fe7c34dd72c0240dc05b",
+        "rev": "6b1fe4f5ead5e1a7732a63a331bb46839dccb431",
         "type": "github"
       },
       "original": {
-        "owner": "DLR-FT",
+        "owner": "florianhartung",
+        "ref": "queuing-ports",
         "repo": "a653rs-linux",
         "type": "github"
       }

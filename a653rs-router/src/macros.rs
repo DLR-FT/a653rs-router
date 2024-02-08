@@ -1,13 +1,18 @@
-#[cfg(not(test))]
-#[cfg(feature = "log")]
+#[cfg(not(feature = "log"))]
+macro_rules! router_log {
+    ($level:ident, $($arg:expr),*) => {{ $( let _ = $arg; )* }}
+}
+
+#[cfg(all(feature = "log", test))]
+macro_rules! router_log {
+    ($level:ident, $($arg:expr),*) => {{ $( let _ = $arg; )* }}
+
+}
+
+#[cfg(all(feature = "log", not(test)))]
 macro_rules! router_log {
     (trace, $($arg:expr),*) => { log::trace!($($arg),*) };
     (debug, $($arg:expr),*) => { log::debug!($($arg),*) };
-}
-
-#[cfg(any(test, not(feature = "log")))]
-macro_rules! router_log {
-    ($level:ident, $($arg:expr),*) => {{ $( let _ = $arg; )* }}
 }
 
 macro_rules! router_trace {

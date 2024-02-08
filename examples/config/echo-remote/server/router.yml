@@ -1,0 +1,31 @@
+stack_size: 20000
+virtual_links:
+  1:
+    period:
+      secs: 0
+      nanos: 100000000
+    source: "NodeA"
+    destinations: [ "EchoRequest" ]
+  2:
+    period:
+      secs: 0
+      nanos: 100000000
+    source: "EchoReply"
+    destinations: [ "NodeA" ]
+ports:
+  EchoReply:
+    !queuing_in
+    msg_size: 1000
+    msg_count: 10
+    discipline: fifo
+  EchoRequest:
+    !queuing_out
+    msg_size: 1000
+    msg_count: 10
+    discipline: fifo
+interfaces:
+  NodeA:
+    destination: "192.168.1.1:8081"
+    mtu: 1500
+    rate: 10000000
+    source: "0.0.0.0:8082"

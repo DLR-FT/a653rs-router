@@ -3,13 +3,9 @@
 use core::fmt::{Display, Formatter};
 
 use crate::{
-    network::InterfaceError,
-    reconfigure::CfgError,
-    router::{PortError, RouteError},
-    scheduler::ScheduleError,
+    config::RouterConfigError, network::InterfaceError, ports::PortError, process::ProcessError,
+    router::RouteError, scheduler::ScheduleError,
 };
-
-// TODO more precise errors
 
 /// General error type for this crate.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -23,11 +19,14 @@ pub enum Error {
     /// Communication error with a network interface driver.
     Interface(InterfaceError),
 
-    /// Invalid configuration for network partition
-    Configuration(CfgError),
+    /// Invalid configuration for router.
+    Configuration(RouterConfigError),
 
     /// Error while accessing the scheduler.
     Schedule(ScheduleError),
+
+    /// Failed to create router process
+    Process(ProcessError),
 }
 
 impl Display for Error {
@@ -38,6 +37,7 @@ impl Display for Error {
             Error::Configuration(e) => write!(f, "Invalid configuration: {e:?}"),
             Error::Schedule(e) => write!(f, "Error while accessing the scheduler: {e}"),
             Error::Route(e) => write!(f, "Routing failed: {e:?}"),
+            Error::Process(e) => write!(f, "Failed to create router process: {e:?}"),
         }
     }
 }
@@ -60,8 +60,8 @@ impl From<InterfaceError> for Error {
     }
 }
 
-impl From<CfgError> for Error {
-    fn from(value: CfgError) -> Self {
+impl From<RouterConfigError> for Error {
+    fn from(value: RouterConfigError) -> Self {
         Error::Configuration(value)
     }
 }

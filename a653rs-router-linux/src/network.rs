@@ -8,8 +8,6 @@ pub struct UdpNetworkInterface<const MTU: usize>;
 static mut INTERFACES: Vec<LimitedUdpSocket> = Vec::new();
 
 impl<const MTU: usize> PlatformNetworkInterface for UdpNetworkInterface<MTU> {
-    type Configuration = InterfaceConfig;
-
     fn platform_interface_receive_unchecked(
         id: NetworkInterfaceId,
         buffer: &'_ mut [u8],
@@ -92,9 +90,9 @@ impl<const MTU: usize> CreateNetworkInterfaceId<UdpNetworkInterface<MTU>>
     for UdpNetworkInterface<MTU>
 {
     fn create_network_interface_id(
-        cfg: InterfaceConfig,
+        cfg: &InterfaceConfig,
     ) -> Result<NetworkInterfaceId, InterfaceError> {
-        let sock = get_socket(&cfg)?;
+        let sock = get_socket(cfg)?;
         sock.set_nonblocking(true)
             .or(Err(InterfaceError::SendFailed))?;
         sock.connect(cfg.destination.as_str())

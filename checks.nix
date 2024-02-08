@@ -10,7 +10,7 @@
       nativeBuildInputs = [ rustToolchain ];
     } "cd ${./.} && cargo fmt --check && touch $out";
 
-  integration = import ./examples/config/echo-remote-linux {
+  integration = import ./examples/config/echo-remote {
     inherit pkgs a653rs-linux-hypervisor partitions runTest;
   };
 }

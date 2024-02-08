@@ -2,9 +2,13 @@
 
 use core::ptr::addr_of_mut;
 
-use a653rs::prelude::*;
+use a653rs::{
+    bindings::{ApexPartitionP4, OperatingMode},
+    prelude::*,
+};
 use a653rs_xng::apex::XngHypervisor;
 use echo::*;
+use log::*;
 
 static mut ECHO_RECEIVER_SAMPLING: Option<SamplingPortDestination<ECHO_SIZE, XngHypervisor>> = None;
 
@@ -51,6 +55,7 @@ struct Echo;
 impl Partition<XngHypervisor> for Echo {
     #[allow(clippy::deref_addrof)]
     fn cold_start(&self, ctx: &mut StartContext<XngHypervisor>) {
+        trace!("Running echo cold_start");
         cold_start_sampling_queuing(
             ctx,
             unsafe { &mut *(addr_of_mut!(ECHO_SENDER_QUEUING)) },
@@ -65,7 +70,8 @@ impl Partition<XngHypervisor> for Echo {
                 client_receive_queuing,
                 server_queuing,
             }),
-        )
+        );
+        <XngHypervisor as ApexPartitionP4>::set_partition_mode(OperatingMode::Normal).unwrap();
     }
 
     fn warm_start(&self, ctx: &mut StartContext<XngHypervisor>) {
@@ -81,5 +87,6 @@ static LOGGER: xng_rs_log::XalLogger = xng_rs_log::XalLogger;
 pub extern "C" fn main() {
     unsafe { log::set_logger_racy(&LOGGER).unwrap() };
     log::set_max_level(log::LevelFilter::Info);
+    trace!("Running echo main");
     Echo.run()
 }

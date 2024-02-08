@@ -4,14 +4,24 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-log = ["dep:log"]
-trace = ["log", "dep:small-trace"]
+default = ["partition"]
+log = ["dep:log", "a653rs-router/log"]
+trace = ["dep:log", "dep:small-trace", "a653rs-router/trace"]
+partition = ["dep:a653rs", "dep:serde_yaml", "dep:log"]
+
+[[bin]]
+name = "partition"
+path = "src/main.rs"
+required-features = [
+  "log",
+  "partition",
+  "trace",
+]
 
 [dependencies]
-a653rs-linux = { workspace = true, features = [ "socket" ] }
-a653rs-router = { path = "../a653rs-router" }
-bytesize.workspace = true
-heapless.workspace = true
+a653rs = { workspace = true, optional = true }
+a653rs-linux = { workspace = true, features = ["socket"] }
+a653rs-router = { path = "../a653rs-router", features = ["serde"] }
 log = { workspace = true, optional = true }
-once_cell.workspace = true
+serde_yaml = { workspace = true, optional = true }
 small-trace = { path = "../small-trace", optional = true }

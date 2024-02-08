@@ -1,94 +1,34 @@
 //! Message router and IO-partition for ARINC 653 P4 based on [`a653rs`](https://github.com/DLR-FT/a653rs).
 //!
 //! The router concept is explained in more detail in [*Towards Enabling Level 3A AI in Avionic Platforms*](https://doi.org/10.18420/se2023-ws-18).
-#![cfg_attr(
-    feature = "macros",
-    doc = r##"
-## Using as a Partition
-
-To create a partition containing the message router, it is recommended to
-use the macros [`macro@router_config`], [`macro@run_router`] and
-[`a653rs::partition`](https://docs.rs/a653rs_macros/latest/a653rs_macros/attr.partition.html)
-that are available when requiring the `macros` feature
-in both crates. For a full example see
-[`a653rs_router_tests`](../a653rs_router_macros/index.html).
-"##
-)]
+//!
+//! ## Using as a Partition
+//!
+//! See `a653rs-router-linux` for an example of how to run the router as a
+//! partition.
+//!
 //! ## Configuration
-//! The configuration of the router consists of two stages that depend on each
-//! other. The compile-time configuration declares what inputs and outputs are
-//! available to the router. The run-time configuration contains the routing
-//! information that enables the router to forward messages between
-//! attached partitions and between partitions and the network.
 //!
-//! ### Compile-Time Configuration
+//! The router is configured using its configuration struct
+//! [crate::prelude::RouterConfig], which is read at initialisation time.
+//! The configuration has be provided by the partition code.
+//! Common ways to do this are to read the configuration either
+//! - from a YAML file or
+//! - convert the YAML file to a `no_std` compatible format such as `postcard`
+//!   and read the configuration data from a memory region.
 //!
-//! The static part of the configuration can only be defined at compile time,
-//! because it defines the maximum size of the data structures, such as the
-//! route table. This has the advantage of providing a deterministic memory
-//! consumption when the router is deployed. The size of these data-structures
-//! is defined using const generics on types such as [`prelude::Router`].
+//! Configuration structs can also be dynamically constructed using
+//! [crate::prelude::RouterConfigBuilder], which provides checks for every
+//! construction step.
 //!
-//! Each compile-time configuration provides a superset of the resources
-//! required by all runtime configurations used in a specific deployment.
+//! ## Running the Router
 //!
-//! ### Runtime Configuration
+//! First, initialize the required resources for your router during partition
+//! startup using the configuration struct. Then, inside the router process, run
+//! the router.
 //!
-//! The dynamic part of the configuration is defined at runtime. It is regularly
-//! read from an external source that implements [`prelude::RouterInput`].
-//! If the router detects a change to the configuration, it first checks that
-//! the provided configuration is correct, and then attempts to reconfigure
-//! itself.
+//! For a full example see [crate@a653rs-router-linux].
 //!
-//! A configuration is correct only if all inputs and outputs that are
-//! named by it are also part of the compile-time configuration. An individual
-//! configuration may leave some statically configured inputs and outputs
-//! unused.
-//!
-//! See [`prelude::Config`] for an example of the run-time configuration.
-#![cfg_attr(
-    feature = "serde",
-    doc = r##"
-## Running the Router
-This crate defines a [run()] entry-point that continuously runs the
-router. The entry-point is only available if the `serde` feature is enabled,
-since it reads the serialized configuration from a [`prelude::RouterInput`].
-
-```no_run
-# #![no_std]
-# use a653rs_router::prelude::*;
-# use core::time::Duration;
-#
-# struct TimeSourceA;
-# impl TimeSource for TimeSourceA {
-#     fn get_time(&self) -> Result<Duration, InvalidTimeError> { todo!() }
-# }
-# struct RouterConfig;
-# impl RouterInput for RouterConfig {
-#     fn receive<'a>(
-#        &self,
-#        vl: &VirtualLinkId,
-#        buf: &'a mut [u8],
-#    ) -> Result<(VirtualLinkId, &'a [u8]), PortError> { todo!() }
-# }
-#
-# fn main() {
-#    let time_source = TimeSourceA {};
-#    let router_config = RouterConfig {};
-#    let mut scheduler = DeadlineRrScheduler::<2>::new();
-#
-let resources = Resources::<1, 1>::new();
-// Add resources ...
-a653rs_router::run::<1, 1, 1000>(
-    &time_source as &dyn TimeSource,
-    &router_config as &dyn RouterInput,
-    resources,
-    &mut scheduler as &mut dyn Scheduler,
-)
-# }
-```
-"##
-)]
 //! ## Adding New Network Interface Implementations
 //!
 //! To add support for new network interface types, only
@@ -97,9 +37,18 @@ a653rs_router::run::<1, 1, 1000>(
 //! providing the driver implementation for the interface type and the other
 //! providing a way to create individual network interfaces of this type.
 //!
+//! To use the implementation, pass your new type as the `NetInf` generic
+//! parameter value in the first code example.
+//!
 //! ## Required APEX Services
 //!
-//! The router requires the hypervisor to implement at least `ApexTimeP4`.
+//! The router requires the hypervisor to implement at least these traits:
+//!
+//! - `ApexTimeP4`
+//! - `ApexPartitionP4`
+//! - `ApexProcessP4`
+//! - `ApexSamplingPortP4`
+//! - `ApexQueuingPortP4`
 
 #![no_std]
 #![warn(
@@ -120,34 +69,24 @@ mod error;
 mod macros;
 
 mod network;
+mod partition;
 mod ports;
-mod reconfigure;
+mod process;
 mod router;
-mod run;
 mod scheduler;
 mod types;
-
-#[cfg(feature = "serde")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "serde")))]
-pub use crate::run::*;
 
 /// Standard Prelude to be used by router partitions and network interface
 /// implementations.
 pub mod prelude {
-    pub use crate::config::{BuilderResult, Config, ConfigResult, RouterConfigError};
+    pub use crate::config::*;
     pub use crate::error::Error;
     pub use crate::network::{
-        CreateNetworkInterface, CreateNetworkInterfaceId, InterfaceConfig, InterfaceError,
-        NetworkInterface, NetworkInterfaceId, PayloadSize, PlatformNetworkInterface,
+        CreateNetworkInterfaceId, InterfaceConfig, InterfaceError, NetworkInterfaceId,
+        PlatformNetworkInterface,
     };
-    pub use crate::reconfigure::{Configurator, Resources};
-    pub use crate::router::{PortError, Router, RouterInput, RouterOutput};
-    pub use crate::scheduler::{DeadlineRrScheduler, InvalidTimeError, Scheduler, TimeSource};
+    pub use crate::partition::RouterState;
+    pub use crate::router::Router;
+    pub use crate::scheduler::{InvalidTimeError, TimeSource};
     pub use crate::types::*;
 }
-
-#[cfg(feature = "macros")]
-pub use a653rs_router_macros::*;
-
-#[cfg(feature = "partition")]
-pub use a653rs_router_partition_macros::*;

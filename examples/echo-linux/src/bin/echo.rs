@@ -1,6 +1,6 @@
 use std::ptr::addr_of_mut;
 
-use a653rs::prelude::*;
+use a653rs::{bindings::ApexPartitionP4, prelude::*};
 use a653rs_linux::partition::{ApexLinuxPartition, ApexLogger};
 use echo::*;
 use log::{info, trace, LevelFilter};
@@ -11,10 +11,12 @@ static mut ECHO_SENDER_SAMPLING: Option<SamplingPortSource<ECHO_SIZE, ApexLinuxP
 
 // Not supported by a653rs-linux-hypervisor
 
-// static ECHO_RECEIVER_QUEUING: OnceCell<QueuingPortDestination<ECHO_SIZE,
-// ApexLinuxPartition>> =     OnceCell::new();
-// static ECHO_SENDER_QUEUING: OnceCell<QueuingPortSource<ECHO_SIZE,
-// Hypervisor>> = OnceCell::new();
+static mut ECHO_RECEIVER_QUEUING: Option<
+    QueuingPortReceiver<ECHO_SIZE, ECHO_QUEUE_SIZE, ApexLinuxPartition>,
+> = None;
+static mut ECHO_SENDER_QUEUING: Option<
+    QueuingPortSender<ECHO_SIZE, ECHO_QUEUE_SIZE, ApexLinuxPartition>,
+> = None;
 
 extern "C" fn client_send_sampling() {
     echo::run_echo_sampling_sender(unsafe { ECHO_SENDER_SAMPLING.as_ref().unwrap() })
@@ -31,15 +33,17 @@ extern "C" fn server_sampling() {
 }
 
 extern "C" fn client_send_queuing() {
-    panic!("Not supported by a653rs-linux")
+    echo::run_echo_queuing_sender(unsafe { ECHO_SENDER_QUEUING.as_ref().unwrap() })
 }
 
 extern "C" fn client_receive_queuing() {
-    panic!("Not supported by a653rs-linux")
+    echo::run_echo_queuing_receiver(unsafe { ECHO_RECEIVER_QUEUING.as_ref().unwrap() })
 }
 
 extern "C" fn server_queuing() {
-    panic!("Not supported by a653rs-linux")
+    echo::run_echo_queuing_server(unsafe { ECHO_SENDER_QUEUING.as_ref().unwrap() }, unsafe {
+        ECHO_RECEIVER_QUEUING.as_ref().unwrap()
+    })
 }
 
 const ECHO_ENTRY_FUNCTIONS: EchoEntryFunctions = EchoEntryFunctions {
@@ -56,12 +60,15 @@ struct Echo;
 #[allow(clippy::deref_addrof)]
 impl Partition<ApexLinuxPartition> for Echo {
     fn cold_start(&self, ctx: &mut StartContext<ApexLinuxPartition>) {
-        cold_start_sampling(
+        cold_start_sampling_queuing(
             ctx,
+            unsafe { &mut *addr_of_mut!(ECHO_SENDER_QUEUING) },
+            unsafe { &mut *addr_of_mut!(ECHO_RECEIVER_QUEUING) },
             unsafe { &mut *addr_of_mut!(ECHO_SENDER_SAMPLING) },
             unsafe { &mut *addr_of_mut!(ECHO_RECEIVER_SAMPLING) },
             &ECHO_ENTRY_FUNCTIONS,
         );
+        <ApexLinuxPartition as ApexPartitionP4>::set_partition_mode(OperatingMode::Normal).unwrap();
     }
 
     fn warm_start(&self, ctx: &mut StartContext<ApexLinuxPartition>) {

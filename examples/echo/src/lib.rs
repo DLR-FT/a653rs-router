@@ -216,7 +216,7 @@ pub fn run_echo_queuing_server<const M: u32, H: ApexQueuingPortP4 + ApexTimeP4Ex
         match port_in.receive(&mut buf, RECEIVE_TIMEOUT) {
             Ok((data, _overflowed)) => {
                 small_trace!(begin_echo_request_received);
-                trace!("Received echo request: ${data:?}");
+                info!("Received echo request: ${data:?}");
                 if data.is_empty() {
                     trace!("Skipping empty data");
                     continue;
@@ -509,7 +509,7 @@ where
             Name::from_str(SERVER_RECEIVER_PORT).unwrap(),
             QueuingDiscipline::Fifo,
         )?);
-        Ok(EchoStation::Client)
+        Ok(EchoStation::Server)
     }
 }
 

@@ -1,14 +1,153 @@
 //! Router
 
 use crate::{
+    config::{
+        InterfacesConfig, PortConfig, PortName, PortsConfig, RouterConfigError, VirtualLinksConfig,
+    },
     error::Error,
-    reconfigure::CfgError,
-    scheduler::{ScheduleError, Scheduler, TimeSource},
+    network::{CreateNetworkInterface, NetworkInterface, PlatformNetworkInterface},
+    ports::{Port, PortError, QueuingIn, QueuingOut, SamplingIn, SamplingOut},
+    prelude::InterfaceName,
+    scheduler::{DeadlineRrScheduler, ScheduleError, Scheduler, TimeSource},
     types::VirtualLinkId,
 };
 
-use core::fmt::{Debug, Display};
-use heapless::{LinearMap, Vec};
+use a653rs::bindings::{ApexQueuingPortP4, ApexSamplingPortP4};
+use core::{fmt::Debug, marker::PhantomData, str::FromStr, time::Duration};
+use heapless::{FnvIndexMap, LinearMap, String, Vec};
+
+/// Router resources
+#[derive(Debug)]
+pub struct RouterResources<H, P, const IFS: usize, const PORTS: usize>
+where
+    H: ApexQueuingPortP4 + ApexSamplingPortP4,
+    P: PlatformNetworkInterface,
+{
+    _h: PhantomData<H>,
+    _n: PhantomData<P>,
+    ports: FnvIndexMap<PortName, Port<H>, PORTS>,
+    net_ifs: FnvIndexMap<InterfaceName, NetworkInterface<P>, IFS>,
+}
+
+impl<H, P, const IFS: usize, const PORTS: usize> RouterResources<H, P, IFS, PORTS>
+where
+    H: ApexQueuingPortP4 + ApexSamplingPortP4,
+    P: PlatformNetworkInterface,
+{
+    /// Creates the resources used by the router.
+    ///
+    /// This should be called during COLD_START and WARM_START.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if there is insufficient storage,
+    /// there are ports of interfaces with duplicate names, the hypervisor
+    /// failed to create a port, the network driver failed to create a network
+    /// interface.
+    pub fn create<C: CreateNetworkInterface<P>>(
+        interfaces_cfg: InterfacesConfig<IFS>,
+        ports_cfg: PortsConfig<PORTS>,
+    ) -> Result<Self, Error> {
+        router_debug!(
+            "Got interfaces {:?} and ports {:?}",
+            interfaces_cfg,
+            ports_cfg
+        );
+        let mut net_ifs: FnvIndexMap<PortName, NetworkInterface<P>, IFS> = Default::default();
+        for (name, intf) in interfaces_cfg.iter() {
+            let name = String::from_str(name.as_str()).map_err(|_e| PortError::Create)?;
+            let net_if = C::create_network_interface(intf)?;
+            net_ifs
+                .insert(name, net_if)
+                .map_err(|_e| RouterConfigError::Storage)?
+                .map(|_| Err(PortError::Create))
+                .unwrap_or(Ok(()))?;
+        }
+        let mut ports: FnvIndexMap<PortName, Port<H>, PORTS> = Default::default();
+        for (name, cfg) in ports_cfg.into_iter() {
+            let name = String::from_str(name.as_str()).map_err(|_e| PortError::Create)?;
+            let port = match cfg {
+                PortConfig::SamplingIn(cfg) => {
+                    Port::SamplingIn(SamplingIn::create(name.clone(), cfg.clone())?)
+                }
+                PortConfig::SamplingOut(cfg) => {
+                    Port::SamplingOut(SamplingOut::create(name.clone(), cfg.clone())?)
+                }
+                PortConfig::QueuingIn(cfg) => {
+                    Port::QueuingIn(QueuingIn::create(name.clone(), cfg.clone())?)
+                }
+                PortConfig::QueuingOut(cfg) => {
+                    Port::QueuingOut(QueuingOut::create(name.clone(), cfg.clone())?)
+                }
+            };
+            ports
+                .insert(name, port)
+                .map_err(|_e| RouterConfigError::Storage)?
+                .map(|_| Err(PortError::Create))
+                .unwrap_or(Ok(()))?;
+        }
+
+        Ok(RouterResources {
+            _h: Default::default(),
+            _n: Default::default(),
+            ports,
+            net_ifs,
+        })
+    }
+}
+
+/// The router.
+#[derive(Debug, Clone)]
+pub struct Router<'a, const IN: usize, const OUT: usize> {
+    routes: RouteTable<'a, IN, OUT>,
+    scheduler: DeadlineRrScheduler<IN>,
+}
+
+impl<'a, const IN: usize, const OUT: usize> Router<'a, IN, OUT> {
+    /// .
+    /// Tries to initialize a new router from the given configuration.
+    ///
+    /// Creating the router from the given configuration and resources has no
+    /// side-effects and may be attempted arbitrarily.
+    ///
+    /// # Errors
+    /// This function will return an error if the configuration was invalid or
+    /// did not match the provided resources.
+    pub fn try_new<
+        H: ApexQueuingPortP4 + ApexSamplingPortP4,
+        P: PlatformNetworkInterface,
+        const IFS: usize,
+        const PORTS: usize,
+    >(
+        virtual_links_cfg: VirtualLinksConfig<IN, OUT>,
+        resources: &'a RouterResources<H, P, IFS, PORTS>,
+    ) -> Result<Self, Error> {
+        let routes = RouteTable::<IN, OUT>::build(&virtual_links_cfg, resources)?;
+        let scheduler_cfg: Vec<(VirtualLinkId, Duration), IN> = virtual_links_cfg
+            .into_iter()
+            .map(|(id, cfg)| (*id, cfg.period))
+            .collect();
+        let scheduler = DeadlineRrScheduler::try_new(&scheduler_cfg)?;
+        let router = Self { routes, scheduler };
+        Ok(router)
+    }
+
+    /// Forwards messages between the hypervisor and the network.
+    pub fn forward<const B: usize, T: TimeSource>(
+        &mut self,
+        time_source: &T,
+    ) -> Result<Option<VirtualLinkId>, Error> {
+        let time = time_source.get_time().map_err(ScheduleError::from)?;
+        if let Some(next) = self.scheduler.schedule_next(&time) {
+            router_bench!(begin_virtual_link_scheduled, next.0 as u16);
+            let res = self.routes.route::<B>(&next);
+            router_bench!(end_virtual_link_scheduled, next.0 as u16);
+            res.map(|_| Some(next))
+        } else {
+            Ok(None)
+        }
+    }
+}
 
 /// An input to a virtual link.
 pub trait RouterInput {
@@ -36,57 +175,111 @@ pub trait RouterOutput {
     fn send(&self, vl: &VirtualLinkId, buf: &[u8]) -> Result<(), PortError>;
 }
 
-type RouteTable<'a, const I: usize, const O: usize> =
+type FwdTable<'a, const I: usize, const O: usize> =
     LinearMap<VirtualLinkId, Vec<&'a dyn RouterOutput, O>, I>;
 
 type Inputs<'a, const I: usize> = LinearMap<VirtualLinkId, &'a dyn RouterInput, I>;
 
 /// The router containing the routing information.
-#[derive(Clone)]
-pub struct Router<'a, const I: usize, const O: usize> {
+#[derive(Default, Clone)]
+pub struct RouteTable<'a, const I: usize, const O: usize> {
     inputs: Inputs<'a, I>,
-    outputs: RouteTable<'a, I, O>,
+    outputs: FwdTable<'a, I, O>,
 }
 
-impl<'a, const I: usize, const O: usize> Router<'a, I, O> {
+impl<'a, const I: usize, const O: usize> RouteTable<'a, I, O> {
     /// Forwards a virtual link from its source to its destinations.
     fn route<const B: usize>(&self, vl: &VirtualLinkId) -> Result<(), Error> {
         let buf = &mut [0u8; B];
         let input = self.inputs.get(vl).ok_or(RouteError::InvalidVl)?;
         // This vl may be different, than the one specified.
         let (vl, buf) = input.receive(vl, buf)?;
-        router_trace!("Received from {vl:?}: {buf:?}");
+        router_debug!("Received from {vl:?}: {buf:?}");
         let outs = self.outputs.get(&vl).ok_or(RouteError::InvalidVl)?;
         for out in outs.into_iter() {
-            out.send(&vl, buf)?;
+            out.send(&vl, buf).map_err(|e| {
+                router_debug!("Failed to route {:?}", vl);
+                e
+            })?;
+            router_debug!("Send to {vl:?}: {buf:?}");
         }
         Ok(())
     }
 
-    /// Forwards messages between the hypervisor and the network.
-    pub fn forward<const B: usize>(
-        &self,
-        scheduler: &mut dyn Scheduler,
-        time_source: &dyn TimeSource,
-    ) -> Result<Option<VirtualLinkId>, Error> {
-        let time = time_source.get_time().map_err(ScheduleError::from)?;
-        if let Some(next) = scheduler.schedule_next(&time) {
-            router_bench!(begin_virtual_link_scheduled, next.0 as u16);
-            let res = self.route::<B>(&next);
-            router_bench!(end_virtual_link_scheduled, next.0 as u16);
-            res.map(|_| Some(next))
-        } else {
-            Ok(None)
+    fn build<H, P, const IFS: usize, const PORTS: usize>(
+        virtual_links_cfg: &VirtualLinksConfig<I, O>,
+        resources: &'a RouterResources<H, P, IFS, PORTS>,
+    ) -> Result<RouteTable<'a, I, O>, RouterConfigError>
+    where
+        H: ApexQueuingPortP4 + ApexSamplingPortP4,
+        P: PlatformNetworkInterface,
+    {
+        let mut inputs: LinearMap<PortName, &'a dyn RouterInput, I> = Default::default();
+        let mut outputs: LinearMap<PortName, &'a dyn RouterOutput, O> = Default::default();
+        for (name, net_if) in resources.net_ifs.iter() {
+            inputs
+                .insert(name.clone(), net_if)
+                .or(Err(RouterConfigError::Storage))?
+                .map(|_| Err(RouterConfigError::Interface))
+                .unwrap_or(Ok(()))?;
+            outputs
+                .insert(name.clone(), net_if)
+                .or(Err(RouterConfigError::Storage))?
+                .map(|_| Err(RouterConfigError::Interface))
+                .unwrap_or(Ok(()))?;
         }
+        for (name, port) in resources.ports.iter() {
+            let name = name.clone();
+            match port {
+                Port::SamplingIn(p) => inputs
+                    .insert(name, p)
+                    .or(Err(RouterConfigError::Storage))?
+                    .map(|_| Err(RouterConfigError::Source))
+                    .unwrap_or(Ok(()))?,
+                Port::QueuingIn(p) => inputs
+                    .insert(name, p)
+                    .or(Err(RouterConfigError::Storage))?
+                    .map(|_| Err(RouterConfigError::Source))
+                    .unwrap_or(Ok(()))?,
+                Port::SamplingOut(p) => outputs
+                    .insert(name, p)
+                    .or(Err(RouterConfigError::Storage))?
+                    .map(|_| Err(RouterConfigError::Destination))
+                    .unwrap_or(Ok(()))?,
+                Port::QueuingOut(p) => outputs
+                    .insert(name, p)
+                    .or(Err(RouterConfigError::Storage))?
+                    .map(|_| Err(RouterConfigError::Destination))
+                    .unwrap_or(Ok(()))?,
+            };
+        }
+        let mut b = &mut StateBuilder::default();
+        for (v, cfg) in virtual_links_cfg.into_iter() {
+            let inp = inputs.get(&cfg.src).ok_or_else(|| {
+                router_debug!("Unknown input: {}", cfg.src);
+                RouterConfigError::Destination
+            })?;
+            let outs: Result<Vec<_, O>, RouterConfigError> = cfg
+                .dsts
+                .iter()
+                .map(|d| {
+                    outputs.get(d).ok_or_else(|| {
+                        router_debug!("Unknown output {}", d);
+                        RouterConfigError::Source
+                    })
+                })
+                .map(|d| d.copied())
+                .collect();
+            let outs = outs?;
+            b = b
+                .route(v, *inp, &outs)
+                .map_err(|_e| RouterConfigError::VirtualLink)?;
+        }
+        b.build()
     }
 }
 
-/// Creates a new builder for a router.
-pub fn builder<'a, const I: usize, const O: usize>() -> RouterBuilder<'a, I, O> {
-    Default::default()
-}
-
-impl<'a, const I: usize, const O: usize> Debug for Router<'a, I, O> {
+impl<'a, const I: usize, const O: usize> Debug for RouteTable<'a, I, O> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.write_str("Router")
     }
@@ -97,70 +290,55 @@ type Routes<'a, const I: usize, const O: usize> =
 
 /// Builds a new router.
 #[derive(Default)]
-pub struct RouterBuilder<'a, const I: usize, const O: usize> {
+pub struct StateBuilder<'a, const I: usize, const O: usize> {
     vls: Routes<'a, I, O>,
 }
 
-impl<'a, const I: usize, const O: usize> Debug for RouterBuilder<'a, I, O> {
+impl<'a, const I: usize, const O: usize> Debug for StateBuilder<'a, I, O> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.write_str("RouterBuilder")
     }
 }
 
-impl<'a, const I: usize, const O: usize> RouterBuilder<'a, I, O> {
+impl<'a, const I: usize, const O: usize> StateBuilder<'a, I, O> {
     pub fn route(
         &mut self,
         vl: &VirtualLinkId,
         input: &'a dyn RouterInput,
         output: &Vec<&'a dyn RouterOutput, O>,
-    ) -> Result<&mut Self, CfgError> {
+    ) -> Result<&mut Self, RouterConfigError> {
         if self.vls.contains_key(vl) {
-            return Err(CfgError::InvalidVl);
+            return Err(RouterConfigError::VirtualLink);
         }
         _ = self
             .vls
             .insert(*vl, (input, output.clone()))
-            .map_err(|_e| CfgError::Storage)?;
+            .map_err(|_e| RouterConfigError::Storage)?;
         Ok(self)
     }
 
-    pub fn build(&self) -> Result<Router<'a, I, O>, CfgError> {
+    pub fn build(&self) -> Result<RouteTable<'a, I, O>, RouterConfigError> {
         let mut inputs = Inputs::default();
-        let mut outputs = RouteTable::default();
+        let mut outputs = FwdTable::default();
         for (id, (i, o)) in self.vls.iter() {
             if inputs.contains_key(id) {
-                return Err(CfgError::InvalidInput);
+                return Err(RouterConfigError::Destination);
             }
             if outputs.contains_key(id) {
-                return Err(CfgError::InvalidOutput);
+                return Err(RouterConfigError::Source);
             }
-            _ = inputs.insert(*id, *i).or(Err(CfgError::Storage));
-            _ = outputs.insert(*id, o.clone()).or(Err(CfgError::Storage));
+            _ = inputs.insert(*id, *i).or(Err(RouterConfigError::Storage));
+            _ = outputs
+                .insert(*id, o.clone())
+                .or(Err(RouterConfigError::Storage));
         }
-        Ok(Router::<'a, I, O> { inputs, outputs })
+        Ok(RouteTable::<'a, I, O> { inputs, outputs })
     }
 }
 
+/// An error occured while routing a message.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum RouteError {
+    /// Invalid virtual link
     InvalidVl,
-}
-
-/// An error occured while reading or writing a port of the router.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum PortError {
-    /// Failed to send from router output
-    Send,
-
-    /// Failed to receive from router input
-    Receive,
-}
-
-impl Display for PortError {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        match &self {
-            Self::Send => write!(f, "Failed to send from router output"),
-            Self::Receive => write!(f, "Failed to receive from router input"),
-        }
-    }
 }

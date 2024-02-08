@@ -1,0 +1,52 @@
+major_frame: 1s
+partitions:
+  - id: 1
+    name: EchoClient
+    duration: 300ms
+    offset: 0ms
+    period: 1s
+    image: echo
+  - id: 2
+    name: Router
+    duration: 300ms
+    offset: 350ms
+    period: 1s
+    image: router
+    sockets:
+      - type: udp
+        address: "0.0.0.0:8081"
+  - id: 3
+    name: EchoServer
+    duration: 300ms
+    offset: 700ms
+    period: 1s
+    image: echo
+channel:
+  - !Queuing
+    name: EchoRequestCl
+    msg_size: 1KB
+    msg_num: 10
+    discipline: Fifo
+    source: { partition: EchoClient, port: EchoSend }
+    destination: { partition: Router, port: EchoRequestCl }
+  - !Queuing
+    name: EchoReplyCl
+    msg_size: 1KB
+    msg_num: 10
+    discipline: Fifo
+    source: { partition: Router, port: EchoReplyCl }
+    destination: { partition: EchoClient, port: EchoReceive }
+  - !Queuing
+    name: EchoRequestSrv
+    msg_size: 1KB
+    msg_num: 10
+    discipline: Fifo
+    source: { partition: Router, port: EchoRequest }
+    destination: { partition: EchoServer, port: SEchoReceive }
+  - !Queuing
+    name: EchoReplySrv
+    msg_size: 1KB
+    msg_num: 10
+    discipline: Fifo
+    source: { partition: EchoServer, port: SEchosSend }
+    destination: { partition: Router, port: EchoReply }

@@ -1,0 +1,29 @@
+major_frame: 1s
+partitions:
+  - id: 1
+    name: EchoClient
+    duration: 50ms
+    offset: 0ms
+    period: 100ms
+    image: echo
+  - id: 2
+    name: EchoServer
+    duration: 50ms
+    offset: 50ms
+    period: 100s
+    image: echo
+channel:
+  - !Queuing
+    name: EchoRequest
+    msg_size: 1KB
+    msg_num: 10
+    discipline: Fifo
+    source: { partition: EchoClient, port: EchoSend }
+    destination: { partition: EchoServer, port: SEchoReceive }
+  - !Queuing
+    name: EchoReply
+    msg_size: 1KB
+    msg_num: 10
+    discipline: Fifo
+    source: { partition: EchoServer, port: SEchoSend }
+    destination: { partition: EchoClient, port: EchoReceive }

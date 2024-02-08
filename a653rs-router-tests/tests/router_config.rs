@@ -1,12 +1,9 @@
-use a653rs_router::router_config;
+use a653rs_router::prelude::*;
+use a653rs_router_tests::test_data;
 
-#[router_config(a653rs_router::prelude::DeadlineRrScheduler)]
-pub mod router {
-    #[limits(inputs = 1, outputs = 1, mtu = "2KB")]
-    struct Limits;
-
-    #[interface(interface_type = a653rs_router_linux::UdpNetworkInterface)]
-    #[interface(source = "tx", destination = "rx")]
-    #[interface(rate = "10MB", mtu = "1.5KB")]
-    struct NodeB;
+#[test]
+fn main() {
+    let cfg = test_data::CFG;
+    let cfg: RouterConfig<8, 8, 8, 8> = serde_yaml::from_str(cfg).unwrap();
+    println!("{cfg:?}");
 }

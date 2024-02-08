@@ -26,45 +26,6 @@ let
 in
 rec
 {
-  configurator-linux = rustPlatform.buildRustPackage rec {
-    inherit cargoLock;
-    pname = "configurator-linux";
-    target = "x86_64-unknown-linux-musl";
-    version = "0.1.0";
-    src = ./.;
-    buildPhase = ''
-      cargo build --release -p ${pname} --target ${target}
-    '';
-    checkPhase = ''
-      cargo test -p ${pname} --target ${target} --frozen
-    '';
-    doCheck = false;
-    installPhase = ''
-      mkdir -p "$out"/bin
-      cp target/${target}/release/${pname} "$out/bin"
-    '';
-    meta.mainProgram = "configurator-linux";
-  };
-
-  configurator-xng = rustPlatform.buildRustPackage rec {
-    inherit cargoLock;
-    pname = "configurator-xng";
-    target = "armv7a-none-eabi";
-    version = "0.1.0";
-    src = ./.;
-    buildPhase = ''
-      cargo build --release -p ${pname} --target ${target}
-    '';
-    checkPhase = ''
-      cargo test -p ${pname} --target ${target} --frozen
-    '';
-    doCheck = false;
-    installPhase = ''
-      mkdir -p "$out"/lib
-      cp target/${target}/release/*.a "$out/lib"
-    '';
-  };
-
   echo-linux = rustPlatform.buildRustPackage rec {
     inherit cargoLock;
     target = "x86_64-unknown-linux-musl";
@@ -98,39 +59,45 @@ rec
     '';
   };
 
-  router-echo-client-linux = mkExample {
-    inherit rustPlatform;
-    example = "router-echo-client-linux";
-    product = "router";
-    features = [ "linux" ];
+  a653rs-router-linux = rustPlatform.buildRustPackage rec {
+    inherit cargoLock;
+    pname = "a653rs-router-linux";
     target = "x86_64-unknown-linux-musl";
+    version = "0.1.0";
+    src = ./.;
+    buildPhase = ''
+      cargo build \
+        --release \
+        --target ${target} \
+        --package ${pname} \
+        --features partition,log,trace \
+        --bin partition
+    '';
+    doCheck = true;
+    installPhase = ''
+      mkdir -p "$out/bin"
+      cp "target/${target}"/release/partition "$out/bin/router"
+    '';
   };
-  router-echo-server-linux = mkExample {
-    inherit rustPlatform;
-    example = "router-echo-server-linux";
-    product = "router";
-    features = [ "linux" ];
-    target = "x86_64-unknown-linux-musl";
-  };
-  router-echo-client-xng = mkExample {
-    inherit rustPlatform;
-    example = "router-echo-client-xng";
-    product = "router";
-    features = [ "xng" ];
+
+  a653rs-router-zynq7000 = rustPlatform.buildRustPackage rec {
+    inherit cargoLock;
+    pname = "a653rs-router-zynq7000";
     target = "armv7a-none-eabi";
-  };
-  router-echo-server-xng = mkExample {
-    inherit rustPlatform;
-    example = "router-echo-server-xng";
-    product = "router";
-    features = [ "xng" ];
-    target = "armv7a-none-eabi";
-  };
-  router-echo-local-xng = mkExample {
-    inherit rustPlatform;
-    example = "router-echo-local-xng";
-    product = "router";
-    features = [ "xng" ];
-    target = "armv7a-none-eabi";
+    version = "0.1.0";
+    src = ./.;
+    buildPhase = ''
+      cargo build \
+        --release \
+        --target ${target} \
+        --package ${pname} \
+        --features partition \
+        --example partition
+    '';
+    doCheck = false;
+    installPhase = ''
+      mkdir -p "$out/lib"
+      cp "target/${target}"/release/examples/libpartition.a "$out/lib/librouter.a"
+    '';
   };
 }

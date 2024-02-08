@@ -1,20 +1,21 @@
 { pkgs, a653rs-router-cfg, lithOsOps, partitions, xng-utils, xngOps, ... }:
 let
-  inherit (partitions) configurator-xng echo-xng router-echo-client-xng router-echo-server-xng router-echo-local-xng;
+  inherit (partitions) echo-xng a653rs-router-zynq7000;
 
-  routerConfigBlob = name: {
+  routerConfigBlob = path: {
     "0x16000000" = (pkgs.runCommandNoCC "router-config" { } ''
-      ${pkgs.lib.meta.getExe a653rs-router-cfg} < ${./examples/config/${name}/route-table.json} > $out
+      printf "Converting config at ${path}\n'"
+      ${pkgs.lib.meta.getExe a653rs-router-cfg} < "${path}" > $out
     '').outPath;
   };
 
-  xngImage = { name, partitions }: xng-utils.lib.buildXngSysImage {
+  xngImage = { name, partitions, path ? "${./examples/config/${name}}" }: xng-utils.lib.buildXngSysImage {
     inherit pkgs name xngOps lithOsOps;
-    extraBinaryBlobs = if (partitions ? "Router") then (routerConfigBlob name) else { };
+    extraBinaryBlobs = if (partitions ? "Router") then (routerConfigBlob "${path}/router.yml") else { };
     hardFp = false;
     xcf = pkgs.runCommandNoCC "patch-src" { } ''
       mkdir -p merged
-      cp -r "${./examples/config/shared}"/* "${./examples/config/${name}/xml}"/* merged/
+      cp -r "${./examples/config/shared}"/* "${path}"/xng/* merged/
       cp -r merged $out
     '';
     partitions = pkgs.lib.concatMapAttrs
@@ -28,54 +29,55 @@ let
       })
       partitions;
   };
+  router = "${a653rs-router-zynq7000}/lib/librouter.a";
+  echo = "${echo-xng}/lib/libecho_xng.a";
 in
 rec {
-  image-echo-remote-xng-client = xngImage {
-    name = "echo-remote-xng-client";
+  image-echo-remote-client-xng = xngImage rec {
+    name = "echo-remote";
+    path = "${./examples/config/${name}/client}";
     partitions = {
-      Router = "${router-echo-client-xng}/lib/librouter_echo_client_xng.a";
-      EchoClient = "${echo-xng}/lib/libecho_xng.a";
-      Config = "${configurator-xng}/lib/libconfigurator_xng.a";
+      Router = router;
+      EchoClient = echo;
     };
   };
-  image-echo-remote-xng-server = xngImage {
-    name = "echo-remote-xng-server";
+  image-echo-remote-server-xng = xngImage rec {
+    name = "echo-remote";
+    path = "${./examples/config/${name}/server}";
     partitions = {
-      Router = "${router-echo-server-xng}/lib/librouter_echo_server_xng.a";
-      EchoServer = "${echo-xng}/lib/libecho_xng.a";
-      Config = "${configurator-xng}/lib/libconfigurator_xng.a";
+      Router = router;
+      EchoServer = echo;
     };
   };
-  image-echo-direct-xng = xngImage {
-    name = "echo-direct-xng";
+  image-echo-direct-xng = xngImage rec {
+    name = "echo-direct";
     partitions = {
-      EchoClient = "${echo-xng}/lib/libecho_xng.a";
-      EchoServer = "${echo-xng}/lib/libecho_xng.a";
+      EchoClient = echo;
+      EchoServer = echo;
     };
   };
   image-echo-local-xng = xngImage {
-    name = "echo-local-xng";
+    name = "echo-local";
     partitions = {
-      EchoClient = "${echo-xng}/lib/libecho_xng.a";
-      EchoServer = "${echo-xng}/lib/libecho_xng.a";
-      Router = "${router-echo-local-xng}/lib/librouter_echo_local_xng.a";
-      Config = "${configurator-xng}/lib/libconfigurator_xng.a";
+      EchoClient = echo;
+      EchoServer = echo;
+      Router = router;
     };
   };
-  image-echo-alt-local-client-xng = xngImage {
-    name = "echo-alt-local-client-xng";
+  image-echo-remote-client-alt-xng = xngImage rec {
+    name = "echo-remote";
+    path = "${./examples/config/${name}/client-alt}";
     partitions = {
-      EchoClient = "${echo-xng}/lib/libecho_xng.a";
-      EchoServer = "${echo-xng}/lib/libecho_xng.a";
-      Router = "${router-echo-client-xng}/lib/librouter_echo_client_xng.a";
-      Config = "${configurator-xng}/lib/libconfigurator_xng.a";
+      EchoClient = echo;
+      EchoServer = echo;
+      Router = router;
     };
   };
   xng-images = (pkgs.linkFarmFromDrvs "xng-images" [
     image-echo-direct-xng
     image-echo-local-xng
-    image-echo-remote-xng-client
-    image-echo-remote-xng-server
-    image-echo-alt-local-client-xng
+    image-echo-remote-client-xng
+    image-echo-remote-server-xng
+    image-echo-remote-client-alt-xng
   ]);
 }

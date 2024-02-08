@@ -1,0 +1,41 @@
+stack_size: 20000
+virtual_links:
+  1:
+    period:
+      secs: 0
+      nanos: 10000
+    source: EchoRequestCl
+    destinations: [EchoRequestSrv]
+  2:
+    period:
+      secs: 0
+      nanos: 10000
+    source: EchoReplySrv
+    destinations: [EchoReplyCl]
+ports:
+  EchoRequestCl:
+    !queuing_in
+    msg_size: 1000
+    msg_count: 10
+    discipline: fifo
+  EchoReplyCl:
+    !queuing_out
+    msg_size: 1000
+    msg_count: 10
+    discipline: fifo
+  EchoRequestSrv:
+    !queuing_out
+    msg_size: 1000
+    msg_count: 10
+    discipline: fifo
+  EchoReplySrv:
+    !queuing_in
+    msg_size: 1000
+    msg_count: 10
+    discipline: fifo
+interfaces:
+  NodeB:
+    destination: "192.168.1.2:8082"
+    mtu: 1500
+    rate: 10000000
+    source: "0.0.0.0:8081"

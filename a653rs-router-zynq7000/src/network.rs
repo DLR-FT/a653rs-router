@@ -162,8 +162,6 @@ where
     [(); UartFrame::<MTU>::max_encoded_len()]:,
     [(); UartFrame::<MTU>::max_decoded_len()]:,
 {
-    type Configuration = InterfaceConfig;
-
     fn platform_interface_receive_unchecked(
         id: NetworkInterfaceId,
         buffer: &'_ mut [u8],
@@ -172,7 +170,7 @@ where
             return Err(InterfaceError::NoData);
         }
         trace!(begin_network_receive, id.0 as u16);
-        // TODO Get rid of one buffer. Should be possible to decode directly inside
+        // Get rid of one buffer? Should be possible to decode directly inside
         // RX-Buffer.
         let mut limit = 0;
         let mut queue_has_eof = false;
@@ -265,7 +263,7 @@ where
     [(); UartFrame::<MTU>::max_decoded_len()]:,
 {
     fn create_network_interface_id(
-        _cfg: InterfaceConfig,
+        _cfg: &InterfaceConfig,
     ) -> Result<NetworkInterfaceId, InterfaceError> {
         Ok(next_id())
     }

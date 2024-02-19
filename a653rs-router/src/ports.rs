@@ -100,7 +100,7 @@ impl<H: ApexSamplingPortP4> RouterOutput for SamplingOut<H> {
 impl<H: ApexSamplingPortP4> SamplingIn<H> {
     pub(crate) fn create(name: PortName, value: SamplingInCfg) -> Result<Self, PortError> {
         let id = <H as ApexSamplingPortP4>::create_sampling_port(
-            Name::from_str(name.as_str())
+            Name::from_str(&name)
                 .map_err(|_e| PortError::Create)?
                 .into(),
             value.msg_size,
@@ -121,7 +121,7 @@ impl<H: ApexSamplingPortP4> SamplingIn<H> {
 impl<H: ApexSamplingPortP4> SamplingOut<H> {
     pub(crate) fn create(name: PortName, value: SamplingOutCfg) -> Result<Self, PortError> {
         let id = <H as ApexSamplingPortP4>::create_sampling_port(
-            Name::from_str(name.as_str())
+            Name::from_str(&name)
                 .map_err(|_e| PortError::Create)?
                 .into(),
             value.msg_size,
@@ -145,7 +145,7 @@ impl<H: ApexSamplingPortP4> SamplingOut<H> {
 impl<H: ApexQueuingPortP4> QueuingIn<H> {
     pub(crate) fn create(name: PortName, value: QueuingInCfg) -> Result<Self, PortError> {
         let id = <H as ApexQueuingPortP4>::create_queuing_port(
-            Name::from_str(name.as_str())
+            Name::from_str(&name)
                 .map_err(|_e| PortError::Create)?
                 .into(),
             value.msg_size,
@@ -167,7 +167,7 @@ impl<H: ApexQueuingPortP4> QueuingIn<H> {
 impl<H: ApexQueuingPortP4> QueuingOut<H> {
     pub(crate) fn create(name: PortName, value: QueuingOutCfg) -> Result<Self, PortError> {
         let id = <H as ApexQueuingPortP4>::create_queuing_port(
-            Name::from_str(name.as_str())
+            Name::from_str(&name)
                 .map_err(|_e| PortError::Create)?
                 .into(),
             value.msg_size,

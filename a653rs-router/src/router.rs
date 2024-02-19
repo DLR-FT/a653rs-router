@@ -13,8 +13,8 @@ use crate::{
 };
 
 use a653rs::bindings::{ApexQueuingPortP4, ApexSamplingPortP4};
-use core::{fmt::Debug, marker::PhantomData, str::FromStr, time::Duration};
-use heapless::{FnvIndexMap, LinearMap, String, Vec};
+use core::{fmt::Debug, marker::PhantomData, ops::Deref, str::FromStr, time::Duration};
+use heapless::{FnvIndexMap, LinearMap, Vec};
 
 /// Router resources
 #[derive(Debug)]
@@ -55,7 +55,7 @@ where
         );
         let mut net_ifs: FnvIndexMap<PortName, NetworkInterface<P>, IFS> = Default::default();
         for (name, intf) in interfaces_cfg.iter() {
-            let name = String::from_str(name.as_str()).map_err(|_e| PortError::Create)?;
+            let name = InterfaceName::from_str(name)?;
             let net_if = C::create_network_interface(intf)?;
             net_ifs
                 .insert(name, net_if)
@@ -65,7 +65,7 @@ where
         }
         let mut ports: FnvIndexMap<PortName, Port<H>, PORTS> = Default::default();
         for (name, cfg) in ports_cfg.into_iter() {
-            let name = String::from_str(name.as_str()).map_err(|_e| PortError::Create)?;
+            let name = PortName::from_str(name)?;
             let port = match cfg {
                 PortConfig::SamplingIn(cfg) => {
                     Port::SamplingIn(SamplingIn::create(name.clone(), cfg.clone())?)
@@ -256,7 +256,7 @@ impl<'a, const I: usize, const O: usize> RouteTable<'a, I, O> {
         let mut b = &mut StateBuilder::default();
         for (v, cfg) in virtual_links_cfg.into_iter() {
             let inp = inputs.get(&cfg.src).ok_or_else(|| {
-                router_debug!("Unknown input: {}", cfg.src);
+                router_debug!("Unknown input: {}", cfg.src.deref());
                 RouterConfigError::Destination
             })?;
             let outs: Result<Vec<_, O>, RouterConfigError> = cfg
@@ -264,7 +264,7 @@ impl<'a, const I: usize, const O: usize> RouteTable<'a, I, O> {
                 .iter()
                 .map(|d| {
                     outputs.get(d).ok_or_else(|| {
-                        router_debug!("Unknown output {}", d);
+                        router_debug!("Unknown output {}", d.deref());
                         RouterConfigError::Source
                     })
                 })

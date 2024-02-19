@@ -2,7 +2,7 @@ use crate::{prelude::InterfaceConfig, types::VirtualLinkId};
 use a653rs::bindings::{
     MessageRange, MessageSize, QueuingDiscipline as ApexQueuingDiscipline, StackSize,
 };
-use core::{str::FromStr, time::Duration};
+use core::{ops::Deref, str::FromStr, time::Duration};
 use heapless::{LinearMap, String, Vec};
 
 #[cfg(feature = "serde")]
@@ -12,7 +12,33 @@ const MAX_PORT_NAME: usize = 20;
 
 /// The name of a hypervisor port.
 /// Can have at-most 20 ASCII printable characters.
-pub type PortName = String<MAX_PORT_NAME>;
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
+pub struct PortName(String<MAX_PORT_NAME>);
+
+impl FromStr for PortName {
+    type Err = RouterConfigError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self(
+            String::from_str(s).map_err(|_| RouterConfigError::Port)?,
+        ))
+    }
+}
+
+impl Deref for PortName {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        self.0.as_str()
+    }
+}
+
+impl From<String<20>> for PortName {
+    fn from(value: String<20>) -> Self {
+        Self(value)
+    }
+}
 
 /// The name of a network interface or socket address.
 ///
@@ -20,7 +46,7 @@ pub type PortName = String<MAX_PORT_NAME>;
 /// - `10.10.0.1:81234`
 /// - `TX`
 /// - `eth0`
-pub type InterfaceName = String<MAX_PORT_NAME>;
+pub type InterfaceName = PortName;
 
 /// Virtual link (VL) configuration data indexed by VL id.
 pub type VirtualLinksConfig<const I: usize, const O: usize> =
@@ -328,7 +354,7 @@ impl<const IN: usize, const OUT: usize, const IFS: usize, const PORTS: usize>
         name: &str,
         port_cfg: PortConfig,
     ) -> BuilderResult<'_, IN, OUT, IFS, PORTS> {
-        let name = PortName::from_str(name).or(Err(RouterConfigError::Port))?;
+        let name = PortName::from_str(name)?;
         self.cfg
             .ports
             .insert(name, port_cfg)

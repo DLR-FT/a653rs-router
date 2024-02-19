@@ -7,6 +7,7 @@ use crate::{
 use core::{
     fmt::{Display, Formatter},
     marker::PhantomData,
+    str::FromStr,
 };
 use heapless::String;
 
@@ -138,8 +139,8 @@ impl InterfaceConfig {
     /// Creates a new configuration.
     pub fn new(source: &str, destination: &str, rate: DataRate, mtu: PayloadSize) -> Self {
         Self {
-            source: String::from(source),
-            destination: String::from(destination),
+            source: String::from_str(source).unwrap(),
+            destination: String::from_str(destination).unwrap(),
             rate,
             mtu,
         }

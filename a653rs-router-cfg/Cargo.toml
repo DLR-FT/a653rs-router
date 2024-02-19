@@ -8,6 +8,6 @@ edition = "2021"
 
 [dependencies]
 a653rs-router = { path = "../a653rs-router", features = ["serde"] }
-heapless = { workspace = true }
+heapless.version = "0.7" # because the version used by postcard is 0.7
 postcard = { workspace = true, features = ["heapless"] }
 serde_yaml = { workspace = true }

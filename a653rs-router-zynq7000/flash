@@ -1,0 +1,26 @@
+#!/bin/sh
+
+if [ "$#" -lt 1 ]
+then
+  printf "usage: flash <cable-id> image xsa\n"
+  exit 1
+fi
+
+cable="${1}"
+image="${2}"
+xsa="${3}"
+
+# Has to be a writable directory
+hwdir=$(mktemp -d)
+trap "{ rm -r $hwdir; exit 255; }" EXIT
+cp --no-preserve=all "$xsa" "$hwdir/hw_export.xsa"
+unzip -u "$hwdir/hw_export.xsa" -d "$hwdir"
+
+xsct \
+  $(dirname $0)/zynq7000_init_te0706.tcl \
+  $hwdir/ps7_init.tcl \
+  $hwdir/hw_export.bit \
+  $hwdir/hw_export.xsa \
+  $image \
+  "$cable" \
+  || printf "Failed to flash target"

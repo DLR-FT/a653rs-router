@@ -17,9 +17,9 @@
 //! which configuration is in use.
 //!
 //! - [`cold_start_sampling_queuing`]: Checks if it can create queuing ports
-//!   `EchoReceiver` and `EchoSender` to check if running as a client and
-//!   `SEchoReceiver` and `SEchoSender` to check if it is running as a server.
-//!   If this did not succeed, it will try the same but using sampling ports.
+//!   `EchoReceiv` and `EchoSend` to check if running as a client and
+//!   `SEchoReceiv` and `SEchoSend` to check if it is running as a server. If
+//!   this did not succeed, it will try the same but using sampling ports.
 //! - [`cold_start_sampling`]: Does the same as `cold_start_sampling_queuing`,
 //!   but without checking for queuing ports first. This function exists for
 //!   hypervisors that do not implement queuing ports.
@@ -66,11 +66,11 @@ const SERVER_RECEIVE_PERIOD: SystemTime = SystemTime::Infinite;
 const SERVER_RECEIVE_TIME_CAPACITY: SystemTime = SystemTime::Infinite;
 const SERVER_RECEIVE_DEADLINE: Deadline = Deadline::Soft;
 
-const CLIENT_RECEIVER_PORT: &str = "EchoReceiver";
-const CLIENT_SENDER_PORT: &str = "EchoSender";
+const CLIENT_RECEIVER_PORT: &str = "EchoReceive";
+const CLIENT_SENDER_PORT: &str = "EchoSend";
 
-const SERVER_RECEIVER_PORT: &str = "SEchoReceiver";
-const SERVER_SENDER_PORT: &str = "SEchoSender";
+const SERVER_RECEIVER_PORT: &str = "SEchoReceive";
+const SERVER_SENDER_PORT: &str = "SEchoSend";
 
 const RECEIVE_TIMEOUT: SystemTime = SystemTime::Normal(Duration::from_millis(100));
 

@@ -1,71 +1,22 @@
-{ hostPkgs
-, nodeA # { hypervisor = hypervisor-package, hypervisorConfig = path-to-yaml-config, router = pkg, configurator = pkg, echo = pkg, routeTable = path-to-toml-config }
-, nodeB # { hypervisorConfig, router, configurator, echo, routeTable }
-, ...
-}:
+{ pkgs, a653rs-linux-hypervisor, partitions, runTest, ... }:
 let
-  hvName = "a653rs-linux-hypervisor";
-  environment = {
-    RUST_BACKTRACE = "1";
-    RUST_LOG = "info";
-  };
-  mkNode = node: ipAddr: { config, lib, pkgs, ... }:
-    assert (builtins.typeOf node) == "set";
-    assert (builtins.typeOf ipAddr) == "string";
-    let
-      inherit (node) configurator echo hypervisor hypervisorConfig router routeTable;
-    in
-    {
-      networking.firewall.enable = false;
-      networking.interfaces.eth1.ipv4 = {
-        addresses = [
-          {
-            address = ipAddr;
-            prefixLength = 24;
-          }
-        ];
-      };
+  inherit (partitions) configurator-linux echo-linux router-echo-client-linux router-echo-server-linux;
 
-      environment.etc."hypervisor_config.yml" = {
-        source = hypervisorConfig;
-        mode = "0444";
-      };
-
-      environment.etc."route-table.json" = {
-        source = routeTable;
-        mode = "0444";
-      };
-
-      systemd.services.linux-hypervisor = {
-        inherit environment;
-        enable = true;
-        description = "Linux Hypervisor";
-        unitConfig.Type = "simple";
-        serviceConfig.ExecStart = "${hypervisor}/bin/a653rs-linux-hypervisor /etc/hypervisor_config.yml";
-        wantedBy = [ "multi-user.target" ];
-        after = [ "network-online.target" ];
-        wants = [ "network-online.target" ];
-        path = [
-          hypervisor
-          configurator
-          echo
-          router
-        ];
-      };
-    };
+  configurator = configurator-linux;
+  echo = echo-linux;
 in
-{
-  name = "a653rs-router-integration";
-  hostPkgs = hostPkgs;
-  nodes.nodeA = mkNode nodeA "192.168.1.1";
-  nodes.nodeB = mkNode nodeB "192.168.1.2";
-
-  testScript = ''
-    nodeB.wait_for_unit("linux-hypervisor.service")
-    nodeA.wait_for_unit("linux-hypervisor.service")
-    nodeA.wait_for_console_text("EchoRequest: seqnr = 10")
-    _status, out = nodeA.execute("journalctl -u linux-hypervisor.service")
-    if not "EchoReply: seqnr =" in out:
-        raise Exception("Expected to see an echo reply by now")
-  '';
-}
+runTest (import ./run-hypervisor.nix {
+  hostPkgs = pkgs;
+  nodeA = {
+    inherit configurator echo a653rs-linux-hypervisor;
+    hypervisorConfig = ./node-a.yml;
+    router = router-echo-client-linux;
+    routeTable = ./node-a-route-table.json;
+  };
+  nodeB = {
+    inherit configurator echo a653rs-linux-hypervisor;
+    hypervisorConfig = ./node-b.yml;
+    router = router-echo-server-linux;
+    routeTable = ./node-b-route-table.json;
+  };
+})

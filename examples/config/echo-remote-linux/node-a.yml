@@ -27,7 +27,7 @@ channel:
   - !Sampling
     name: EchoRequest
     msg_size: 1KB
-    source: { partition: EchoClient, port: EchoSender }
+    source: { partition: EchoClient, port: EchoSend }
     destination:
       - { partition: Network, port: EchoRequest }
   - !Sampling
@@ -35,7 +35,7 @@ channel:
     msg_size: 1KB
     source: { partition: Network, port: EchoReply }
     destination:
-      - { partition: EchoClient, port: EchoReceiver }
+      - { partition: EchoClient, port: EchoReceive }
   - !Sampling
     name: RouterConfig
     msg_size: 1KB

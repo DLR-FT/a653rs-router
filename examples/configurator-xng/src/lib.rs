@@ -29,7 +29,7 @@ mod configurator {
 
     // Some memory area, see config.xml of the configurator partition.
     const CONFIG_MEMORY_AREA: usize = 0x16000000;
-    const CONFIG_MEMORY_AREA_SIZE: usize = 16_000;
+    const CONFIG_MEMORY_AREA_SIZE: usize = 1_000;
 
     #[sampling_out(name = "RouterConfig", msg_size = "1KB")]
     struct RouterConfig;

@@ -2,65 +2,22 @@
   "nodes": {
     "devshell": {
       "inputs": {
+        "flake-utils": "flake-utils",
         "nixpkgs": [
-          "nixpkgs"
-        ],
-        "systems": "systems"
-      },
-      "locked": {
-        "lastModified": 1698410321,
-        "narHash": "sha256-MphuSlgpmKwtJncGMohryHiK55J1n6WzVQ/OAfmfoMc=",
-        "owner": "numtide",
-        "repo": "devshell",
-        "rev": "1aed986e3c81a4f6698e85a7452cbfcc4b31a36e",
-        "type": "github"
-      },
-      "original": {
-        "owner": "numtide",
-        "repo": "devshell",
-        "type": "github"
-      }
-    },
-    "devshell_2": {
-      "inputs": {
-        "flake-utils": [
-          "fpga-project",
-          "xilinx-flake-utils",
-          "flake-utils"
-        ],
-        "nixpkgs": [
-          "fpga-project",
-          "xilinx-flake-utils",
           "nixpkgs"
         ]
       },
       "locked": {
-        "lastModified": 1676293499,
-        "narHash": "sha256-uIOTlTxvrXxpKeTvwBI1JGDGtCxMXE3BI0LFwoQMhiQ=",
+        "lastModified": 1705332421,
+        "narHash": "sha256-USpGLPme1IuqG78JNqSaRabilwkCyHmVWY0M9vYyqEA=",
         "owner": "numtide",
         "repo": "devshell",
-        "rev": "71e3022e3ab20bbf1342640547ef5bc14fb43bf4",
+        "rev": "83cb93d6d063ad290beee669f4badf9914cc16ec",
         "type": "github"
       },
       "original": {
         "owner": "numtide",
         "repo": "devshell",
-        "type": "github"
-      }
-    },
-    "digilent-xdc": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1669143946,
-        "narHash": "sha256-ckdXkC46TwUiwIg0wFhP35SJRDW9BWQm7syYbphhZ1s=",
-        "owner": "Digilent",
-        "repo": "digilent-xdc",
-        "rev": "69d35015d4c3a0cb384a964459593cea5260697a",
-        "type": "github"
-      },
-      "original": {
-        "owner": "Digilent",
-        "repo": "digilent-xdc",
         "type": "github"
       }
     },
@@ -72,11 +29,11 @@
         "rust-analyzer-src": "rust-analyzer-src"
       },
       "locked": {
-        "lastModified": 1700547770,
-        "narHash": "sha256-dN/j67tAzK8tZUxLoPBkQhLlAOzOpaQ0Y8dI7B4Al1E=",
+        "lastModified": 1706682087,
+        "narHash": "sha256-9AQQhjTRcVlqwOxM8im6wR+vDT1N0efUX7pvAyfAzLE=",
         "owner": "nix-community",
         "repo": "fenix",
-        "rev": "eea8e81ef5d410b2c9bef8bc90d18188a379958b",
+        "rev": "7e29c0af8b70147f1f23c1387a0d774209889d1b",
         "type": "github"
       },
       "original": {
@@ -86,45 +43,21 @@
       }
     },
     "flake-utils": {
-      "locked": {
-        "lastModified": 1676283394,
-        "narHash": "sha256-XX2f9c3iySLCw54rJ/CZs+ZK6IQy7GXNY4nSOyu2QG4=",
-        "owner": "numtide",
-        "repo": "flake-utils",
-        "rev": "3db36a8b464d0c4532ba1c7dda728f4576d6d073",
-        "type": "github"
-      },
-      "original": {
-        "owner": "numtide",
-        "repo": "flake-utils",
-        "type": "github"
-      }
-    },
-    "fpga-project": {
       "inputs": {
-        "digilent-xdc": "digilent-xdc",
-        "flake-utils": [
-          "utils"
-        ],
-        "nixpkgs": [
-          "nixpkgs"
-        ],
-        "vivado-boards": "vivado-boards",
-        "xilinx-flake-utils": "xilinx-flake-utils"
+        "systems": "systems"
       },
       "locked": {
-        "lastModified": 1681463482,
-        "narHash": "sha256-G/E0S5ekXslzRxNVUQPqK2Ak96rJ8PaC1TvVJdHI++o=",
-        "ref": "main",
-        "rev": "7ecbb354e66926d4233caf3fb3984921ec75aa98",
-        "revCount": 19,
-        "type": "git",
-        "url": "ssh://git@gitlab.dlr.de/projekt-resilienz/vivado-coraz7-uart.git"
+        "lastModified": 1701680307,
+        "narHash": "sha256-kAuep2h5ajznlPMD9rnQyffWG8EM/C73lejGofXvdM8=",
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "rev": "4022d587cbbfd70fe950c1e2083a02621806a725",
+        "type": "github"
       },
       "original": {
-        "ref": "main",
-        "type": "git",
-        "url": "ssh://git@gitlab.dlr.de/projekt-resilienz/vivado-coraz7-uart.git"
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "type": "github"
       }
     },
     "hypervisor": {
@@ -144,11 +77,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1705580036,
-        "narHash": "sha256-K3fWsAooXrl/uOYRcjI2N3bonSyjc3oeeBBUTJ1X/0M=",
+        "lastModified": 1706197789,
+        "narHash": "sha256-2lS+G0onnYtg99jChrZusCHvwy8YTZJVFumRi/JwQAs=",
         "owner": "DLR-FT",
         "repo": "a653rs-linux",
-        "rev": "3e191f5195812b5a72f7537c54acad5cdc7dbd3b",
+        "rev": "f1fb71dcfbdb2ea2dcc9fe7c34dd72c0240dc05b",
         "type": "github"
       },
       "original": {
@@ -165,11 +98,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1679567394,
-        "narHash": "sha256-ZvLuzPeARDLiQUt6zSZFGOs+HZmE+3g4QURc8mkBsfM=",
+        "lastModified": 1698420672,
+        "narHash": "sha256-/TdeHMPRjjdJub7p7+w55vyABrsJlt5QkznPYy55vKA=",
         "ref": "refs/heads/master",
-        "rev": "88cd22380154a2c36799fe8098888f0f59861a15",
-        "revCount": 309,
+        "rev": "aeb58d5e8faead8980a807c840232697982d47b9",
+        "revCount": 333,
         "type": "git",
         "url": "https://github.com/nix-community/naersk.git"
       },
@@ -180,30 +113,16 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1672968032,
-        "narHash": "sha256-26Jns3GmHem44a06UN5Rj/KOD9qNJThyQrom02Ijur8=",
+        "lastModified": 1706515015,
+        "narHash": "sha256-eFfY5A7wlYy3jD/75lx6IJRueg4noE+jowl0a8lIlVo=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "2dea8991d89b9f1e78d874945f78ca15f6954289",
-        "type": "github"
-      },
-      "original": {
-        "id": "nixpkgs",
-        "type": "indirect"
-      }
-    },
-    "nixpkgs_2": {
-      "locked": {
-        "lastModified": 1700403855,
-        "narHash": "sha256-Q0Uzjik9kUTN9pd/kp52XJi5kletBhy29ctBlAG+III=",
-        "owner": "NixOS",
-        "repo": "nixpkgs",
-        "rev": "0c5678df521e1407884205fe3ce3cf1d7df297db",
+        "rev": "f4a8d6d5324c327dcc2d863eb7f3cc06ad630df4",
         "type": "github"
       },
       "original": {
         "owner": "NixOS",
-        "ref": "nixos-23.05",
+        "ref": "nixos-23.11",
         "repo": "nixpkgs",
         "type": "github"
       }
@@ -212,25 +131,20 @@
       "inputs": {
         "devshell": "devshell",
         "fenix": "fenix",
-        "fpga-project": "fpga-project",
         "hypervisor": "hypervisor",
-        "nixpkgs": "nixpkgs_2",
+        "nixpkgs": "nixpkgs",
         "utils": "utils",
-        "xilinx-flake-utils": [
-          "fpga-project",
-          "xilinx-flake-utils"
-        ],
         "xng-utils": "xng-utils"
       }
     },
     "rust-analyzer-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1700502585,
-        "narHash": "sha256-e+67TsyI2akFHITDD+gz1Paf7vY3mH5mRnZq5Md8VfA=",
+        "lastModified": 1706641601,
+        "narHash": "sha256-/4U323L9F6wlBGvGBoE3+D6Af+dLJA+mq0QXbuNxohc=",
         "owner": "rust-lang",
         "repo": "rust-analyzer",
-        "rev": "1a5cee17311fa0bb55757b382be918520b6ac2b4",
+        "rev": "9a832c47e85e94496e10e1e81636d3d89afeb0d4",
         "type": "github"
       },
       "original": {
@@ -275,53 +189,16 @@
         "systems": "systems_2"
       },
       "locked": {
-        "lastModified": 1694529238,
-        "narHash": "sha256-zsNZZGTGnMOf9YpHKJqMSsa0dXbfmxeoJ7xHlrt+xmY=",
+        "lastModified": 1705309234,
+        "narHash": "sha256-uNRRNRKmJyCRC/8y1RqBkqWBLM034y4qN7EprSdmgyA=",
         "owner": "numtide",
         "repo": "flake-utils",
-        "rev": "ff7b65b44d01cf9ba6a71320833626af21126384",
+        "rev": "1ef2e671c3b0c19053962c07dbda38332dcebf26",
         "type": "github"
       },
       "original": {
         "owner": "numtide",
         "repo": "flake-utils",
-        "type": "github"
-      }
-    },
-    "vivado-boards": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1673473276,
-        "narHash": "sha256-tafHRfzQ0G8tq4sV8WRvwwRP4YAVIbVmq+xIp4+N4mE=",
-        "owner": "Digilent",
-        "repo": "vivado-boards",
-        "rev": "e5f0728cd284d10080ae8eb03fc86e7b5eafcb72",
-        "type": "github"
-      },
-      "original": {
-        "owner": "Digilent",
-        "ref": "master",
-        "repo": "vivado-boards",
-        "type": "github"
-      }
-    },
-    "xilinx-flake-utils": {
-      "inputs": {
-        "devshell": "devshell_2",
-        "flake-utils": "flake-utils",
-        "nixpkgs": "nixpkgs"
-      },
-      "locked": {
-        "lastModified": 1676549838,
-        "narHash": "sha256-vZ/BQz9LWlxfWQgPgA36oJl+V6/4x/aOTDa7o8l5miU=",
-        "owner": "aeronautical-informatics",
-        "repo": "xilinx-flake-utils",
-        "rev": "0ffd8d370bf63bed29646b5d3341d2574e651703",
-        "type": "github"
-      },
-      "original": {
-        "owner": "aeronautical-informatics",
-        "repo": "xilinx-flake-utils",
         "type": "github"
       }
     },

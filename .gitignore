@@ -6,3 +6,5 @@ result
 **/target
 /outputs
 *.orig
+hw_export.xsa
+xng-image

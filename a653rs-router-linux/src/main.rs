@@ -63,7 +63,6 @@ extern "C" fn entry_point() {
             Err(Error::Port(e)) => trace!("Port send/receive failed temporarily: {}", e),
             Err(e) => debug!("Failed to forward message: {}", e),
         }
-        //<ApexLinuxPartition as ApexPartitionP4>::set_partition_mode(OperatingMode::Idle).unwrap();
     }
 }
 

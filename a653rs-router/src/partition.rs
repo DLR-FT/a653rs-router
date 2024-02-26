@@ -12,7 +12,10 @@ use crate::{
     router::{Router, RouterResources},
 };
 
-/// Router
+/// Router state.
+///
+/// This stores the structs by which the router prots, interfaces and processes
+/// can be accessed.
 #[derive(Debug)]
 pub struct RouterState<H, P, const IFS: usize, const PORTS: usize>
 where

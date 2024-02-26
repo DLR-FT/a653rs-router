@@ -170,8 +170,6 @@ where
             return Err(InterfaceError::NoData);
         }
         trace!(begin_network_receive, id.0 as u16);
-        // Get rid of one buffer? Should be possible to decode directly inside
-        // RX-Buffer.
         let mut limit = 0;
         let mut queue_has_eof = false;
         while limit < u8::MAX && !queue_has_eof {

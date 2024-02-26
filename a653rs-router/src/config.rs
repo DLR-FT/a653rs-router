@@ -117,7 +117,7 @@ impl From<QueuingDiscipline> for ApexQueuingDiscipline {
     }
 }
 
-/// Sampling port receiver configuration
+/// Queuing port receiver configuration
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct QueuingInCfg {
@@ -129,7 +129,7 @@ pub struct QueuingInCfg {
     pub msg_size: MessageSize,
 }
 
-/// Sampling port sender configuration
+/// Queuing port sender configuration
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct QueuingOutCfg {
@@ -222,7 +222,7 @@ impl<const IN: usize, const OUT: usize, const IFS: usize, const PORTS: usize>
 /// Configuration error
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RouterConfigError {
-    /// The specified source of the a virtual link is invalid.
+    /// The specified source of the virtual link is invalid.
     Source,
     /// The virtual links that are using an interface produce more traffic than
     /// can be serviced by the interface.
@@ -368,7 +368,7 @@ impl<const IN: usize, const OUT: usize, const IFS: usize, const PORTS: usize>
     ///
     /// # Errors
     /// Returns an error if the available storage is insufficient for storing
-    /// the interface configuration or the port name was invalid.
+    /// the interface configuration or the name was invalid.
     pub fn interface(
         &mut self,
         name: &str,

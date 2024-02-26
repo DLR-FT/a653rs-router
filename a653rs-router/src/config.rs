@@ -224,9 +224,6 @@ impl<const IN: usize, const OUT: usize, const IFS: usize, const PORTS: usize>
 pub enum RouterConfigError {
     /// The specified source of the virtual link is invalid.
     Source,
-    /// The virtual links that are using an interface produce more traffic than
-    /// can be serviced by the interface.
-    DataRate,
     /// The specified port of a virtual link is invalid.
     Port,
     /// The specified virtual link is invalid either because it already exists

@@ -1,20 +1,21 @@
-cargo-features = ["per-package-target"]
-
 [package]
 name = "a653rs-router-zynq7000"
 version = "0.1.0"
 edition = "2021"
 
 [features]
-log = []
-trace = ["dep:small-trace"]
+log = [
+  "dep:xng-rs-log",
+]
+trace = [
+  "dep:small-trace",
+]
 partition = [
   "a653rs-router/serde",
   "dep:a653rs",
   "dep:a653rs-xng",
-  "dep:log",
   "dep:postcard",
-  "dep:xng-rs-log",
+  "dep:log",
 ]
 
 [[example]]
@@ -22,12 +23,11 @@ name = "partition"
 path = "src/partition.rs"
 required-features = ["partition"]
 crate-type = ["staticlib"]
-forced-target = "armv7a-none-eabi"
 
 [dependencies]
 a653rs = { workspace = true, optional = true }
 a653rs-router = { path = "../a653rs-router" }
-a653rs-xng = { workspace = true, optional = true, features = ["panic_handler"] }
+a653rs-xng = { workspace = true, optional = true }
 corncobs.workspace = true
 crc16.workspace = true
 heapless.workspace = true
@@ -37,3 +37,8 @@ postcard = { workspace = true, features = ["heapless"], optional = true }
 small-trace = { path = "../small-trace", optional = true }
 uart_xilinx.workspace = true
 xng-rs-log = { workspace = true, optional = true }
+
+[target.'cfg(target_arch = "armv7a")'.dependencies.a653rs-xng]
+workspace = true
+optional = true
+features = ["panic_handler"]

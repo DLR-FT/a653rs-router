@@ -4,6 +4,7 @@ pkgs.devshell.mkShell {
   name = "a653rs-router-devshell";
   packages = with pkgs; [
     cargo-audit
+    cargo-bloat
     cargo-llvm-cov
     cargo-nextest
     cargo-outdated
@@ -23,6 +24,7 @@ pkgs.devshell.mkShell {
     {
       name = "run-checks";
       command = ''
+        set +x
         treefmt --fail-on-change
         cargo check --all-features
         cargo test --all-features

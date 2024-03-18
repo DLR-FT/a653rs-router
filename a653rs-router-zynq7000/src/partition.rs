@@ -2,11 +2,13 @@
 
 use a653rs::bindings::{ApexPartitionP4, OperatingMode};
 use a653rs::prelude::{Name, Partition, PartitionExt, StartContext};
-use a653rs_router::prelude::{Error, RouterConfig, RouterState, VirtualLinksConfig};
+use a653rs_router::prelude::{RouterConfig, RouterState, VirtualLinksConfig};
 use a653rs_router_zynq7000::UartNetworkInterface;
 use a653rs_xng::apex::XngHypervisor;
 use core::str::FromStr;
 use log::*;
+
+#[cfg(feature = "log")]
 use xng_rs_log::XalLogger;
 
 const MTU: usize = 2_000;
@@ -20,6 +22,7 @@ const CONFIG_MEMORY_AREA_SIZE: usize = 10_000;
 
 type NetIntf = UartNetworkInterface<MTU>;
 
+#[cfg(feature = "log")]
 static LOGGER: XalLogger = XalLogger;
 
 static mut ROUTER: Option<RouterState<XngHypervisor, NetIntf, INTERFACES, PORTS>> = None;
@@ -66,19 +69,39 @@ extern "C" fn entry_point() {
     let cfg = unsafe { VL_CFG.as_ref() }.unwrap().clone();
     let mut router = router.router::<INPUTS, OUTPUTS, MTU>(cfg).unwrap();
     loop {
-        match router.forward::<MTU, _>(&XngHypervisor) {
-            Ok(Some(v)) => debug!("Forwarded VL {}", v),
-            Ok(None) => trace!("Scheduled no VL"),
-            Err(Error::Port(e)) => trace!("Port send/receive failed temporarily: {}", e),
-            Err(e) => debug!("Failed to forward message on VL: {}", e),
+        let res = router.forward::<MTU, _>(&XngHypervisor);
+        #[cfg(feature = "log")]
+        {
+            use a653rs_router::prelude::Error;
+            use log::*;
+            match res {
+                Ok(Some(v)) => debug!("Forwarded VL {}", v),
+                Ok(None) => trace!("Scheduled no VL"),
+                Err(Error::Port(e)) => trace!("Port send/receive failed temporarily: {}", e),
+                Err(e) => debug!("Failed to forward message on VL: {}", e),
+            }
+        }
+
+        #[cfg(not(feature = "log"))]
+        {
+            let _res = res;
         }
     }
 }
 
 #[no_mangle]
 pub extern "C" fn main() {
-    unsafe { set_logger_racy(&LOGGER).unwrap() };
-    set_max_level(log::LevelFilter::Info);
+    #[cfg(feature = "log")]
+    {
+        unsafe { set_logger_racy(&LOGGER).unwrap() };
+        set_max_level(log::LevelFilter::Info);
+    }
     info!("Running router main");
     RouterPartition.run()
+}
+
+#[cfg(not(feature = "log"))]
+#[panic_handler]
+fn my_panic(_info: &core::panic::PanicInfo) -> ! {
+    loop {}
 }

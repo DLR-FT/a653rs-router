@@ -19,7 +19,7 @@ default-members = [
   "a653rs-router-cfg",
   "a653rs-router-linux",
   "a653rs-router-tests",
-  #"a653rs-router-zynq7000",
+  "a653rs-router-zynq7000",
   "small-trace",
   "small-trace-gpio",
 ]
@@ -42,3 +42,10 @@ a653rs-linux = { git = "https://github.com/florianhartung/a653rs-linux.git", bra
 a653rs-postcard = { git = "https://github.com/DLR-FT/a653rs-postcard.git", branch = "main", default-features = false }
 a653rs-xng = { git = "https://github.com/DLR-FT/a653rs-xng.git", branch = "main", default-features = false }
 xng-rs-log = { git = "https://github.com/DLR-FT/xng-rs-log.git", branch = "main", default-features = false }
+
+[profile.release]
+opt-level = "z"     # Optimize for size.
+lto = true          # Enable Link Time Optimization
+codegen-units = 1   # Reduce number of codegen units to increase optimizations.
+panic = "unwind"     # Abort on panic
+strip = true        # Automatically strip symbols from the binary.

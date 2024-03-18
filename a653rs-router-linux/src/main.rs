@@ -1,10 +1,9 @@
 use a653rs::bindings::ApexPartitionP4;
 use a653rs::prelude::{Name, OperatingMode, Partition, PartitionExt, StartContext};
 use a653rs_linux::partition::{ApexLinuxPartition, ApexLogger};
-use a653rs_router::prelude::{Error, RouterConfig, RouterState, VirtualLinksConfig};
+use a653rs_router::prelude::{RouterConfig, RouterState, VirtualLinksConfig};
 use a653rs_router_linux::*;
 use core::str::FromStr;
-use log::{debug, trace};
 use std::{fs::File, io::BufReader};
 
 const MTU: usize = 2_000;
@@ -57,12 +56,21 @@ extern "C" fn entry_point() {
     let cfg = unsafe { VL_CFG.as_ref() }.unwrap().clone();
     let mut state = router.router::<INPUTS, OUTPUTS, MTU>(cfg).unwrap();
     loop {
-        match state.forward::<MTU, _>(&ApexLinuxPartition) {
-            Ok(Some(v)) => debug!("Forwarded VL {}", v),
-            Ok(None) => trace!("Scheduled no VL"),
-            Err(Error::Port(e)) => trace!("Port send/receive failed temporarily: {}", e),
-            Err(e) => debug!("Failed to forward message: {}", e),
+        let res = state.forward::<MTU, _>(&ApexLinuxPartition);
+        #[cfg(feauture = "log")]
+        {
+            use a653rs_router::prelude::Error;
+            use log::{debug, trace};
+
+            match res {
+                Ok(Some(v)) => debug!("Forwarded VL {}", v),
+                Ok(None) => trace!("Scheduled no VL"),
+                Err(Error::Port(e)) => trace!("Port send/receive failed temporarily: {}", e),
+                Err(e) => debug!("Failed to forward message: {}", e),
+            }
         }
+        #[cfg(not(feauture = "log"))]
+        let _res = res;
     }
 }
 

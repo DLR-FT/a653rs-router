@@ -4,6 +4,7 @@
 
 #[macro_use]
 mod macros;
+
 mod network;
 
 pub use network::UartNetworkInterface;

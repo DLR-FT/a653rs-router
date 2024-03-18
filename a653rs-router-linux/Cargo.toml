@@ -6,17 +6,13 @@ edition = "2021"
 [features]
 default = ["partition"]
 log = ["dep:log", "a653rs-router/log"]
-trace = ["dep:log", "dep:small-trace", "a653rs-router/trace"]
-partition = ["dep:a653rs", "dep:serde_yaml", "dep:log"]
+trace = ["dep:small-trace", "a653rs-router/trace"]
+partition = ["dep:a653rs", "dep:serde_yaml"]
 
 [[bin]]
 name = "partition"
 path = "src/main.rs"
-required-features = [
-  "log",
-  "partition",
-  "trace",
-]
+required-features = [ "partition" ]
 
 [dependencies]
 a653rs = { workspace = true, optional = true }

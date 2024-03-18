@@ -2,8 +2,8 @@ use a653rs_router::prelude::{
     CreateNetworkInterfaceId, InterfaceConfig, InterfaceError, NetworkInterfaceId,
     PlatformNetworkInterface, VirtualLinkId,
 };
+use cobs::{decode_in_place, encode};
 use core::mem::size_of;
-use corncobs::{decode_in_place, encode_buf, max_encoded_len};
 use heapless::spsc::Queue;
 use once_cell::unsync::Lazy;
 use uart_xilinx::MmioUartAxi16550;
@@ -62,7 +62,7 @@ impl<'p, const MTU: usize> UartFrame<'p, MTU> {
         buf[self.pl.len() + 2..self.pl.len() + 4].copy_from_slice(&crc);
 
         // COBS encode
-        let enclen = encode_buf(&buf[0..self.pl.len() + 4], encoded);
+        let enclen = encode(&buf[0..self.pl.len() + 4], encoded);
 
         Ok(&encoded[..enclen])
     }
@@ -265,4 +265,15 @@ where
     ) -> Result<NetworkInterfaceId, InterfaceError> {
         Ok(next_id())
     }
+}
+
+const fn max_encoded_len(raw_len: usize) -> usize {
+    let overhead = if raw_len == 0 {
+        // Just 0xff
+        1
+    } else {
+        (raw_len + 253) / 254
+    };
+    // +1 for terminator byte.
+    raw_len + overhead + 1
 }

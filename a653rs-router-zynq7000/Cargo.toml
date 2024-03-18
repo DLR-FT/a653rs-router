@@ -28,7 +28,7 @@ crate-type = ["staticlib"]
 a653rs = { workspace = true, optional = true }
 a653rs-router = { path = "../a653rs-router" }
 a653rs-xng = { workspace = true, optional = true }
-corncobs.workspace = true
+cobs.workspace = true
 crc16.workspace = true
 heapless.workspace = true
 log = { workspace = true, optional = true }

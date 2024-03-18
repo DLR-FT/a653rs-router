@@ -12,6 +12,7 @@ trace = [
 ]
 partition = [
   "a653rs-router/serde",
+  "a653rs/bindings",
   "dep:a653rs",
   "dep:a653rs-xng",
   "dep:postcard",

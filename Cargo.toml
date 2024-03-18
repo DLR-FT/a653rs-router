@@ -26,7 +26,7 @@ default-members = [
 
 [workspace.dependencies]
 a653rs = { version = "0.5", default-features = false }
-cobs = { version = "0.2.3" }
+cobs = { version = "0.2.3", default-features = false }
 crc16 = { version = "0.4.0", default-features = false }
 heapless = { version = "0.8", default-features = false }
 log = "0"

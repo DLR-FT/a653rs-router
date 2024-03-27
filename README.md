@@ -27,9 +27,9 @@ dual licensed as above, without any additional terms or conditions.
 
 ## Development
 
-The development environment of this project is managed using [nix](https://
-nixos.org/download.html#download-nix). To enter the environment, run
-`nix develop`.
+The development environment of this project is managed using
+[nix](https://nixos.org/download.html#download-nix).
+To enter the environment, run `nix develop`.
 
 ## Flashing the XNG image
 

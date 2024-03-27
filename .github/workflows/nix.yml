@@ -24,7 +24,6 @@ jobs:
       - uses: cachix/install-nix-action@v26
         with:
           nix_path: nixpkgs=channel:nixos-stable
-          extra_nix_config:
-            github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
       - name: ${{ matrix.command }}
         run: nix develop --command ${{ matrix.command }}

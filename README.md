@@ -1,5 +1,7 @@
 # a653rs-router
 
+[![Checks](https://github.com/DLR-FT/a653rs-router/actions/workflows/nix.yml/badge.svg)](https://github.com/DLR-FT/a653rs-router/actions/workflows/nix.yml)
+
 This is a prototype of a message router for an ARINC 653 P4 compliant
 hypervisor. The project's goal is to explore the possiblilties for
 network-transparent inter-partition APEX channels in the context of redundancy

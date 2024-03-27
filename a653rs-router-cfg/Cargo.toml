@@ -1,8 +1,24 @@
 [package]
 name = "a653rs-router-cfg"
-description = "Compiles the configuration for the router to the postcard binary format"
 version = "0.1.0"
 edition = "2021"
+authors = [
+  "Tim Schubert <dadada@dadada.li>",
+]
+description = "Converts the configuration format for a653rs-router from YAML to postcard"
+license = "MIT OR Apache-2.0"
+keywords = [
+  "arinc",
+  "avionics",
+  "embedded",
+  "no_std",
+  "network"
+]
+categories = [
+  "aerospace",
+  "embedded",
+  "no_std"
+]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

@@ -27,6 +27,7 @@ pkgs.devshell.mkShell {
         set +x
         treefmt --fail-on-change
         cargo check --all-features
+        cargo clippy --all-features
         cargo test --all-features
         cargo doc --all-features
       '';

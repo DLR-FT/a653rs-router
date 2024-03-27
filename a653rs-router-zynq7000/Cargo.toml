@@ -2,6 +2,23 @@
 name = "a653rs-router-zynq7000"
 version = "0.1.0"
 edition = "2021"
+authors = [
+  "Tim Schubert <dadada@dadada.li>",
+]
+description = "Instantiation of a653rs-router for a653rs-xng on Zynq7000"
+license = "MIT OR Apache-2.0"
+keywords = [
+  "arinc",
+  "avionics",
+  "embedded",
+  "no_std",
+  "network"
+]
+categories = [
+  "aerospace",
+  "embedded",
+  "no_std"
+]
 
 [features]
 log = [

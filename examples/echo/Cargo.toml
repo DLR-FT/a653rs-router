@@ -2,6 +2,24 @@
 name = "echo"
 version = "0.1.0"
 edition = "2021"
+authors = [
+  "Tim Schubert <dadada@dadada.li>",
+  "Breitmoser-Widdecke, Nora Kristin <nora.breitmoser-widdecke@dlr.de>"
+]
+license = "MIT OR Apache-2.0"
+keywords = [
+  "arinc",
+  "avionics",
+  "embedded",
+  "no_std",
+  "network"
+]
+description = "ARINC 653 application partition for sending and receiving echo messages"
+categories = [
+  "aerospace",
+  "embedded",
+  "no_std"
+]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

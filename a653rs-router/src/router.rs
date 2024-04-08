@@ -153,18 +153,9 @@ impl<'a, const IN: usize, const OUT: usize> Router<'a, IN, OUT> {
 pub trait RouterInput {
     /// Receives a message and store it into `buf`.
     ///
-    /// The returned `VirtualLinkId` indicates for which virtual link the
-    /// received data is destined. Usually, this will be the same virtual
-    /// link as has been specified by `VirtualLinkId`, but when the `Input`
-    /// multiplexes multiple virtual links, the next received message may be
-    /// (unexpectedly) for another virtual link. Implementations may choose to
-    /// indicate this or return an error, if they should do not receive
-    /// multiple virtual links.
-    fn receive<'a>(
-        &self,
-        vl: &VirtualLinkId,
-        buf: &'a mut [u8],
-    ) -> Result<(VirtualLinkId, &'a [u8]), PortError>;
+    /// # Errors
+    /// May return an error if receiving the message failed.
+    fn receive<'a>(&self, buf: &'a mut [u8]) -> Result<&'a [u8], PortError>;
 
     /// Maximum transfer unit
     fn mtu(&self) -> PayloadSize;
@@ -198,12 +189,11 @@ impl<'a, const I: usize, const O: usize> RouteTable<'a, I, O> {
     fn route<const B: usize>(&self, vl: &VirtualLinkId) -> Result<(), Error> {
         let buf = &mut [0u8; B];
         let input = self.inputs.get(vl).ok_or(RouteError::InvalidVl)?;
-        // This vl may be different, than the one specified.
-        let (vl, buf) = input.receive(vl, buf)?;
+        let buf = input.receive(buf)?;
         router_debug!("Received from {vl:?}: {buf:?}");
-        let outs = self.outputs.get(&vl).ok_or(RouteError::InvalidVl)?;
+        let outs = self.outputs.get(vl).ok_or(RouteError::InvalidVl)?;
         for out in outs.into_iter() {
-            out.send(&vl, buf).map_err(|e| {
+            out.send(vl, buf).map_err(|e| {
                 router_debug!("Failed to route {:?}", vl);
                 e
             })?;
@@ -261,28 +251,37 @@ impl<'a, const I: usize, const O: usize> RouteTable<'a, I, O> {
         }
         let mut b = &mut StateBuilder::default();
         for (v, cfg) in virtual_links_cfg.into_iter() {
+            // Check for multiple uses of same source
+            if virtual_links_cfg
+                .iter()
+                .filter(|(_, c)| c.src == cfg.src)
+                .count()
+                > 1
+            {
+                return Err(RouterConfigError::Source);
+            }
             let inp = inputs.get(&cfg.src).ok_or_else(|| {
                 router_debug!("Unknown input: {}", cfg.src.deref());
                 RouterConfigError::Destination
             })?;
-            let input_msg_size = inp.mtu();
             let outs: Result<Vec<_, O>, RouterConfigError> = cfg
                 .dsts
                 .iter()
                 .map(|d| {
-                    outputs
-                        .get(d)
-                        .ok_or_else(|| {
-                            router_debug!("Unknown output {}", d.deref());
-                            RouterConfigError::Source
-                        })
-                        .and_then(|outp| {
-                            if outp.mtu() == input_msg_size {
-                                Ok(outp)
-                            } else {
-                                Err(RouterConfigError::Destination)
-                            }
-                        })
+                    // Check for multiple uses of same destination
+                    if virtual_links_cfg
+                        .iter()
+                        .flat_map(|(_, c)| c.dsts.iter())
+                        .filter(|d_name| *d_name == d)
+                        .count()
+                        > 1
+                    {
+                        return Err(RouterConfigError::Destination);
+                    }
+                    outputs.get(d).ok_or_else(|| {
+                        router_debug!("Unknown output {}", d.deref());
+                        RouterConfigError::Source
+                    })
                 })
                 .map(|d| d.copied())
                 .collect();
@@ -317,18 +316,27 @@ impl<'a, const I: usize, const O: usize> Debug for StateBuilder<'a, I, O> {
 }
 
 impl<'a, const I: usize, const O: usize> StateBuilder<'a, I, O> {
-    pub fn route(
+    fn route(
         &mut self,
         vl: &VirtualLinkId,
         input: &'a dyn RouterInput,
-        output: &Vec<&'a dyn RouterOutput, O>,
+        outputs: &Vec<&'a dyn RouterOutput, O>,
     ) -> Result<&mut Self, RouterConfigError> {
         if self.vls.contains_key(vl) {
             return Err(RouterConfigError::VirtualLink);
         }
+
+        // Check if input and output message sizes match
+        let input_msg_size = input.mtu();
+        for outp in outputs.iter() {
+            if outp.mtu() != input_msg_size {
+                return Err(RouterConfigError::Destination);
+            }
+        }
+
         _ = self
             .vls
-            .insert(*vl, (input, output.clone()))
+            .insert(*vl, (input, outputs.clone()))
             .map_err(|_e| RouterConfigError::Storage)?;
         Ok(self)
     }

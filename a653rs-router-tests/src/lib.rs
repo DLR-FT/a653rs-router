@@ -39,7 +39,7 @@ use a653rs::bindings::{
     QueuingPortId, Validity,
 };
 use a653rs_router::prelude::{
-    CreateNetworkInterfaceId, NetworkInterfaceId, PlatformNetworkInterface, VirtualLinkId,
+    CreateNetworkInterfaceId, NetworkInterfaceId, PlatformNetworkInterface,
 };
 
 #[derive(Debug)]
@@ -181,11 +181,8 @@ impl PlatformNetworkInterface for DummyNetIntf {
     fn platform_interface_receive_unchecked(
         _id: NetworkInterfaceId,
         buffer: &'_ mut [u8],
-    ) -> Result<
-        (a653rs_router::prelude::VirtualLinkId, &'_ [u8]),
-        a653rs_router::prelude::InterfaceError,
-    > {
-        Ok((VirtualLinkId::from(1u32), buffer))
+    ) -> Result<&'_ [u8], a653rs_router::prelude::InterfaceError> {
+        Ok(buffer)
     }
 }
 

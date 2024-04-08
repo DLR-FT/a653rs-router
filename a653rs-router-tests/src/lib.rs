@@ -172,7 +172,6 @@ pub struct DummyNetIntf;
 impl PlatformNetworkInterface for DummyNetIntf {
     fn platform_interface_send_unchecked(
         _id: NetworkInterfaceId,
-        _vl: a653rs_router::prelude::VirtualLinkId,
         _buffer: &[u8],
     ) -> Result<usize, a653rs_router::prelude::InterfaceError> {
         Ok(1)

@@ -1,6 +1,6 @@
 use a653rs_linux::partition::ApexLinuxPartition;
 use a653rs_router::prelude::*;
-use std::{mem::size_of, net::UdpSocket};
+use std::net::UdpSocket;
 
 #[derive(Debug)]
 pub struct UdpNetworkInterface<const MTU: usize>;
@@ -15,14 +15,8 @@ impl<const MTU: usize> PlatformNetworkInterface for UdpNetworkInterface<MTU> {
         let sock = get_interface(id)?;
         match sock.sock.recv(buffer) {
             Ok(read) => {
-                let vl_id_len = size_of::<VirtualLinkId>();
-                let vl_id = &buffer[0..vl_id_len];
-                let mut vl_id_buf = [0u8; size_of::<VirtualLinkId>()];
-                vl_id_buf.copy_from_slice(vl_id);
-                let vl_id = u32::from_be_bytes(vl_id_buf);
-                let _vl_id = VirtualLinkId::from_u32(vl_id);
-                let msg = &buffer[vl_id_len..read];
-                router_trace!("Received message from UDP socket for VL {vl_id}: {:?}", msg);
+                let msg = &buffer[..read];
+                router_trace!("Received message from UDP socket");
                 Ok(msg)
             }
             Err(_) => Err(InterfaceError::NoData),
@@ -31,18 +25,15 @@ impl<const MTU: usize> PlatformNetworkInterface for UdpNetworkInterface<MTU> {
 
     fn platform_interface_send_unchecked(
         id: NetworkInterfaceId,
-        vl: VirtualLinkId,
         buffer: &[u8],
     ) -> Result<usize, InterfaceError> {
         // This is safe, because the interfaces are only created before the list of
         // interfaces is used
         let sock = get_interface(id)?;
-        let vlid = vl.into_inner().to_be_bytes();
-        let udp_buf = [vlid.as_slice(), buffer].concat();
-        let res = sock.sock.send(&udp_buf);
+        let res = sock.sock.send(buffer);
         match res {
             Ok(trans) => {
-                router_trace!("Send {} bytes to UDP socket", udp_buf.len());
+                router_trace!("Send {} bytes to UDP socket", buffer.len());
                 Ok(trans)
             }
             Err(e) => {

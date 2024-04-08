@@ -82,7 +82,7 @@ impl<H: ApexQueuingPortP4> RouterInput for QueuingIn<H> {
 }
 
 impl<H: ApexQueuingPortP4> RouterOutput for QueuingOut<H> {
-    fn send(&self, _vl: &VirtualLinkId, buf: &[u8]) -> Result<(), PortError> {
+    fn send(&self, buf: &[u8]) -> Result<(), PortError> {
         let buf = buf.validate_write(self.inner.msg_size)?;
         let timeout = Duration::from_micros(10).as_nanos() as ApexSystemTime;
         <H as ApexQueuingPortP4>::send_queuing_message(self.inner.id, buf, timeout)
@@ -95,7 +95,7 @@ impl<H: ApexQueuingPortP4> RouterOutput for QueuingOut<H> {
 }
 
 impl<H: ApexSamplingPortP4> RouterOutput for SamplingOut<H> {
-    fn send(&self, _vl: &VirtualLinkId, buf: &[u8]) -> Result<(), PortError> {
+    fn send(&self, buf: &[u8]) -> Result<(), PortError> {
         let buf = buf.validate_write(self.inner.msg_size)?;
         <H as ApexSamplingPortP4>::write_sampling_message(self.inner.id, buf)
             .map_err(|_e| PortError::Send)
@@ -210,10 +210,10 @@ impl<const M: MessageSize, S: ApexSamplingPortP4> RouterInput for SamplingPortDe
 }
 
 impl<const M: MessageSize, S: ApexSamplingPortP4> RouterOutput for SamplingPortSource<M, S> {
-    fn send(&self, vl: &VirtualLinkId, buf: &[u8]) -> Result<(), PortError> {
-        router_bench!(begin_apex_send, vl.0 as u16);
+    fn send(&self, buf: &[u8]) -> Result<(), PortError> {
+        router_bench!(begin_apex_send, self.id() as u16);
         let res = self.send(buf);
-        router_bench!(end_apex_send, vl.0 as u16);
+        router_bench!(end_apex_send, self.id() as u16);
         res.map_err(|_e| PortError::Send)?;
         Ok(())
     }
@@ -243,11 +243,11 @@ impl<const M: MessageSize, const R: MessageRange, Q: ApexQueuingPortP4> RouterIn
 impl<const M: MessageSize, const R: MessageRange, Q: ApexQueuingPortP4> RouterOutput
     for QueuingPortSender<M, R, Q>
 {
-    fn send(&self, vl: &VirtualLinkId, buf: &[u8]) -> Result<(), PortError> {
+    fn send(&self, buf: &[u8]) -> Result<(), PortError> {
         let timeout = SystemTime::Normal(Duration::from_micros(10));
-        router_bench!(begin_apex_send, vl.0 as u16);
+        router_bench!(begin_apex_send, self.id() as u16);
         let res = self.send(buf, timeout);
-        router_bench!(end_apex_send, vl.0 as u16);
+        router_bench!(end_apex_send, self.id() as u16);
         res.map_err(|_e| PortError::Send)?;
         Ok(())
     }

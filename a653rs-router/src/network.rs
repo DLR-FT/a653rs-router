@@ -55,10 +55,7 @@ impl<H: PlatformNetworkInterface> NetworkInterface<H> {
     }
 
     /// Receives data from the interface.
-    pub fn receive<'a>(
-        &self,
-        buf: &'a mut [u8],
-    ) -> Result<(VirtualLinkId, &'a [u8]), InterfaceError> {
+    pub fn receive<'a>(&self, buf: &'a mut [u8]) -> Result<&'a [u8], InterfaceError> {
         if buf.len() < self.mtu {
             return Err(InterfaceError::InsufficientBuffer);
         }
@@ -81,7 +78,7 @@ pub trait PlatformNetworkInterface {
     fn platform_interface_receive_unchecked(
         id: NetworkInterfaceId,
         buffer: &'_ mut [u8],
-    ) -> Result<(VirtualLinkId, &'_ [u8]), InterfaceError>;
+    ) -> Result<&'_ [u8], InterfaceError>;
 }
 
 /// Creates a network interface id.
@@ -148,11 +145,7 @@ impl InterfaceConfig {
 }
 
 impl<H: PlatformNetworkInterface> RouterInput for NetworkInterface<H> {
-    fn receive<'a>(
-        &self,
-        _vl: &VirtualLinkId,
-        buf: &'a mut [u8],
-    ) -> Result<(VirtualLinkId, &'a [u8]), PortError> {
+    fn receive<'a>(&self, buf: &'a mut [u8]) -> Result<&'a [u8], PortError> {
         NetworkInterface::receive(self, buf).map_err(|e| {
             router_debug!("Failed to receive from network interface: {:?}", e);
             PortError::Receive

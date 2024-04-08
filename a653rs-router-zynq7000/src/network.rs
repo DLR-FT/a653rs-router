@@ -165,7 +165,7 @@ where
     fn platform_interface_receive_unchecked(
         id: NetworkInterfaceId,
         buffer: &'_ mut [u8],
-    ) -> Result<(VirtualLinkId, &'_ [u8]), InterfaceError> {
+    ) -> Result<&'_ [u8], InterfaceError> {
         if unsafe { !UART.uart.is_data_ready() } {
             return Err(InterfaceError::NoData);
         }
@@ -198,11 +198,11 @@ where
             }
         }
         match UartFrame::<MTU>::decode(&mut buf) {
-            Ok((vl, pl)) => {
+            Ok((_vl, pl)) => {
                 let rpl = &mut buffer[0..pl.len()];
                 rpl.copy_from_slice(pl);
                 trace!(end_network_receive, id.0 as u16);
-                Ok((vl, rpl))
+                Ok(rpl)
             }
             _ => {
                 trace!(end_network_receive, id.0 as u16);

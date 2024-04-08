@@ -11,7 +11,7 @@ impl<const MTU: usize> PlatformNetworkInterface for UdpNetworkInterface<MTU> {
     fn platform_interface_receive_unchecked(
         id: NetworkInterfaceId,
         buffer: &'_ mut [u8],
-    ) -> Result<(VirtualLinkId, &'_ [u8]), InterfaceError> {
+    ) -> Result<&'_ [u8], InterfaceError> {
         let sock = get_interface(id)?;
         match sock.sock.recv(buffer) {
             Ok(read) => {
@@ -20,10 +20,10 @@ impl<const MTU: usize> PlatformNetworkInterface for UdpNetworkInterface<MTU> {
                 let mut vl_id_buf = [0u8; size_of::<VirtualLinkId>()];
                 vl_id_buf.copy_from_slice(vl_id);
                 let vl_id = u32::from_be_bytes(vl_id_buf);
-                let vl_id = VirtualLinkId::from_u32(vl_id);
+                let _vl_id = VirtualLinkId::from_u32(vl_id);
                 let msg = &buffer[vl_id_len..read];
                 router_trace!("Received message from UDP socket for VL {vl_id}: {:?}", msg);
-                Ok((vl_id, msg))
+                Ok(msg)
             }
             Err(_) => Err(InterfaceError::NoData),
         }

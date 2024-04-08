@@ -51,17 +51,13 @@ pub(crate) struct QueuingIn<H: ApexQueuingPortP4> {
 }
 
 impl<H: ApexSamplingPortP4> RouterInput for SamplingIn<H> {
-    fn receive<'a>(
-        &self,
-        vl: &VirtualLinkId,
-        buf: &'a mut [u8],
-    ) -> Result<(VirtualLinkId, &'a [u8]), PortError> {
+    fn receive<'a>(&self, buf: &'a mut [u8]) -> Result<&'a [u8], PortError> {
         let buf = buf.validate_read(self.inner.msg_size)?;
         let (_val, len) = unsafe {
             <H as ApexSamplingPortP4>::read_sampling_message(self.inner.id, buf)
                 .map_err(|_e| PortError::Receive)
         }?;
-        Ok((*vl, &buf[..(len as usize)]))
+        Ok(&buf[..(len as usize)])
     }
 
     fn mtu(&self) -> PayloadSize {
@@ -70,18 +66,14 @@ impl<H: ApexSamplingPortP4> RouterInput for SamplingIn<H> {
 }
 
 impl<H: ApexQueuingPortP4> RouterInput for QueuingIn<H> {
-    fn receive<'a>(
-        &self,
-        vl: &VirtualLinkId,
-        buf: &'a mut [u8],
-    ) -> Result<(VirtualLinkId, &'a [u8]), PortError> {
+    fn receive<'a>(&self, buf: &'a mut [u8]) -> Result<&'a [u8], PortError> {
         let buf = buf.validate_read(self.inner.msg_size)?;
         let timeout = Duration::from_micros(10).as_nanos() as ApexSystemTime;
         let (val, _overflow) = unsafe {
             <H as ApexQueuingPortP4>::receive_queuing_message(self.inner.id, timeout, buf)
                 .map_err(|_e| PortError::Receive)
         }?;
-        Ok((*vl, &buf[..val as usize]))
+        Ok(&buf[..val as usize])
     }
 
     fn mtu(&self) -> PayloadSize {
@@ -204,16 +196,12 @@ impl<H: ApexQueuingPortP4> QueuingOut<H> {
 }
 
 impl<const M: MessageSize, S: ApexSamplingPortP4> RouterInput for SamplingPortDestination<M, S> {
-    fn receive<'a>(
-        &self,
-        vl: &VirtualLinkId,
-        buf: &'a mut [u8],
-    ) -> Result<(VirtualLinkId, &'a [u8]), PortError> {
-        router_bench!(begin_apex_receive, vl.0 as u16);
+    fn receive<'a>(&self, buf: &'a mut [u8]) -> Result<&'a [u8], PortError> {
+        router_bench!(begin_apex_receive, self.id() as u16);
         let res = self.receive(buf);
-        router_bench!(end_apex_receive, vl.0 as u16);
+        router_bench!(end_apex_receive, self.id() as u16);
         let (_val, data) = res.map_err(|_e| PortError::Receive)?;
-        Ok((*vl, data))
+        Ok(data)
     }
 
     fn mtu(&self) -> PayloadSize {
@@ -238,17 +226,13 @@ impl<const M: MessageSize, S: ApexSamplingPortP4> RouterOutput for SamplingPortS
 impl<const M: MessageSize, const R: MessageRange, Q: ApexQueuingPortP4> RouterInput
     for QueuingPortReceiver<M, R, Q>
 {
-    fn receive<'a>(
-        &self,
-        vl: &VirtualLinkId,
-        buf: &'a mut [u8],
-    ) -> Result<(VirtualLinkId, &'a [u8]), PortError> {
+    fn receive<'a>(&self, buf: &'a mut [u8]) -> Result<&'a [u8], PortError> {
         let timeout = SystemTime::Normal(Duration::from_micros(10));
-        router_bench!(begin_apex_send, vl.0 as u16);
+        router_bench!(begin_apex_send, self.id() as u16);
         let res = self.receive(buf, timeout);
-        router_bench!(end_apex_send, vl.0 as u16);
+        router_bench!(end_apex_send, self.id() as u16);
         let (buf, _overflow) = res.map_err(|_e| PortError::Receive)?;
-        Ok((*vl, buf))
+        Ok(buf)
     }
 
     fn mtu(&self) -> PayloadSize {

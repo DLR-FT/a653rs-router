@@ -3,6 +3,7 @@ use core::{fmt::Display, marker::PhantomData, str::FromStr, time::Duration};
 
 use crate::{
     config::{QueuingInCfg, QueuingOutCfg, SamplingInCfg, SamplingOutCfg},
+    network::PayloadSize,
     prelude::*,
     router::{RouterInput, RouterOutput},
 };
@@ -62,6 +63,10 @@ impl<H: ApexSamplingPortP4> RouterInput for SamplingIn<H> {
         }?;
         Ok((*vl, &buf[..(len as usize)]))
     }
+
+    fn mtu(&self) -> PayloadSize {
+        self.inner.msg_size as PayloadSize
+    }
 }
 
 impl<H: ApexQueuingPortP4> RouterInput for QueuingIn<H> {
@@ -78,6 +83,10 @@ impl<H: ApexQueuingPortP4> RouterInput for QueuingIn<H> {
         }?;
         Ok((*vl, &buf[..val as usize]))
     }
+
+    fn mtu(&self) -> PayloadSize {
+        self.inner.msg_size as PayloadSize
+    }
 }
 
 impl<H: ApexQueuingPortP4> RouterOutput for QueuingOut<H> {
@@ -87,6 +96,10 @@ impl<H: ApexQueuingPortP4> RouterOutput for QueuingOut<H> {
         <H as ApexQueuingPortP4>::send_queuing_message(self.inner.id, buf, timeout)
             .map_err(|_e| PortError::Send)
     }
+
+    fn mtu(&self) -> PayloadSize {
+        self.inner.msg_size as PayloadSize
+    }
 }
 
 impl<H: ApexSamplingPortP4> RouterOutput for SamplingOut<H> {
@@ -94,6 +107,10 @@ impl<H: ApexSamplingPortP4> RouterOutput for SamplingOut<H> {
         let buf = buf.validate_write(self.inner.msg_size)?;
         <H as ApexSamplingPortP4>::write_sampling_message(self.inner.id, buf)
             .map_err(|_e| PortError::Send)
+    }
+
+    fn mtu(&self) -> PayloadSize {
+        self.inner.msg_size as PayloadSize
     }
 }
 
@@ -198,6 +215,10 @@ impl<const M: MessageSize, S: ApexSamplingPortP4> RouterInput for SamplingPortDe
         let (_val, data) = res.map_err(|_e| PortError::Receive)?;
         Ok((*vl, data))
     }
+
+    fn mtu(&self) -> PayloadSize {
+        M as PayloadSize
+    }
 }
 
 impl<const M: MessageSize, S: ApexSamplingPortP4> RouterOutput for SamplingPortSource<M, S> {
@@ -207,6 +228,10 @@ impl<const M: MessageSize, S: ApexSamplingPortP4> RouterOutput for SamplingPortS
         router_bench!(end_apex_send, vl.0 as u16);
         res.map_err(|_e| PortError::Send)?;
         Ok(())
+    }
+
+    fn mtu(&self) -> PayloadSize {
+        M as PayloadSize
     }
 }
 
@@ -225,6 +250,10 @@ impl<const M: MessageSize, const R: MessageRange, Q: ApexQueuingPortP4> RouterIn
         let (buf, _overflow) = res.map_err(|_e| PortError::Receive)?;
         Ok((*vl, buf))
     }
+
+    fn mtu(&self) -> PayloadSize {
+        M as PayloadSize
+    }
 }
 
 impl<const M: MessageSize, const R: MessageRange, Q: ApexQueuingPortP4> RouterOutput
@@ -237,6 +266,10 @@ impl<const M: MessageSize, const R: MessageRange, Q: ApexQueuingPortP4> RouterOu
         router_bench!(end_apex_send, vl.0 as u16);
         res.map_err(|_e| PortError::Send)?;
         Ok(())
+    }
+
+    fn mtu(&self) -> PayloadSize {
+        M as PayloadSize
     }
 }
 

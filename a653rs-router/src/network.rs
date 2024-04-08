@@ -158,6 +158,10 @@ impl<H: PlatformNetworkInterface> RouterInput for NetworkInterface<H> {
             PortError::Receive
         })
     }
+
+    fn mtu(&self) -> PayloadSize {
+        self.mtu
+    }
 }
 
 impl<H: PlatformNetworkInterface> RouterOutput for NetworkInterface<H> {
@@ -168,6 +172,10 @@ impl<H: PlatformNetworkInterface> RouterOutput for NetworkInterface<H> {
                 router_debug!("Failed to send to network interface: {:?}", e);
                 PortError::Send
             })
+    }
+
+    fn mtu(&self) -> PayloadSize {
+        self.mtu
     }
 }
 

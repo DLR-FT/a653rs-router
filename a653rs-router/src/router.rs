@@ -5,7 +5,7 @@ use crate::{
         InterfacesConfig, PortConfig, PortName, PortsConfig, RouterConfigError, VirtualLinksConfig,
     },
     error::Error,
-    network::{CreateNetworkInterface, NetworkInterface, PlatformNetworkInterface},
+    network::{CreateNetworkInterface, NetworkInterface, PayloadSize, PlatformNetworkInterface},
     ports::{Port, PortError, QueuingIn, QueuingOut, SamplingIn, SamplingOut},
     prelude::InterfaceName,
     scheduler::{DeadlineRrScheduler, ScheduleError, Scheduler, TimeSource},
@@ -165,6 +165,9 @@ pub trait RouterInput {
         vl: &VirtualLinkId,
         buf: &'a mut [u8],
     ) -> Result<(VirtualLinkId, &'a [u8]), PortError>;
+
+    /// Maximum transfer unit
+    fn mtu(&self) -> PayloadSize;
 }
 
 /// An output from a virtual link.
@@ -173,6 +176,9 @@ pub trait RouterOutput {
     ///
     /// Returns a slice to the portion of `buf` that has *not* been transmitted.
     fn send(&self, vl: &VirtualLinkId, buf: &[u8]) -> Result<(), PortError>;
+
+    /// Maximum transfer unit
+    fn mtu(&self) -> PayloadSize;
 }
 
 type FwdTable<'a, const I: usize, const O: usize> =
@@ -259,14 +265,24 @@ impl<'a, const I: usize, const O: usize> RouteTable<'a, I, O> {
                 router_debug!("Unknown input: {}", cfg.src.deref());
                 RouterConfigError::Destination
             })?;
+            let input_msg_size = inp.mtu();
             let outs: Result<Vec<_, O>, RouterConfigError> = cfg
                 .dsts
                 .iter()
                 .map(|d| {
-                    outputs.get(d).ok_or_else(|| {
-                        router_debug!("Unknown output {}", d.deref());
-                        RouterConfigError::Source
-                    })
+                    outputs
+                        .get(d)
+                        .ok_or_else(|| {
+                            router_debug!("Unknown output {}", d.deref());
+                            RouterConfigError::Source
+                        })
+                        .and_then(|outp| {
+                            if outp.mtu() == input_msg_size {
+                                Ok(outp)
+                            } else {
+                                Err(RouterConfigError::Destination)
+                            }
+                        })
                 })
                 .map(|d| d.copied())
                 .collect();

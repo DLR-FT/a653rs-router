@@ -1,6 +1,6 @@
 use a653rs_router::prelude::{
     CreateNetworkInterfaceId, InterfaceConfig, InterfaceError, NetworkInterfaceId,
-    PlatformNetworkInterface, VirtualLinkId,
+    PlatformNetworkInterface,
 };
 use cobs::{decode_in_place, encode};
 use core::mem::size_of;
@@ -21,7 +21,6 @@ mod config {
 }
 
 struct UartFrame<'p, const MTU: usize> {
-    vl: VirtualLinkId,
     pl: &'p [u8],
 }
 
@@ -49,25 +48,21 @@ impl<'p, const MTU: usize> UartFrame<'p, MTU> {
             return Err(());
         }
 
-        // VL ID
-        let vl_id: [u8; 2] = (self.vl.into_inner() as u16).to_be_bytes();
-        buf[0..2].copy_from_slice(&vl_id);
-
         // Payload
-        buf[2..self.pl.len() + 2].copy_from_slice(self.pl);
+        buf[..self.pl.len()].copy_from_slice(self.pl);
 
         // CRC
-        let crc = crc16::State::<crc16::USB>::calculate(&buf[..self.pl.len() + 2]);
+        let crc = crc16::State::<crc16::USB>::calculate(&buf[..self.pl.len()]);
         let crc: [u8; 2] = crc.to_be_bytes();
-        buf[self.pl.len() + 2..self.pl.len() + 4].copy_from_slice(&crc);
+        buf[self.pl.len()..self.pl.len() + 2].copy_from_slice(&crc);
 
         // COBS encode
-        let enclen = encode(&buf[0..self.pl.len() + 4], encoded);
+        let enclen = encode(&buf[0..self.pl.len() + 2], encoded);
 
         Ok(&encoded[..enclen])
     }
 
-    fn decode(buf: &mut [u8]) -> Result<(VirtualLinkId, &[u8]), ()> {
+    fn decode(buf: &mut [u8]) -> Result<&[u8], ()> {
         // COBS decode
         let declen = decode_in_place(buf).or(Err(()))?;
 
@@ -85,12 +80,7 @@ impl<'p, const MTU: usize> UartFrame<'p, MTU> {
             return Err(());
         }
 
-        // VL ID
-        let (vl, pl) = msg.split_at(2);
-        let vl: [u8; 2] = vl.try_into().or(Err(()))?;
-        let vl = u16::from_be_bytes(vl);
-
-        Ok((VirtualLinkId::from_u32(vl as u32), pl))
+        Ok(msg)
     }
 }
 
@@ -198,7 +188,7 @@ where
             }
         }
         match UartFrame::<MTU>::decode(&mut buf) {
-            Ok((_vl, pl)) => {
+            Ok(pl) => {
                 let rpl = &mut buffer[0..pl.len()];
                 rpl.copy_from_slice(pl);
                 trace!(end_network_receive, id.0 as u16);
@@ -213,11 +203,10 @@ where
 
     fn platform_interface_send_unchecked(
         id: NetworkInterfaceId,
-        vl: VirtualLinkId,
         buffer: &[u8],
     ) -> Result<usize, InterfaceError> {
         let mut buf = [0u8; UartFrame::<MTU>::max_encoded_len()];
-        let frame = UartFrame::<MTU> { vl, pl: buffer };
+        let frame = UartFrame::<MTU> { pl: buffer };
 
         let encoded =
             UartFrame::<MTU>::encode(&frame, &mut buf).or(Err(InterfaceError::InvalidData))?;

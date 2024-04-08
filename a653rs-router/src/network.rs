@@ -1,7 +1,7 @@
 use crate::{
     ports::PortError,
     router::{RouterInput, RouterOutput},
-    types::{DataRate, VirtualLinkId},
+    types::DataRate,
 };
 
 use core::{
@@ -45,13 +45,13 @@ pub struct NetworkInterface<P: PlatformNetworkInterface> {
 
 impl<H: PlatformNetworkInterface> NetworkInterface<H> {
     /// Sends data to the interface.
-    pub fn send(&self, vl: &VirtualLinkId, buf: &[u8]) -> Result<usize, InterfaceError> {
+    pub fn send(&self, buf: &[u8]) -> Result<usize, InterfaceError> {
         if buf.len() > self.mtu {
             return Err(InterfaceError::InsufficientBuffer);
         }
 
         router_trace!("Sending to interface");
-        H::platform_interface_send_unchecked(self.id, *vl, buf)
+        H::platform_interface_send_unchecked(self.id, buf)
     }
 
     /// Receives data from the interface.
@@ -69,7 +69,6 @@ pub trait PlatformNetworkInterface {
     /// Send something to the network and report how long it took.
     fn platform_interface_send_unchecked(
         id: NetworkInterfaceId,
-        vl: VirtualLinkId,
         buffer: &[u8],
     ) -> Result<usize, InterfaceError>;
 
@@ -158,13 +157,11 @@ impl<H: PlatformNetworkInterface> RouterInput for NetworkInterface<H> {
 }
 
 impl<H: PlatformNetworkInterface> RouterOutput for NetworkInterface<H> {
-    fn send(&self, vl: &VirtualLinkId, buf: &[u8]) -> Result<(), PortError> {
-        NetworkInterface::send(self, vl, buf)
-            .map(|_| ())
-            .map_err(|e| {
-                router_debug!("Failed to send to network interface: {:?}", e);
-                PortError::Send
-            })
+    fn send(&self, buf: &[u8]) -> Result<(), PortError> {
+        NetworkInterface::send(self, buf).map(|_| ()).map_err(|e| {
+            router_debug!("Failed to send to network interface: {:?}", e);
+            PortError::Send
+        })
     }
 
     fn mtu(&self) -> PayloadSize {

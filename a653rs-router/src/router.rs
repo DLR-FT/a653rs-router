@@ -166,7 +166,7 @@ pub trait RouterOutput {
     /// Sends `buf` to a virtual link on this `Output`.
     ///
     /// Returns a slice to the portion of `buf` that has *not* been transmitted.
-    fn send(&self, vl: &VirtualLinkId, buf: &[u8]) -> Result<(), PortError>;
+    fn send(&self, buf: &[u8]) -> Result<(), PortError>;
 
     /// Maximum transfer unit
     fn mtu(&self) -> PayloadSize;
@@ -193,7 +193,7 @@ impl<'a, const I: usize, const O: usize> RouteTable<'a, I, O> {
         router_debug!("Received from {vl:?}: {buf:?}");
         let outs = self.outputs.get(vl).ok_or(RouteError::InvalidVl)?;
         for out in outs.into_iter() {
-            out.send(vl, buf).map_err(|e| {
+            out.send(buf).map_err(|e| {
                 router_debug!("Failed to route {:?}", vl);
                 e
             })?;

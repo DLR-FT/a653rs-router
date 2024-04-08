@@ -36,6 +36,6 @@ ports:
 interfaces:
   NodeB:
     destination: "192.168.1.2:8082"
-    mtu: 1500
+    mtu: 1000
     rate: 10000000
     source: "0.0.0.0:8081"

@@ -60,7 +60,7 @@ where
         entry_point: extern "C" fn(),
     ) -> Result<Self, Error> {
         Ok(Self {
-            resources: RouterResources::<I, P, IFS, PS>::create::<C>(interfaces, ports)?,
+            resources: RouterResources::<I, P, IFS, PS>::create::<C>(ctx, interfaces, ports)?,
             process: RouterProcess::create(ctx, name, stack_size, entry_point)
                 .map_err(Error::Process)?,
         })

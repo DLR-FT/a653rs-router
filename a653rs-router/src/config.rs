@@ -1,6 +1,7 @@
-use crate::{prelude::InterfaceConfig, types::VirtualLinkId};
-use a653rs::bindings::{
-    MessageRange, MessageSize, QueuingDiscipline as ApexQueuingDiscipline, StackSize,
+use crate::{ports::PortError, prelude::InterfaceConfig, types::VirtualLinkId};
+use a653rs::{
+    bindings::{MessageRange, MessageSize, QueuingDiscipline as ApexQueuingDiscipline, StackSize},
+    prelude::Name,
 };
 use core::{ops::Deref, str::FromStr, time::Duration};
 use heapless::{LinearMap, String, Vec};
@@ -37,6 +38,14 @@ impl Deref for PortName {
 impl From<String<20>> for PortName {
     fn from(value: String<20>) -> Self {
         Self(value)
+    }
+}
+
+impl TryInto<Name> for PortName {
+    type Error = PortError;
+
+    fn try_into(self) -> Result<Name, Self::Error> {
+        Name::from_str(&self).map_err(|_e| PortError::Create)
     }
 }
 

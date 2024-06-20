@@ -195,7 +195,7 @@ impl<H: ApexQueuingPortP4> QueuingOut<H> {
     }
 }
 
-impl<const M: MessageSize, S: ApexSamplingPortP4> RouterInput for SamplingPortDestination<M, S> {
+impl<S: ApexSamplingPortP4> RouterInput for SamplingPortDestination<S> {
     fn receive<'a>(&self, buf: &'a mut [u8]) -> Result<&'a [u8], PortError> {
         router_bench!(begin_apex_receive, self.id() as u16);
         let res = self.receive(buf);
@@ -205,11 +205,11 @@ impl<const M: MessageSize, S: ApexSamplingPortP4> RouterInput for SamplingPortDe
     }
 
     fn mtu(&self) -> PayloadSize {
-        M as PayloadSize
+        self.size() as PayloadSize
     }
 }
 
-impl<const M: MessageSize, S: ApexSamplingPortP4> RouterOutput for SamplingPortSource<M, S> {
+impl<S: ApexSamplingPortP4> RouterOutput for SamplingPortSource<S> {
     fn send(&self, buf: &[u8]) -> Result<(), PortError> {
         router_bench!(begin_apex_send, self.id() as u16);
         let res = self.send(buf);
@@ -219,13 +219,11 @@ impl<const M: MessageSize, S: ApexSamplingPortP4> RouterOutput for SamplingPortS
     }
 
     fn mtu(&self) -> PayloadSize {
-        M as PayloadSize
+        self.size() as PayloadSize
     }
 }
 
-impl<const M: MessageSize, const R: MessageRange, Q: ApexQueuingPortP4> RouterInput
-    for QueuingPortReceiver<M, R, Q>
-{
+impl<Q: ApexQueuingPortP4> RouterInput for QueuingPortReceiver<Q> {
     fn receive<'a>(&self, buf: &'a mut [u8]) -> Result<&'a [u8], PortError> {
         let timeout = SystemTime::Normal(Duration::from_micros(10));
         router_bench!(begin_apex_send, self.id() as u16);
@@ -236,13 +234,11 @@ impl<const M: MessageSize, const R: MessageRange, Q: ApexQueuingPortP4> RouterIn
     }
 
     fn mtu(&self) -> PayloadSize {
-        M as PayloadSize
+        self.size()
     }
 }
 
-impl<const M: MessageSize, const R: MessageRange, Q: ApexQueuingPortP4> RouterOutput
-    for QueuingPortSender<M, R, Q>
-{
+impl<Q: ApexQueuingPortP4> RouterOutput for QueuingPortSender<Q> {
     fn send(&self, buf: &[u8]) -> Result<(), PortError> {
         let timeout = SystemTime::Normal(Duration::from_micros(10));
         router_bench!(begin_apex_send, self.id() as u16);
@@ -253,7 +249,7 @@ impl<const M: MessageSize, const R: MessageRange, Q: ApexQueuingPortP4> RouterOu
     }
 
     fn mtu(&self) -> PayloadSize {
-        M as PayloadSize
+        self.size()
     }
 }
 

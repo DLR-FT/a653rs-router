@@ -5,17 +5,19 @@ use a653rs_linux::partition::{ApexLinuxPartition, ApexLogger};
 use echo::*;
 use log::{info, trace, LevelFilter};
 
-static mut ECHO_RECEIVER_SAMPLING: Option<SamplingPortDestination<ECHO_SIZE, ApexLinuxPartition>> =
+static mut ECHO_RECEIVER_SAMPLING: Option<
+    ConstSamplingPortDestination<ECHO_SIZE, ApexLinuxPartition>,
+> = None;
+static mut ECHO_SENDER_SAMPLING: Option<ConstSamplingPortSource<ECHO_SIZE, ApexLinuxPartition>> =
     None;
-static mut ECHO_SENDER_SAMPLING: Option<SamplingPortSource<ECHO_SIZE, ApexLinuxPartition>> = None;
 
 // Not supported by a653rs-linux-hypervisor
 
 static mut ECHO_RECEIVER_QUEUING: Option<
-    QueuingPortReceiver<ECHO_SIZE, ECHO_QUEUE_SIZE, ApexLinuxPartition>,
+    ConstQueuingPortReceiver<ECHO_SIZE, ECHO_QUEUE_SIZE, ApexLinuxPartition>,
 > = None;
 static mut ECHO_SENDER_QUEUING: Option<
-    QueuingPortSender<ECHO_SIZE, ECHO_QUEUE_SIZE, ApexLinuxPartition>,
+    ConstQueuingPortSender<ECHO_SIZE, ECHO_QUEUE_SIZE, ApexLinuxPartition>,
 > = None;
 
 extern "C" fn client_send_sampling() {

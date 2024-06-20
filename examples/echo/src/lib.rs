@@ -34,9 +34,6 @@ use a653rs::bindings::ApexQueuingPortP4;
 use a653rs::bindings::ApexSamplingPortP4;
 use a653rs::prelude::*;
 use a653rs_postcard::prelude::*;
-use a653rs_postcard::{
-    prelude::QueuingPortReceiverExt, prelude::QueuingPortSenderExt, prelude::QueuingRecvError,
-};
 use core::fmt::Debug;
 use core::str::FromStr;
 use core::time::Duration;
@@ -105,7 +102,7 @@ struct EchoMessage {
 }
 
 pub fn run_echo_queuing_receiver<const M: u32, const L: u32, H: ApexQueuingPortP4 + ApexTimeP4Ext>(
-    port: &QueuingPortReceiver<M, L, H>,
+    port: &ConstQueuingPortReceiver<M, L, H>,
 ) where
     [u8; M as usize]:,
     [u8; L as usize]:,
@@ -114,7 +111,8 @@ pub fn run_echo_queuing_receiver<const M: u32, const L: u32, H: ApexQueuingPortP
     loop {
         trace!("Running echo client aperiodic process");
 
-        let result = port.recv_type::<EchoMessage>(RECEIVE_TIMEOUT);
+        let mut buf = [0; M as usize];
+        let result = port.recv_type_buf::<EchoMessage>(RECEIVE_TIMEOUT, &mut buf);
 
         let time = <H as ApexTimeP4Ext>::get_time();
         let now = match time {
@@ -145,14 +143,14 @@ pub fn run_echo_queuing_receiver<const M: u32, const L: u32, H: ApexQueuingPortP
                 }
                 small_trace!(end_echo_reply_received);
             }
-            Err(QueuingRecvError::Apex(Error::InvalidConfig)) => {
+            Err(QueuingRecvBufError::Apex(Error::InvalidConfig)) => {
                 warn!("The queue overflowed");
             }
-            Err(QueuingRecvError::Apex(Error::NotAvailable))
-            | Err(QueuingRecvError::Apex(Error::TimedOut)) => {
+            Err(QueuingRecvBufError::Apex(Error::NotAvailable))
+            | Err(QueuingRecvBufError::Apex(Error::TimedOut)) => {
                 debug!("No echo reply available");
             }
-            Err(QueuingRecvError::Postcard(e, _)) => {
+            Err(QueuingRecvBufError::Postcard(e, _)) => {
                 trace!("Failed to decode echo reply: {e:?}");
             }
             Err(e) => {
@@ -163,7 +161,7 @@ pub fn run_echo_queuing_receiver<const M: u32, const L: u32, H: ApexQueuingPortP
 }
 
 pub fn run_echo_queuing_sender<const M: u32, const L: u32, H: ApexQueuingPortP4 + ApexTimeP4Ext>(
-    port: &QueuingPortSender<M, L, H>,
+    port: &ConstQueuingPortSender<M, L, H>,
 ) where
     [u8; M as usize]:,
     [u8; L as usize]:,
@@ -184,7 +182,12 @@ pub fn run_echo_queuing_sender<const M: u32, const L: u32, H: ApexQueuingPortP4 
             when_us: now.as_micros() as u64,
         };
         small_trace!(begin_echo_request_send);
-        let result = port.send_type(data, SystemTime::Normal(Duration::from_micros(10)));
+        let mut buf = [0; M as usize];
+        let result = port.send_type_buf(
+            data,
+            SystemTime::Normal(Duration::from_micros(10)),
+            &mut buf,
+        );
         small_trace!(end_echo_request_send);
         match result {
             Ok(_) => {
@@ -205,8 +208,8 @@ pub fn run_echo_queuing_sender<const M: u32, const L: u32, H: ApexQueuingPortP4 
 }
 
 pub fn run_echo_queuing_server<const M: u32, H: ApexQueuingPortP4 + ApexTimeP4Ext>(
-    port_out: &QueuingPortSender<M, ECHO_QUEUE_SIZE, H>,
-    port_in: &QueuingPortReceiver<M, ECHO_QUEUE_SIZE, H>,
+    port_out: &ConstQueuingPortSender<M, ECHO_QUEUE_SIZE, H>,
+    port_in: &ConstQueuingPortReceiver<M, ECHO_QUEUE_SIZE, H>,
 ) where
     [u8; M as usize]:,
 {
@@ -244,7 +247,7 @@ pub fn run_echo_queuing_server<const M: u32, H: ApexQueuingPortP4 + ApexTimeP4Ex
 }
 
 pub fn run_echo_sampling_receiver<const M: u32, H: ApexSamplingPortP4 + ApexTimeP4Ext>(
-    port: &SamplingPortDestination<M, H>,
+    port: &ConstSamplingPortDestination<M, H>,
 ) where
     [u8; M as usize]:,
 {
@@ -253,7 +256,8 @@ pub fn run_echo_sampling_receiver<const M: u32, H: ApexSamplingPortP4 + ApexTime
     loop {
         trace!("Receiving from port");
 
-        let result = port.recv_type::<EchoMessage>();
+        let mut buf = [0u8; M as usize];
+        let result = port.recv_type_buf::<EchoMessage>(&mut buf);
         match result {
             Ok(data) => {
                 small_trace!(begin_echo_reply_received);
@@ -283,10 +287,10 @@ pub fn run_echo_sampling_receiver<const M: u32, H: ApexSamplingPortP4 + ApexTime
                 }
                 small_trace!(end_echo_reply_received);
             }
-            Err(SamplingRecvError::Apex(Error::NotAvailable)) => {
+            Err(SamplingRecvBufError::Apex(Error::NotAvailable)) => {
                 debug!("No echo reply available");
             }
-            Err(SamplingRecvError::Postcard(e, _, _)) => {
+            Err(SamplingRecvBufError::Postcard(e, _, _)) => {
                 trace!("Failed to decode echo reply: {e:?}");
             }
             _ => {
@@ -297,7 +301,7 @@ pub fn run_echo_sampling_receiver<const M: u32, H: ApexSamplingPortP4 + ApexTime
 }
 
 pub fn run_echo_sampling_sender<const M: u32, H: ApexSamplingPortP4 + ApexTimeP4Ext>(
-    port: &SamplingPortSource<M, H>,
+    port: &ConstSamplingPortSource<M, H>,
 ) where
     [u8; M as usize]:,
 {
@@ -313,7 +317,8 @@ pub fn run_echo_sampling_sender<const M: u32, H: ApexSamplingPortP4 + ApexTimeP4
                     when_us: now.as_micros() as u64,
                 };
                 small_trace!(begin_echo_request_send);
-                let result = port.send_type(data);
+                let mut buf = [0u8; M as usize];
+                let result = port.send_type_buf(data, &mut buf);
                 small_trace!(end_echo_request_send);
                 match result {
                     Ok(_) => {
@@ -337,8 +342,8 @@ pub fn run_echo_sampling_sender<const M: u32, H: ApexSamplingPortP4 + ApexTimeP4
 }
 
 pub fn run_echo_sampling_server<const M: u32, H: ApexSamplingPortP4 + ApexTimeP4Ext>(
-    port_out: &SamplingPortSource<M, H>,
-    port_in: &SamplingPortDestination<M, H>,
+    port_out: &ConstSamplingPortSource<M, H>,
+    port_in: &ConstSamplingPortDestination<M, H>,
 ) where
     [u8; M as usize]:,
 {
@@ -390,10 +395,10 @@ pub struct EchoEntryFunctions {
 
 pub fn cold_start_sampling_queuing<H>(
     ctx: &mut StartContext<H>,
-    queuing_sender: &mut Option<QueuingPortSender<ECHO_SIZE, ECHO_QUEUE_SIZE, H>>,
-    queuing_receiver: &mut Option<QueuingPortReceiver<ECHO_SIZE, ECHO_QUEUE_SIZE, H>>,
-    sampling_sender: &mut Option<SamplingPortSource<ECHO_SIZE, H>>,
-    sampling_receiver: &mut Option<SamplingPortDestination<ECHO_SIZE, H>>,
+    queuing_sender: &mut Option<ConstQueuingPortSender<ECHO_SIZE, ECHO_QUEUE_SIZE, H>>,
+    queuing_receiver: &mut Option<ConstQueuingPortReceiver<ECHO_SIZE, ECHO_QUEUE_SIZE, H>>,
+    sampling_sender: &mut Option<ConstSamplingPortSource<ECHO_SIZE, H>>,
+    sampling_receiver: &mut Option<ConstSamplingPortDestination<ECHO_SIZE, H>>,
     entries: &EchoEntryFunctions,
 ) where
     H: ApexSamplingPortP4Ext + ApexQueuingPortP4 + ApexPartitionP4 + ApexProcessP4 + Debug,
@@ -417,8 +422,8 @@ pub fn cold_start_sampling_queuing<H>(
 
 pub fn cold_start_sampling<H>(
     ctx: &mut StartContext<H>,
-    sender: &mut Option<SamplingPortSource<ECHO_SIZE, H>>,
-    receiver: &mut Option<SamplingPortDestination<ECHO_SIZE, H>>,
+    sender: &mut Option<ConstSamplingPortSource<ECHO_SIZE, H>>,
+    receiver: &mut Option<ConstSamplingPortDestination<ECHO_SIZE, H>>,
     entries: &EchoEntryFunctions,
 ) where
     H: ApexSamplingPortP4Ext + ApexPartitionP4 + ApexProcessP4 + Debug,
@@ -458,23 +463,26 @@ where
 
 fn try_init_sampling<H>(
     ctx: &mut StartContext<H>,
-    sender: &mut Option<SamplingPortSource<ECHO_SIZE, H>>,
-    receiver: &mut Option<SamplingPortDestination<ECHO_SIZE, H>>,
+    sender: &mut Option<ConstSamplingPortSource<ECHO_SIZE, H>>,
+    receiver: &mut Option<ConstSamplingPortDestination<ECHO_SIZE, H>>,
 ) -> Result<EchoStation, Error>
 where
     H: ApexSamplingPortP4Ext + Debug,
 {
-    if let Ok(port) = ctx.create_sampling_port_source(Name::from_str(CLIENT_SENDER_PORT).unwrap()) {
+    if let Ok(port) =
+        ctx.create_const_sampling_port_source(Name::from_str(CLIENT_SENDER_PORT).unwrap())
+    {
         _ = sender.insert(port);
-        _ = receiver.insert(ctx.create_sampling_port_destination(
+        _ = receiver.insert(ctx.create_const_sampling_port_destination(
             Name::from_str(CLIENT_RECEIVER_PORT).unwrap(),
             VALIDITY,
         )?);
         Ok(EchoStation::Client)
     } else {
-        _ = sender
-            .insert(ctx.create_sampling_port_source(Name::from_str(SERVER_SENDER_PORT).unwrap())?);
-        _ = receiver.insert(ctx.create_sampling_port_destination(
+        _ = sender.insert(
+            ctx.create_const_sampling_port_source(Name::from_str(SERVER_SENDER_PORT).unwrap())?,
+        );
+        _ = receiver.insert(ctx.create_const_sampling_port_destination(
             Name::from_str(SERVER_RECEIVER_PORT).unwrap(),
             VALIDITY,
         )?);
@@ -484,28 +492,28 @@ where
 
 fn try_init_queuing<H>(
     ctx: &mut StartContext<H>,
-    sender: &mut Option<QueuingPortSender<ECHO_SIZE, ECHO_QUEUE_SIZE, H>>,
-    receiver: &mut Option<QueuingPortReceiver<ECHO_SIZE, ECHO_QUEUE_SIZE, H>>,
+    sender: &mut Option<ConstQueuingPortSender<ECHO_SIZE, ECHO_QUEUE_SIZE, H>>,
+    receiver: &mut Option<ConstQueuingPortReceiver<ECHO_SIZE, ECHO_QUEUE_SIZE, H>>,
 ) -> Result<EchoStation, Error>
 where
     H: ApexQueuingPortP4Ext + Debug,
 {
-    if let Ok(port) = ctx.create_queuing_port_sender(
+    if let Ok(port) = ctx.create_const_queuing_port_sender(
         Name::from_str(CLIENT_SENDER_PORT).unwrap(),
         QueuingDiscipline::Fifo,
     ) {
         _ = sender.insert(port);
-        _ = receiver.insert(ctx.create_queuing_port_receiver(
+        _ = receiver.insert(ctx.create_const_queuing_port_receiver(
             Name::from_str(CLIENT_RECEIVER_PORT).unwrap(),
             QueuingDiscipline::Fifo,
         )?);
         Ok(EchoStation::Client)
     } else {
-        _ = sender.insert(ctx.create_queuing_port_sender(
+        _ = sender.insert(ctx.create_const_queuing_port_sender(
             Name::from_str(SERVER_SENDER_PORT).unwrap(),
             QueuingDiscipline::Fifo,
         )?);
-        _ = receiver.insert(ctx.create_queuing_port_receiver(
+        _ = receiver.insert(ctx.create_const_queuing_port_receiver(
             Name::from_str(SERVER_RECEIVER_PORT).unwrap(),
             QueuingDiscipline::Fifo,
         )?);

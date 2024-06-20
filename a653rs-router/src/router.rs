@@ -6,13 +6,16 @@ use crate::{
     },
     error::Error,
     network::{CreateNetworkInterface, NetworkInterface, PayloadSize, PlatformNetworkInterface},
-    ports::{Port, PortError, QueuingIn, QueuingOut, SamplingIn, SamplingOut},
+    ports::{Port, PortError},
     prelude::InterfaceName,
     scheduler::{DeadlineRrScheduler, ScheduleError, Scheduler, TimeSource},
     types::VirtualLinkId,
 };
 
-use a653rs::bindings::{ApexQueuingPortP4, ApexSamplingPortP4};
+use a653rs::{
+    bindings::{ApexQueuingPortP4, ApexSamplingPortP4},
+    prelude::StartContext,
+};
 use core::{fmt::Debug, marker::PhantomData, ops::Deref, str::FromStr, time::Duration};
 use heapless::{FnvIndexMap, LinearMap, Vec};
 
@@ -45,6 +48,7 @@ where
     /// failed to create a port, the network driver failed to create a network
     /// interface.
     pub fn create<C: CreateNetworkInterface<P>>(
+        ctx: &mut StartContext<H>,
         interfaces_cfg: InterfacesConfig<IFS>,
         ports_cfg: PortsConfig<PORTS>,
     ) -> Result<Self, Error> {
@@ -67,18 +71,36 @@ where
         for (name, cfg) in ports_cfg.into_iter() {
             let name = PortName::from_str(name)?;
             let port = match cfg {
-                PortConfig::SamplingIn(cfg) => {
-                    Port::SamplingIn(SamplingIn::create(name.clone(), cfg.clone())?)
-                }
-                PortConfig::SamplingOut(cfg) => {
-                    Port::SamplingOut(SamplingOut::create(name.clone(), cfg.clone())?)
-                }
-                PortConfig::QueuingIn(cfg) => {
-                    Port::QueuingIn(QueuingIn::create(name.clone(), cfg.clone())?)
-                }
-                PortConfig::QueuingOut(cfg) => {
-                    Port::QueuingOut(QueuingOut::create(name.clone(), cfg.clone())?)
-                }
+                PortConfig::SamplingIn(cfg) => Port::SamplingIn(
+                    ctx.create_sampling_port_destination(
+                        name.clone().try_into()?,
+                        cfg.msg_size,
+                        cfg.refresh_period,
+                    )
+                    .map_err(|_e| PortError::Create)?,
+                ),
+                PortConfig::SamplingOut(cfg) => Port::SamplingOut(
+                    ctx.create_sampling_port_source(name.clone().try_into()?, cfg.msg_size)
+                        .map_err(|_e| PortError::Create)?,
+                ),
+                PortConfig::QueuingIn(cfg) => Port::QueuingIn(
+                    ctx.create_queuing_port_receiver(
+                        name.clone().try_into()?,
+                        cfg.msg_size,
+                        cfg.msg_count,
+                        cfg.discipline.clone().into(),
+                    )
+                    .map_err(|_e| PortError::Create)?,
+                ),
+                PortConfig::QueuingOut(cfg) => Port::QueuingOut(
+                    ctx.create_queuing_port_sender(
+                        name.clone().try_into()?,
+                        cfg.msg_size,
+                        cfg.msg_count,
+                        cfg.discipline.clone().into(),
+                    )
+                    .map_err(|_e| PortError::Create)?,
+                ),
             };
             ports
                 .insert(name, port)

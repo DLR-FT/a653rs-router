@@ -72,37 +72,6 @@ impl<Q: ApexQueuingPortP4> RouterOutput for QueuingPortSender<Q> {
     }
 }
 
-trait BufferExt {
-    fn validate_read(&mut self, size: MessageSize) -> Result<&mut Self, PortError>;
-
-    /// Validate a buffer to be at most as long as the given usize.
-    /// If not returns [Self] with the length of the passed buffer
-    fn validate_write(&self, size: MessageSize) -> Result<&Self, PortError>;
-}
-
-impl BufferExt for [ApexByte] {
-    fn validate_read(&mut self, size: MessageSize) -> Result<&mut Self, PortError> {
-        if usize::try_from(size)
-            .map(|ss| self.len() < ss)
-            .unwrap_or(true)
-        {
-            return Err(PortError::Receive);
-        }
-        Ok(self)
-    }
-
-    fn validate_write(&self, size: MessageSize) -> Result<&Self, PortError> {
-        if usize::try_from(size)
-            .map(|ss| self.len() > ss)
-            .unwrap_or(false)
-            || self.is_empty()
-        {
-            return Err(PortError::Send);
-        }
-        Ok(self)
-    }
-}
-
 /// An error occured while reading or writing a port of the router.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PortError {

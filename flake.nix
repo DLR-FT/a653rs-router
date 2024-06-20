@@ -13,8 +13,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     hypervisor = {
-      url = "github:florianhartung/a653rs-linux/queuing-ports";
-      #url = "github:DLR-FT/a653rs-linux";
+      url = "github:DLR-FT/a653rs-linux";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.devshell.follows = "devshell";
       inputs.fenix.follows = "fenix";

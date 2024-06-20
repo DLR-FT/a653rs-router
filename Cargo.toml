@@ -25,7 +25,7 @@ default-members = [
 ]
 
 [workspace.dependencies]
-a653rs = { version = "0.5", default-features = false }
+a653rs = { version = "0.6", default-features = false }
 cobs = { version = "0.2.3", default-features = false }
 crc16 = { version = "0.4.0", default-features = false }
 heapless = { version = "0.8", default-features = false }
@@ -38,9 +38,9 @@ signal-hook.version = "0.3"
 uart_xilinx = "0.2"
 volatile-register = "0.2"
 # These are not on crates.io
-a653rs-linux = { git = "https://github.com/florianhartung/a653rs-linux.git", branch = "queuing-ports", default-features = false }
-a653rs-postcard = { git = "https://github.com/DLR-FT/a653rs-postcard.git", branch = "main", default-features = false }
-a653rs-xng = { git = "https://github.com/DLR-FT/a653rs-xng.git", branch = "main", default-features = false }
+a653rs-linux = { version = "0.2", default-features = false }
+a653rs-postcard = { version = "0.4", default-features = false }
+a653rs-xng = { version = "0.1", default-features = false }
 xng-rs-log = { git = "https://github.com/DLR-FT/xng-rs-log.git", branch = "main", default-features = false }
 
 [profile.dev]

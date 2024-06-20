@@ -77,16 +77,15 @@
         ]
       },
       "locked": {
-        "lastModified": 1706706351,
-        "narHash": "sha256-/dOKYs3MlBh4f8Gdyd4bLE8s7t9g8utQeZtyRYrd/sg=",
-        "owner": "florianhartung",
+        "lastModified": 1718872602,
+        "narHash": "sha256-Yp0pbptwknqPS8wL6TP8CFaXP82CL3MgWrF+pRBk8mY=",
+        "owner": "DLR-FT",
         "repo": "a653rs-linux",
-        "rev": "6b1fe4f5ead5e1a7732a63a331bb46839dccb431",
+        "rev": "fd4869c62af9523e9e0f7fc15b86e33723d3b54d",
         "type": "github"
       },
       "original": {
-        "owner": "florianhartung",
-        "ref": "queuing-ports",
+        "owner": "DLR-FT",
         "repo": "a653rs-linux",
         "type": "github"
       }
@@ -99,11 +98,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1698420672,
-        "narHash": "sha256-/TdeHMPRjjdJub7p7+w55vyABrsJlt5QkznPYy55vKA=",
+        "lastModified": 1717067539,
+        "narHash": "sha256-oIs5EF+6VpHJRvvpVWuqCYJMMVW/6h59aYUv9lABLtY=",
         "ref": "refs/heads/master",
-        "rev": "aeb58d5e8faead8980a807c840232697982d47b9",
-        "revCount": 333,
+        "rev": "fa19d8c135e776dc97f4dcca08656a0eeb28d5c0",
+        "revCount": 342,
         "type": "git",
         "url": "https://github.com/nix-community/naersk.git"
       },

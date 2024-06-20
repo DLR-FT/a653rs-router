@@ -59,6 +59,12 @@ impl GpioTracer {
     }
 }
 
+impl Default for GpioTracer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Tracer for GpioTracer {
     /// Writes the bits of the value to IO pins 26 to 41. Then resets the traced
     /// value to 0.

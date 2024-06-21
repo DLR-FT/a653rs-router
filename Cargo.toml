@@ -33,7 +33,7 @@ log = "0"
 once_cell = { version = "1.19", default-features = false }
 postcard = { version = "1.0", default-features = false }
 serde = { version = "1.0", default-features = false }
-serde_yaml = { version = "0.9", default-feaures = false }
+serde_yaml = { version = "0.9", default-features = false }
 signal-hook.version = "0.3"
 uart_xilinx = "0.2"
 volatile-register = "0.2"

@@ -6,7 +6,7 @@ use crate::{
     },
     error::Error,
     network::{CreateNetworkInterface, NetworkInterface, PayloadSize, PlatformNetworkInterface},
-    ports::{Port, PortError},
+    ports::PortError,
     prelude::InterfaceName,
     scheduler::{DeadlineRrScheduler, ScheduleError, Scheduler, TimeSource},
     types::VirtualLinkId,
@@ -14,10 +14,21 @@ use crate::{
 
 use a653rs::{
     bindings::{ApexQueuingPortP4, ApexSamplingPortP4},
-    prelude::StartContext,
+    prelude::{
+        QueuingPortReceiver, QueuingPortSender, SamplingPortDestination, SamplingPortSource,
+        StartContext,
+    },
 };
 use core::{fmt::Debug, marker::PhantomData, ops::Deref, str::FromStr, time::Duration};
 use heapless::{FnvIndexMap, LinearMap, Vec};
+
+#[derive(Debug)]
+enum Port<H: ApexQueuingPortP4 + ApexSamplingPortP4> {
+    SamplingIn(SamplingPortDestination<H>),
+    SamplingOut(SamplingPortSource<H>),
+    QueuingIn(QueuingPortReceiver<H>),
+    QueuingOut(QueuingPortSender<H>),
+}
 
 /// Router resources
 #[derive(Debug)]

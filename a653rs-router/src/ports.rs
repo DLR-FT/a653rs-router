@@ -6,14 +6,6 @@ use crate::{
     router::{RouterInput, RouterOutput},
 };
 
-#[derive(Debug)]
-pub(crate) enum Port<H: ApexQueuingPortP4 + ApexSamplingPortP4> {
-    SamplingIn(SamplingPortDestination<H>),
-    SamplingOut(SamplingPortSource<H>),
-    QueuingIn(QueuingPortReceiver<H>),
-    QueuingOut(QueuingPortSender<H>),
-}
-
 impl<S: ApexSamplingPortP4> RouterInput for SamplingPortDestination<S> {
     fn receive<'a>(&self, buf: &'a mut [u8]) -> Result<&'a [u8], PortError> {
         router_bench!(begin_apex_receive, self.id() as u16);

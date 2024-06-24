@@ -57,7 +57,7 @@ extern "C" fn entry_point() {
     let mut state = router.router::<INPUTS, OUTPUTS, MTU>(cfg).unwrap();
     loop {
         let res = state.forward::<MTU, _>(&ApexLinuxPartition);
-        #[cfg(feauture = "log")]
+        #[cfg(feature = "log")]
         {
             use a653rs_router::prelude::Error;
             use log::{debug, trace};
@@ -69,7 +69,7 @@ extern "C" fn entry_point() {
                 Err(e) => debug!("Failed to forward message: {}", e),
             }
         }
-        #[cfg(not(feauture = "log"))]
+        #[cfg(not(feature = "log"))]
         let _res = res;
     }
 }
@@ -78,7 +78,7 @@ fn main() {
     ApexLogger::install_panic_hook();
     #[cfg(feature = "log")]
     {
-        ApexLogger::install_logger(log::LevelFilter::Trace).unwrap();
+        ApexLogger::install_logger(log::LevelFilter::Debug).unwrap();
     }
     RouterPartition.run()
 }

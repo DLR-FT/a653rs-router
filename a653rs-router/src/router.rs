@@ -175,7 +175,8 @@ impl<'a, const IN: usize, const OUT: usize> Router<'a, IN, OUT> {
             router_bench!(begin_virtual_link_scheduled, next.0 as u16);
             let res = self.routes.route::<B>(&next);
             router_bench!(end_virtual_link_scheduled, next.0 as u16);
-            res.map(|_| Some(next))
+            res?;
+            Ok(Some(next))
         } else {
             Ok(None)
         }

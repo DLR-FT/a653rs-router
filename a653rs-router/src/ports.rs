@@ -36,11 +36,14 @@ impl<S: ApexSamplingPortP4> RouterOutput for SamplingPortSource<S> {
 
 impl<Q: ApexQueuingPortP4> RouterInput for QueuingPortReceiver<Q> {
     fn receive<'a>(&self, buf: &'a mut [u8]) -> Result<&'a [u8], PortError> {
-        let timeout = SystemTime::Normal(Duration::from_micros(10));
+        const TIMEOUT: SystemTime = SystemTime::Normal(Duration::ZERO);
         router_bench!(begin_apex_send, self.id() as u16);
-        let res = self.receive(buf, timeout);
+        let res = self.receive(buf, TIMEOUT);
         router_bench!(end_apex_send, self.id() as u16);
-        let (buf, _overflow) = res.map_err(|_e| PortError::Receive)?;
+        let (buf, _overflow) = res.map_err(|e| match e {
+            Error::NotAvailable => PortError::WouldBlock,
+            _ => PortError::Receive,
+        })?;
         Ok(buf)
     }
 
@@ -51,9 +54,9 @@ impl<Q: ApexQueuingPortP4> RouterInput for QueuingPortReceiver<Q> {
 
 impl<Q: ApexQueuingPortP4> RouterOutput for QueuingPortSender<Q> {
     fn send(&self, buf: &[u8]) -> Result<(), PortError> {
-        let timeout = SystemTime::Normal(Duration::from_micros(10));
+        const TIMEOUT: SystemTime = SystemTime::Normal(Duration::ZERO);
         router_bench!(begin_apex_send, self.id() as u16);
-        let res = self.send(buf, timeout);
+        let res = self.send(buf, TIMEOUT);
         router_bench!(end_apex_send, self.id() as u16);
         res.map_err(|_e| PortError::Send)?;
         Ok(())
@@ -67,6 +70,9 @@ impl<Q: ApexQueuingPortP4> RouterOutput for QueuingPortSender<Q> {
 /// An error occured while reading or writing a port of the router.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PortError {
+    /// Operation would block
+    WouldBlock,
+
     /// Failed to send from router output
     Send,
 
@@ -83,6 +89,7 @@ impl Display for PortError {
             Self::Send => write!(f, "Failed to send from router output"),
             Self::Receive => write!(f, "Failed to receive from router input"),
             Self::Create => write!(f, "Failed to create router port"),
+            Self::WouldBlock => write!(f, "Operation would block"),
         }
     }
 }

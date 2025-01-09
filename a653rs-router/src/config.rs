@@ -4,7 +4,7 @@ use a653rs::{
     prelude::Name,
 };
 use core::{ops::Deref, str::FromStr, time::Duration};
-use heapless::{LinearMap, String, Vec};
+use heapless::{FnvIndexSet, LinearMap, String};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -260,7 +260,7 @@ pub struct VirtualLinkConfig<const D: usize> {
     pub src: PortName,
     /// Destinations
     #[cfg_attr(feature = "serde", serde(rename = "destinations"))]
-    pub dsts: Vec<PortName, D>,
+    pub dsts: FnvIndexSet<PortName, D>,
     /// Minimum transmission interval
     pub period: Duration,
 }
@@ -408,8 +408,11 @@ impl<const IN: usize, const OUT: usize, const IFS: usize, const PORTS: usize>
             return Err(RouterConfigError::Destination);
         };
         let vl = self.find_vl(&vl_id)?;
-        vl.dsts.push(dst).or(Err(RouterConfigError::Storage))?;
-        Ok(self)
+        if !vl.dsts.insert(dst).or(Err(RouterConfigError::Storage))? {
+            Err(RouterConfigError::Destination)
+        } else {
+            Ok(self)
+        }
     }
 
     fn contains_resource(&mut self, dst: &PortName) -> bool {

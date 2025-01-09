@@ -296,7 +296,7 @@ impl<'a, const I: usize, const O: usize> RouteTable<'a, I, O> {
             }
             let inp = inputs.get(&cfg.src).ok_or_else(|| {
                 router_debug!("Unknown input: {}", cfg.src.deref());
-                RouterConfigError::Destination
+                RouterConfigError::Source
             })?;
             let outs: Result<Vec<_, O>, RouterConfigError> = cfg
                 .dsts
@@ -314,7 +314,7 @@ impl<'a, const I: usize, const O: usize> RouteTable<'a, I, O> {
                     }
                     outputs.get(d).ok_or_else(|| {
                         router_debug!("Unknown output {}", d.deref());
-                        RouterConfigError::Source
+                        RouterConfigError::Destination
                     })
                 })
                 .map(|d| d.copied())

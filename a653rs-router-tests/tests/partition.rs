@@ -2,7 +2,7 @@ use a653rs::prelude::{Name, Partition, PartitionExt, StartContext};
 use a653rs_router::prelude::{RouterConfig, RouterState, VirtualLinksConfig};
 use a653rs_router_tests::{test_data::CFG, DummyHypervisor, DummyNetIntf};
 use core::str::FromStr;
-use std::process::exit;
+use std::{process::exit, time::Duration};
 
 const MTU: usize = 1_000;
 const INPUTS: usize = 8;
@@ -51,7 +51,9 @@ impl Partition<DummyHypervisor> for RouterPartition {
 extern "C" fn entry_point() {
     let router = unsafe { ROUTER.as_ref() }.unwrap();
     let cfg = unsafe { VL_CFG.as_ref() }.unwrap().clone();
-    let router = router.router::<INPUTS, OUTPUTS, MTU>(cfg).unwrap();
+    let router = router
+        .router::<INPUTS, OUTPUTS, MTU>(cfg, &Duration::from_secs(0))
+        .unwrap();
     println!("{router:?}")
 }
 

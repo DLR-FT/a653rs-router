@@ -1,5 +1,5 @@
 use a653rs::bindings::ApexPartitionP4;
-use a653rs::prelude::{Name, OperatingMode, Partition, PartitionExt, StartContext};
+use a653rs::prelude::{ApexTimeP4Ext, Name, OperatingMode, Partition, PartitionExt, StartContext};
 use a653rs_linux::partition::{ApexLinuxPartition, ApexLogger};
 use a653rs_router::prelude::{RouterConfig, RouterState, VirtualLinksConfig};
 use a653rs_router_linux::*;
@@ -54,7 +54,9 @@ impl Partition<Hypervisor> for RouterPartition {
 extern "C" fn entry_point() {
     let router = unsafe { ROUTER.as_ref() }.unwrap();
     let cfg = unsafe { VL_CFG.as_ref() }.unwrap().clone();
-    let mut state = router.router::<INPUTS, OUTPUTS, MTU>(cfg).unwrap();
+    let mut state = router
+        .router::<INPUTS, OUTPUTS, MTU>(cfg, &Hypervisor::get_time().unwrap_duration())
+        .unwrap();
     loop {
         let res = state.forward::<MTU, _>(&ApexLinuxPartition);
         #[cfg(feature = "log")]

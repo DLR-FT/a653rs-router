@@ -1,3 +1,5 @@
+use core::time::Duration;
+
 use a653rs::{
     bindings::{ApexProcessP4, ApexQueuingPortP4, ApexSamplingPortP4, StackSize},
     prelude::{Name, StartContext},
@@ -80,7 +82,8 @@ where
     pub fn router<const IN: usize, const OUT: usize, const BUF_LEN: usize>(
         &self,
         virtual_links_cfg: VirtualLinksConfig<IN, OUT>,
+        schedule_start: &Duration,
     ) -> Result<Router<IN, OUT>, Error> {
-        Router::try_new(virtual_links_cfg, &self.resources)
+        Router::try_new(virtual_links_cfg, &self.resources, schedule_start)
     }
 }

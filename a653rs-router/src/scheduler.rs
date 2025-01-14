@@ -27,13 +27,13 @@ struct Window {
     /// The next period is measured from the last time the start of the last
     /// time the partition has been scheduled or from the beginning of time.
     period: Duration,
-    /// The next instant at which this window should be scheduled.
-    next: Duration,
+    /// The last instant at which this window was scheduled.
+    last: Duration,
 }
 
 impl Window {
     fn is_due(&self, current_time: &Duration) -> bool {
-        self.next <= *current_time
+        self.last + self.period <= *current_time
     }
 }
 
@@ -52,7 +52,10 @@ pub struct DeadlineRrScheduler<const SLOTS: usize> {
 
 impl<const SLOTS: usize> DeadlineRrScheduler<SLOTS> {
     /// Constructs a new DeadlineRrScheduler.
-    pub fn try_new(vls: &[(VirtualLinkId, Duration)]) -> Result<Self, RouterConfigError> {
+    pub fn try_new(
+        vls: &[(VirtualLinkId, Duration)],
+        start: &Duration,
+    ) -> Result<Self, RouterConfigError> {
         Ok(Self {
             last_window: 0,
             windows: vls
@@ -60,7 +63,7 @@ impl<const SLOTS: usize> DeadlineRrScheduler<SLOTS> {
                 .map(|(vl, period)| Window {
                     vl: *vl,
                     period: *period,
-                    next: *period,
+                    last: *start + *period,
                 })
                 .collect(),
         })
@@ -79,19 +82,15 @@ impl<const SLOTS: usize> Scheduler for DeadlineRrScheduler<SLOTS> {
             let next_window = (self.last_window + i) % self.windows.len();
             let window = self.windows[next_window];
             if window.is_due(current_time) {
-                // Check if clock skipped for some reason.
                 if let Some(t) = current_time.checked_sub(Duration::from_secs(15)) {
-                    if t > window.next {
+                    if t > window.last + window.period {
                         router_debug!("The system clock is {current_time:?} and this does not seem right. Ignoring this value.");
                         return None;
                     }
                 }
                 self.last_window = next_window;
-                let next = current_time
-                    .checked_add(window.period)
-                    .unwrap_or(*current_time);
-                self.windows[next_window].next = next;
-                router_trace!("Scheduled VL {}, next window at {:?}", window.vl, next);
+                self.windows[next_window].last = *current_time;
+                router_trace!("Scheduled VL {}", window.vl);
                 // Return the next window
                 return Some(window.vl);
             }

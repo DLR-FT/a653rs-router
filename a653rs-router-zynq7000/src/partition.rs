@@ -64,10 +64,14 @@ impl Partition<XngHypervisor> for RouterPartition {
 }
 
 extern "C" fn entry_point() {
+    use a653rs::prelude::ApexTimeP4Ext;
+
     info!("Running router entry_point");
     let router = unsafe { ROUTER.as_ref() }.unwrap();
     let cfg = unsafe { VL_CFG.as_ref() }.unwrap().clone();
-    let mut router = router.router::<INPUTS, OUTPUTS, MTU>(cfg).unwrap();
+    let mut router = router
+        .router::<INPUTS, OUTPUTS, MTU>(cfg, &XngHypervisor::get_time().unwrap_duration())
+        .unwrap();
     loop {
         let res = router.forward::<MTU, _>(&XngHypervisor);
         #[cfg(feature = "log")]

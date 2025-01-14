@@ -154,13 +154,14 @@ impl<'a, const IN: usize, const OUT: usize> Router<'a, IN, OUT> {
     >(
         virtual_links_cfg: VirtualLinksConfig<IN, OUT>,
         resources: &'a RouterResources<H, P, IFS, PORTS>,
+        schedule_start: &Duration,
     ) -> Result<Self, Error> {
         let routes = RouteTable::<IN, OUT>::build(&virtual_links_cfg, resources)?;
         let scheduler_cfg: Vec<(VirtualLinkId, Duration), IN> = virtual_links_cfg
             .into_iter()
             .map(|(id, cfg)| (*id, cfg.period))
             .collect();
-        let scheduler = DeadlineRrScheduler::try_new(&scheduler_cfg)?;
+        let scheduler = DeadlineRrScheduler::try_new(&scheduler_cfg, schedule_start)?;
         let router = Self { routes, scheduler };
         Ok(router)
     }

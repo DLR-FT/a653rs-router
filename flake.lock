@@ -77,11 +77,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1718872602,
-        "narHash": "sha256-Yp0pbptwknqPS8wL6TP8CFaXP82CL3MgWrF+pRBk8mY=",
+        "lastModified": 1730908543,
+        "narHash": "sha256-BtURYVWKsITrai4JhfBEKcH80Umpg6oq7qlIYbu8uWE=",
         "owner": "DLR-FT",
         "repo": "a653rs-linux",
-        "rev": "fd4869c62af9523e9e0f7fc15b86e33723d3b54d",
+        "rev": "7185024009d3db313f4978c46f7260f54dd90d5f",
         "type": "github"
       },
       "original": {

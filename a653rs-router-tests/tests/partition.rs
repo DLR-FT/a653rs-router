@@ -27,6 +27,8 @@ impl Partition<DummyHypervisor> for RouterPartition {
             Name::from_str(NAME).unwrap(),
             cfg.interfaces,
             cfg.ports,
+            cfg.period,
+            cfg.time_capacity,
             cfg.stack_size,
             entry_point,
         )

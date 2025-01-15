@@ -1,7 +1,8 @@
-use a653rs::prelude::SystemTime::Infinite;
+use a653rs::prelude::SystemTime;
 use a653rs::prelude::{Error as ApexError, Name, Process, StartContext};
 use a653rs::{bindings::*, prelude::ProcessAttribute};
 use core::fmt::Debug;
+use core::time::Duration;
 
 /// Router process
 #[derive(Debug)]
@@ -28,13 +29,15 @@ impl<H: ApexProcessP4> RouterProcess<H> {
     pub fn create(
         ctx: &mut StartContext<H>,
         name: Name,
+        period: Duration,
+        time_capacity: Duration,
         stack_size: StackSize,
         entry_point: extern "C" fn(),
     ) -> Result<Self, ProcessError> {
         Ok(Self {
             inner: ctx.create_process(ProcessAttribute {
-                period: Infinite,
-                time_capacity: Infinite,
+                period: SystemTime::Normal(period),
+                time_capacity: SystemTime::Normal(time_capacity),
                 entry_point,
                 stack_size,
                 base_priority: 1,

@@ -36,6 +36,8 @@ impl Partition<Hypervisor> for RouterPartition {
             Name::from_str(NAME).unwrap(),
             cfg.interfaces,
             cfg.ports,
+            cfg.period,
+            cfg.time_capacity,
             cfg.stack_size,
             entry_point,
         )
@@ -65,14 +67,24 @@ extern "C" fn entry_point() {
             use log::{debug, trace};
 
             match res {
-                Ok(Some(v)) => debug!("Forwarded VL {}", v),
+                Ok(Some(v)) => {
+                    debug!("Forwarded VL {}", v);
+                    continue;
+                }
                 Ok(None) => trace!("Scheduled no VL"),
-                Err(Error::Port(e)) => trace!("Port send/receive failed temporarily: {}", e),
-                Err(e) => debug!("Failed to forward message: {}", e),
+                Err(Error::Port(e)) => {
+                    trace!("Port send/receive failed temporarily: {}", e);
+                    continue;
+                }
+                Err(e) => {
+                    debug!("Failed to forward message: {}", e);
+                    continue;
+                }
             }
         }
         #[cfg(not(feature = "log"))]
         let _res = res;
+        Hypervisor::periodic_wait().unwrap();
     }
 }
 

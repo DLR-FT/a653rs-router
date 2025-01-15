@@ -1,5 +1,11 @@
 pub mod test_data {
     pub const CFG: &str = r##"
+period:
+  secs: 1
+  nanos: 0
+time_capacity:
+  secs: 0
+  nanos: 300000
 stack_size: 10000
 virtual_links:
   1:

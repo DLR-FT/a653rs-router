@@ -53,18 +53,28 @@ where
     /// # Errors
     /// Returns an error describing what kind of resource failed to initialize.
     /// Enable the `log` feature for more debug information.
+    #[allow(clippy::too_many_arguments)]
     pub fn create<C: CreateNetworkInterfaceId<P>>(
         ctx: &mut StartContext<I>,
         name: Name,
         interfaces: InterfacesConfig<IFS>,
         ports: PortsConfig<PS>,
+        period: Duration,
+        time_capacity: Duration,
         stack_size: StackSize,
         entry_point: extern "C" fn(),
     ) -> Result<Self, Error> {
         Ok(Self {
             resources: RouterResources::<I, P, IFS, PS>::create::<C>(ctx, interfaces, ports)?,
-            process: RouterProcess::create(ctx, name, stack_size, entry_point)
-                .map_err(Error::Process)?,
+            process: RouterProcess::create(
+                ctx,
+                name,
+                period,
+                time_capacity,
+                stack_size,
+                entry_point,
+            )
+            .map_err(Error::Process)?,
         })
     }
 

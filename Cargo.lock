@@ -14,9 +14,9 @@ dependencies = [
 
 [[package]]
 name = "a653rs-linux"
-version = "0.2.0"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f189c0120f4808e022cb31063db00a974975f3eb7a383639cec7c71e150fd17c"
+checksum = "dc4f8682d9a6a3cabf8a7fd57b37998ef3afdaaaa471e839cbea0cb3d5c87dca"
 dependencies = [
  "a653rs",
  "a653rs-linux-core",
@@ -34,9 +34,9 @@ dependencies = [
 
 [[package]]
 name = "a653rs-linux-core"
-version = "0.2.0"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0c163dca33227c27cb81aa02c4644ca9f15ca07aac64f53f05c653f00e26e4e7"
+checksum = "3b505941dc1bcbf37d0f13967861a4ad8c56defa4978236c20be12ec24b829e2"
 dependencies = [
  "a653rs",
  "anyhow",

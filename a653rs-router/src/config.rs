@@ -74,6 +74,12 @@ pub struct RouterConfig<const IN: usize, const OUT: usize, const IFS: usize, con
     /// Stack size limit
     pub stack_size: StackSize,
 
+    /// Period for running the router process.
+    pub period: Duration,
+
+    /// Maximum duration for which the router process may execute.
+    pub time_capacity: Duration,
+
     /// Forwarding table
     #[cfg_attr(feature = "serde", serde(default))]
     pub virtual_links: VirtualLinksConfig<IN, OUT>,
@@ -209,9 +215,11 @@ impl PortConfig {
 impl<const IN: usize, const OUT: usize, const IFS: usize, const PORTS: usize>
     RouterConfig<IN, OUT, IFS, PORTS>
 {
-    fn new(stack_size: usize) -> Self {
+    fn new(stack_size: usize, period: Duration, time_capacity: Duration) -> Self {
         Self {
             stack_size: stack_size as u32,
+            time_capacity,
+            period,
             virtual_links: Default::default(),
             interfaces: Default::default(),
             ports: Default::default(),
@@ -219,12 +227,16 @@ impl<const IN: usize, const OUT: usize, const IFS: usize, const PORTS: usize>
     }
 
     /// Creates a new builder for a configuration.
-    pub fn builder(stack_size: usize) -> RouterConfigBuilder<IN, OUT, IFS, PORTS> {
+    pub fn builder(
+        stack_size: usize,
+        period: Duration,
+        time_capacity: Duration,
+    ) -> RouterConfigBuilder<IN, OUT, IFS, PORTS> {
         sealed::greater_than_zero::<IN>();
         sealed::greater_than_zero::<OUT>();
         sealed::greater_than_zero::<IFS>();
         sealed::greater_than_zero::<PORTS>();
-        RouterConfigBuilder::new(stack_size)
+        RouterConfigBuilder::new(stack_size, period, time_capacity)
     }
 }
 
@@ -331,9 +343,9 @@ impl<const IN: usize, const OUT: usize, const IFS: usize, const PORTS: usize>
     RouterConfigBuilder<IN, OUT, IFS, PORTS>
 {
     /// Creates a new builder for a configuration with a given `stack_size`.
-    pub fn new(stack_size: usize) -> Self {
+    pub fn new(stack_size: usize, period: Duration, time_capacity: Duration) -> Self {
         Self {
-            cfg: RouterConfig::new(stack_size),
+            cfg: RouterConfig::new(stack_size, period, time_capacity),
         }
     }
 
@@ -489,70 +501,74 @@ mod tests {
 
     #[test]
     fn build_config() {
-        _ = RouterConfig::<8, 8, 8, 8>::builder(10_000)
-            .interface(
-                "eth0",
-                InterfaceConfig::new("NodeA", "NodeB", DataRate::b(10_000_000), 1_500),
-            )
-            .unwrap()
-            .interface(
-                "eth1",
-                InterfaceConfig::new("NodeA", "NodeB", DataRate::b(10_000_000), 1_500),
-            )
-            .unwrap()
-            .port(
-                "Advisory_1",
-                PortConfig::queuing_in(QueuingDiscipline::Fifo, 10, 1_0000),
-            )
-            .unwrap()
-            .port(
-                "Advisory_2",
-                PortConfig::queuing_in(QueuingDiscipline::Fifo, 10, 1_0000),
-            )
-            .unwrap()
-            .port(
-                "FCC_1",
-                PortConfig::queuing_in(QueuingDiscipline::Fifo, 10, 1_0000),
-            )
-            .unwrap()
-            .port(
-                "FCC_2",
-                PortConfig::queuing_out(QueuingDiscipline::Fifo, 10, 1_0000),
-            )
-            .unwrap()
-            .port(
-                "FCC_3",
-                PortConfig::queuing_out(QueuingDiscipline::Fifo, 10, 1_0000),
-            )
-            .unwrap()
-            // VL 1
-            .virtual_link(1, "Advisory_1")
-            .unwrap()
-            .destination(1, "eth0")
-            .unwrap()
-            .destination(1, "FCC_1")
-            .unwrap()
-            .schedule(1, Duration::from_millis(10))
-            .unwrap()
-            // VL2
-            .virtual_link(2, "Advisory_2")
-            .unwrap()
-            .destination(2, "eth0")
-            .unwrap()
-            .destination(2, "FCC_2")
-            .unwrap()
-            .schedule(2, Duration::from_millis(20))
-            .unwrap()
-            // VL3
-            .virtual_link(3, "eth0")
-            .unwrap()
-            .destination(3, "FCC_3")
-            .unwrap()
-            .destination(3, "eth1")
-            .unwrap()
-            .schedule(3, Duration::from_millis(40))
-            .unwrap()
-            .build()
-            .unwrap();
+        _ = RouterConfig::<8, 8, 8, 8>::builder(
+            10_000,
+            Duration::from_millis(500),
+            Duration::from_millis(10),
+        )
+        .interface(
+            "eth0",
+            InterfaceConfig::new("NodeA", "NodeB", DataRate::b(10_000_000), 1_500),
+        )
+        .unwrap()
+        .interface(
+            "eth1",
+            InterfaceConfig::new("NodeA", "NodeB", DataRate::b(10_000_000), 1_500),
+        )
+        .unwrap()
+        .port(
+            "Advisory_1",
+            PortConfig::queuing_in(QueuingDiscipline::Fifo, 10, 1_0000),
+        )
+        .unwrap()
+        .port(
+            "Advisory_2",
+            PortConfig::queuing_in(QueuingDiscipline::Fifo, 10, 1_0000),
+        )
+        .unwrap()
+        .port(
+            "FCC_1",
+            PortConfig::queuing_in(QueuingDiscipline::Fifo, 10, 1_0000),
+        )
+        .unwrap()
+        .port(
+            "FCC_2",
+            PortConfig::queuing_out(QueuingDiscipline::Fifo, 10, 1_0000),
+        )
+        .unwrap()
+        .port(
+            "FCC_3",
+            PortConfig::queuing_out(QueuingDiscipline::Fifo, 10, 1_0000),
+        )
+        .unwrap()
+        // VL 1
+        .virtual_link(1, "Advisory_1")
+        .unwrap()
+        .destination(1, "eth0")
+        .unwrap()
+        .destination(1, "FCC_1")
+        .unwrap()
+        .schedule(1, Duration::from_millis(10))
+        .unwrap()
+        // VL2
+        .virtual_link(2, "Advisory_2")
+        .unwrap()
+        .destination(2, "eth0")
+        .unwrap()
+        .destination(2, "FCC_2")
+        .unwrap()
+        .schedule(2, Duration::from_millis(20))
+        .unwrap()
+        // VL3
+        .virtual_link(3, "eth0")
+        .unwrap()
+        .destination(3, "FCC_3")
+        .unwrap()
+        .destination(3, "eth1")
+        .unwrap()
+        .schedule(3, Duration::from_millis(40))
+        .unwrap()
+        .build()
+        .unwrap();
     }
 }

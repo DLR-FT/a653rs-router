@@ -1,3 +1,9 @@
+period:
+  secs: 1
+  nanos: 0
+time_capacity:
+  secs: 0
+  nanos: 300000
 stack_size: 20000
 virtual_links:
   1:
